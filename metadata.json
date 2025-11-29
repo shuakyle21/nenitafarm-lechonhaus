@@ -1,0 +1,5 @@
+{
+  "name": "Nenita Farm Lechon POS",
+  "description": "A modern, tablet-based Point of Sale system for Nenita Farm Lechon Haus, featuring a split-screen layout, visual menu, and custom weight-based ordering for Lechon.",
+  "requestFramePermissions": []
+}
