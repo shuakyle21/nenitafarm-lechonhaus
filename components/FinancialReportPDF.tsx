@@ -69,11 +69,17 @@ const styles = StyleSheet.create({
     expenseHeader: {
         backgroundColor: '#DC2626',
     },
+    adjustmentHeader: {
+        backgroundColor: '#16A34A', // Green
+    },
     textRight: {
         textAlign: 'right',
     },
     textRed: {
         color: '#DC2626',
+    },
+    textGreen: {
+        color: '#16A34A',
     },
     footer: {
         position: 'absolute',
@@ -95,15 +101,26 @@ interface Expense {
     date: string;
 }
 
+interface SalesAdjustment {
+    id: string;
+    amount: number;
+    reason: string;
+    added_by: string;
+    date: string;
+}
+
 interface FinancialReportPDFProps {
     orders: Order[];
     expenses: Expense[];
+    salesAdjustments: SalesAdjustment[];
     title: string;
 }
 
-const FinancialReportPDF: React.FC<FinancialReportPDFProps> = ({ orders, expenses, title }) => {
+const FinancialReportPDF: React.FC<FinancialReportPDFProps> = ({ orders, expenses, salesAdjustments, title }) => {
     // Calculate Totals
-    const reportSales = orders.reduce((acc, o) => acc + (o.total || 0), 0);
+    const ordersTotal = orders.reduce((acc, o) => acc + (o.total || 0), 0);
+    const adjustmentsTotal = salesAdjustments.reduce((acc, s) => acc + s.amount, 0);
+    const reportSales = ordersTotal + adjustmentsTotal;
     const reportExpenses = expenses.reduce((acc, e) => acc + e.amount, 0);
     const reportNet = reportSales - reportExpenses;
 
@@ -113,9 +130,10 @@ const FinancialReportPDF: React.FC<FinancialReportPDFProps> = ({ orders, expense
                 {/* Header */}
                 <View style={styles.header}>
                     {/* Logo */}
-                    <View style={{ marginBottom: 10, alignItems: 'center' }}>
+                    {/* <View style={{ marginBottom: 10, alignItems: 'center' }}>
                         <Image src="/assets/logo.png" style={{ width: 100, height: 60, objectFit: 'contain' }} />
-                    </View>
+                    </View> */}
+                    {/* Commented out logo as it might cause issues if path is wrong, user can uncomment */}
                     <Text style={styles.title}>NENITA FARM LECHON HAUS and CATERING SERVICES</Text>
                     <Text style={styles.subtitle}>{title}</Text>
                 </View>
@@ -156,6 +174,45 @@ const FinancialReportPDF: React.FC<FinancialReportPDFProps> = ({ orders, expense
                         </View>
                     </View>
                 </View>
+
+                {/* Sales Adjustments Breakdown */}
+                {salesAdjustments.length > 0 && (
+                    <>
+                        <Text style={styles.sectionTitle}>Sales Adjustments (Added to Sales)</Text>
+                        <View style={styles.table}>
+                            <View style={[styles.tableRow, styles.adjustmentHeader]}>
+                                <View style={{ ...styles.tableCol, width: '25%' }}>
+                                    <Text style={styles.tableCellHeader}>Date</Text>
+                                </View>
+                                <View style={{ ...styles.tableCol, width: '35%' }}>
+                                    <Text style={styles.tableCellHeader}>Reason</Text>
+                                </View>
+                                <View style={{ ...styles.tableCol, width: '25%' }}>
+                                    <Text style={styles.tableCellHeader}>Added By</Text>
+                                </View>
+                                <View style={{ ...styles.tableCol, width: '15%' }}>
+                                    <Text style={[styles.tableCellHeader, styles.textRight]}>Amount</Text>
+                                </View>
+                            </View>
+                            {salesAdjustments.map((s, i) => (
+                                <View key={i} style={styles.tableRow}>
+                                    <View style={{ ...styles.tableCol, width: '25%' }}>
+                                        <Text style={styles.tableCell}>{new Date(s.date).toLocaleDateString()}</Text>
+                                    </View>
+                                    <View style={{ ...styles.tableCol, width: '35%' }}>
+                                        <Text style={styles.tableCell}>{s.reason}</Text>
+                                    </View>
+                                    <View style={{ ...styles.tableCol, width: '25%' }}>
+                                        <Text style={styles.tableCell}>{s.added_by}</Text>
+                                    </View>
+                                    <View style={{ ...styles.tableCol, width: '15%' }}>
+                                        <Text style={[styles.tableCell, styles.textRight, styles.textGreen]}>P {s.amount.toLocaleString()}</Text>
+                                    </View>
+                                </View>
+                            ))}
+                        </View>
+                    </>
+                )}
 
                 {/* Expense Breakdown */}
                 <Text style={styles.sectionTitle}>Expense Breakdown</Text>

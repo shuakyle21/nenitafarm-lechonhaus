@@ -47,7 +47,7 @@ export interface DiscountDetails {
   amount: number; // Percentage (e.g., 0.20)
 }
 
-export type OrderType = 'DINE_IN' | 'TAKEOUT';
+export type OrderType = 'DINE_IN' | 'TAKEOUT' | 'DELIVERY';
 
 export interface Order {
   id: string;
@@ -59,6 +59,9 @@ export interface Order {
   cash: number;
   change: number;
   orderType?: OrderType;
+  deliveryAddress?: string;
+  deliveryTime?: string;
+  contactNumber?: string;
 }
 
 export interface Staff {

@@ -216,7 +216,10 @@ const App: React.FC = () => {
           discount_details: order.discount,
           cash: order.cash,
           change: order.change,
-          order_type: order.orderType || 'DINE_IN'
+          order_type: order.orderType || 'DINE_IN',
+          delivery_address: order.deliveryAddress,
+          delivery_time: order.deliveryTime,
+          contact_number: order.contactNumber
         }])
         .select()
         .single();

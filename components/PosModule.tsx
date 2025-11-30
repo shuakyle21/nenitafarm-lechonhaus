@@ -35,6 +35,11 @@ const PosModule: React.FC<PosModuleProps> = ({
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedServer, setSelectedServer] = useState<Staff | null>(null);
   const [orderType, setOrderType] = useState<OrderType>('DINE_IN');
+  const [deliveryDetails, setDeliveryDetails] = useState({
+    address: '',
+    time: '',
+    contact: ''
+  });
 
   // Modals & Discount State
   const [isLechonModalOpen, setIsLechonModalOpen] = useState(false);
@@ -141,11 +146,18 @@ const PosModule: React.FC<PosModuleProps> = ({
   const clearCart = () => {
     setCart([]);
     setDiscountDetails(null);
+    setDeliveryDetails({ address: '', time: '', contact: '' });
   };
 
   const handleOrderConfirmed = (order: Order) => {
-    // Inject orderType into the order object before saving
-    const finalOrder = { ...order, orderType };
+    // Inject orderType and delivery details into the order object before saving
+    const finalOrder = {
+      ...order,
+      orderType,
+      deliveryAddress: orderType === 'DELIVERY' ? deliveryDetails.address : undefined,
+      deliveryTime: orderType === 'DELIVERY' ? deliveryDetails.time : undefined,
+      contactNumber: orderType === 'DELIVERY' ? deliveryDetails.contact : undefined
+    };
     onSaveOrder(finalOrder);
     clearCart();
     setIsReceiptModalOpen(false);
@@ -224,6 +236,8 @@ const PosModule: React.FC<PosModuleProps> = ({
           orderType={orderType}
           onSetOrderType={setOrderType}
           orderCount={orderCount}
+          deliveryDetails={deliveryDetails}
+          onUpdateDeliveryDetails={setDeliveryDetails}
         />
       </div>
 

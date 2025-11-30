@@ -17,6 +17,12 @@ interface SidebarCartProps {
   orderType: OrderType;
   onSetOrderType: (type: OrderType) => void;
   orderCount: number;
+  deliveryDetails?: {
+    address: string;
+    time: string;
+    contact: string;
+  };
+  onUpdateDeliveryDetails?: (details: { address: string; time: string; contact: string }) => void;
 }
 
 const SidebarCart: React.FC<SidebarCartProps> = ({
@@ -32,7 +38,9 @@ const SidebarCart: React.FC<SidebarCartProps> = ({
   onSelectServer,
   orderType,
   onSetOrderType,
-  orderCount
+  orderCount,
+  deliveryDetails,
+  onUpdateDeliveryDetails
 }) => {
   const [isServerMenuOpen, setIsServerMenuOpen] = useState(false);
 
@@ -80,6 +88,15 @@ const SidebarCart: React.FC<SidebarCartProps> = ({
           >
             <ShoppingBag size={12} /> Takeout
           </button>
+          <button
+            onClick={() => onSetOrderType('DELIVERY')}
+            className={`flex-1 flex items-center justify-center gap-1 py-1.5 rounded-md text-xs font-bold transition-all ${orderType === 'DELIVERY'
+              ? 'bg-white text-red-900 shadow-sm'
+              : 'text-red-200 hover:bg-red-800'
+              }`}
+          >
+            <ShoppingBag size={12} /> Delivery
+          </button>
         </div>
 
         {/* Server Selection */}
@@ -121,6 +138,37 @@ const SidebarCart: React.FC<SidebarCartProps> = ({
           )}
         </div>
       </div>
+
+      {/* Delivery Details Input */}
+      {orderType === 'DELIVERY' && onUpdateDeliveryDetails && (
+        <div className="bg-red-50 p-3 border-b border-red-100 space-y-2 animate-in slide-in-from-top-2 duration-200">
+          <div className="flex items-center gap-2 text-red-800 font-bold text-xs uppercase tracking-wider mb-1">
+            <ShoppingBag size={12} /> Delivery Details
+          </div>
+          <input
+            type="text"
+            placeholder="Delivery Address"
+            value={deliveryDetails?.address || ''}
+            onChange={(e) => onUpdateDeliveryDetails({ ...deliveryDetails!, address: e.target.value })}
+            className="w-full p-2 text-sm border border-red-200 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500 bg-white"
+          />
+          <div className="flex gap-2">
+            <input
+              type="time"
+              value={deliveryDetails?.time || ''}
+              onChange={(e) => onUpdateDeliveryDetails({ ...deliveryDetails!, time: e.target.value })}
+              className="flex-1 p-2 text-sm border border-red-200 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500 bg-white"
+            />
+            <input
+              type="text"
+              placeholder="Contact #"
+              value={deliveryDetails?.contact || ''}
+              onChange={(e) => onUpdateDeliveryDetails({ ...deliveryDetails!, contact: e.target.value })}
+              className="flex-1 p-2 text-sm border border-red-200 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500 bg-white"
+            />
+          </div>
+        </div>
+      )}
 
       {/* Cart Items List */}
       <div className="flex-1 overflow-y-auto p-2 space-y-2 bg-stone-50/50">

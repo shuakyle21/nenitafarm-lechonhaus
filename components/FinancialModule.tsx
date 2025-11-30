@@ -5,7 +5,7 @@ import {
     LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
     PieChart, Pie, Cell, BarChart, Bar
 } from 'recharts';
-import { Wallet, TrendingUp, TrendingDown, DollarSign, Plus, History, PieChart as PieChartIcon, FileText, Download } from 'lucide-react';
+import { Wallet, TrendingUp, TrendingDown, DollarSign, Plus, History, PieChart as PieChartIcon, FileText, Download, ArrowUpCircle, ArrowDownCircle } from 'lucide-react';
 import { pdf } from '@react-pdf/renderer';
 import { saveAs } from 'file-saver';
 import FinancialReportPDF from './FinancialReportPDF';
@@ -18,6 +18,14 @@ interface Expense {
     date: string;
 }
 
+interface SalesAdjustment {
+    id: string;
+    amount: number;
+    reason: string;
+    added_by: string;
+    date: string;
+}
+
 interface FinancialModuleProps {
     orders: Order[];
 }
@@ -26,56 +34,79 @@ const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8', '#82ca9d'
 
 const FinancialModule: React.FC<FinancialModuleProps> = ({ orders }) => {
     const [expenses, setExpenses] = useState<Expense[]>([]);
+    const [salesAdjustments, setSalesAdjustments] = useState<SalesAdjustment[]>([]);
+    const [transactionType, setTransactionType] = useState<'EXPENSE' | 'SALES'>('EXPENSE');
+
     const [amount, setAmount] = useState('');
     const [reason, setReason] = useState('');
-    const [requestedBy, setRequestedBy] = useState('');
+    const [person, setPerson] = useState(''); // requestedBy or addedBy
     const [loading, setLoading] = useState(false);
 
     useEffect(() => {
-        fetchExpenses();
+        fetchFinancialData();
     }, []);
 
-    const fetchExpenses = async () => {
-        const { data, error } = await supabase
+    const fetchFinancialData = async () => {
+        const expensesPromise = supabase
             .from('expenses')
             .select('*')
             .order('date', { ascending: false });
 
-        if (error) {
-            console.error('Error fetching expenses:', error);
-        } else {
-            setExpenses(data || []);
-        }
+        const salesPromise = supabase
+            .from('sales_adjustments')
+            .select('*')
+            .order('date', { ascending: false });
+
+        const [expensesRes, salesRes] = await Promise.all([expensesPromise, salesPromise]);
+
+        if (expensesRes.error) console.error('Error fetching expenses:', expensesRes.error);
+        else setExpenses(expensesRes.data || []);
+
+        if (salesRes.error) console.error('Error fetching sales adjustments:', salesRes.error);
+        else setSalesAdjustments(salesRes.data || []);
     };
 
-    const handleAddExpense = async (e: React.FormEvent) => {
+    const handleTransaction = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!amount || !reason || !requestedBy) return;
+        if (!amount || !reason || !person) return;
 
         setLoading(true);
-        const { error } = await supabase
-            .from('expenses')
-            .insert([
-                {
+
+        if (transactionType === 'EXPENSE') {
+            const { error } = await supabase
+                .from('expenses')
+                .insert([{
                     amount: parseFloat(amount),
                     reason,
-                    requested_by: requestedBy
-                }
-            ]);
+                    requested_by: person
+                }]);
 
-        if (error) {
-            alert('Error adding expense');
-            console.error(error);
+            if (error) {
+                alert('Error adding expense');
+                console.error(error);
+            }
         } else {
-            setAmount('');
-            setReason('');
-            setRequestedBy('');
-            fetchExpenses();
+            const { error } = await supabase
+                .from('sales_adjustments')
+                .insert([{
+                    amount: parseFloat(amount),
+                    reason,
+                    added_by: person
+                }]);
+
+            if (error) {
+                alert('Error adding sales adjustment');
+                console.error(error);
+            }
         }
+
+        setAmount('');
+        setReason('');
+        setPerson('');
+        fetchFinancialData();
         setLoading(false);
     };
 
-    // --- Analytics Calculations ---
     // --- Analytics Calculations ---
     const isToday = (dateString: string) => {
         const date = new Date(dateString);
@@ -87,8 +118,12 @@ const FinancialModule: React.FC<FinancialModuleProps> = ({ orders }) => {
 
     const todayOrders = React.useMemo(() => orders.filter(o => isToday(o.date)), [orders]);
     const todayExpenses = React.useMemo(() => expenses.filter(e => isToday(e.date)), [expenses]);
+    const todaySalesAdjustments = React.useMemo(() => salesAdjustments.filter(s => isToday(s.date)), [salesAdjustments]);
 
-    const totalSales = todayOrders.reduce((acc, order) => acc + (order.total || 0), 0);
+    const ordersTotal = todayOrders.reduce((acc, order) => acc + (order.total || 0), 0);
+    const adjustmentsTotal = todaySalesAdjustments.reduce((acc, s) => acc + s.amount, 0);
+
+    const totalSales = ordersTotal + adjustmentsTotal;
     const totalExpenses = todayExpenses.reduce((acc, exp) => acc + exp.amount, 0);
     const netCash = totalSales - totalExpenses;
 
@@ -115,10 +150,20 @@ const FinancialModule: React.FC<FinancialModuleProps> = ({ orders }) => {
                     orderDate.getMonth() === date.getMonth() &&
                     orderDate.getFullYear() === date.getFullYear();
             });
-            const dayTotal = dayOrders.reduce((acc, o) => acc + (o.total || 0), 0);
-            return { date: date.toLocaleDateString('en-US', { weekday: 'short' }), sales: dayTotal };
+
+            const dayAdjustments = salesAdjustments.filter(s => {
+                const adjDate = new Date(s.date);
+                return adjDate.getDate() === date.getDate() &&
+                    adjDate.getMonth() === date.getMonth() &&
+                    adjDate.getFullYear() === date.getFullYear();
+            });
+
+            const dayOrdersTotal = dayOrders.reduce((acc, o) => acc + (o.total || 0), 0);
+            const dayAdjustmentsTotal = dayAdjustments.reduce((acc, s) => acc + s.amount, 0);
+
+            return { date: date.toLocaleDateString('en-US', { weekday: 'short' }), sales: dayOrdersTotal + dayAdjustmentsTotal };
         });
-    }, [orders, totalSales]);
+    }, [orders, salesAdjustments, totalSales]);
 
     // Category Performance Data
     const categoryData = React.useMemo(() => {
@@ -129,6 +174,10 @@ const FinancialModule: React.FC<FinancialModuleProps> = ({ orders }) => {
                 categories[cat] = (categories[cat] || 0) + item.finalPrice;
             });
         });
+
+        // Add adjustments as a separate category if needed, or just ignore for category breakdown
+        // For now, we'll keep category breakdown strictly for menu items as "Manual Adjustment" isn't a menu category
+
         return Object.entries(categories).map(([name, value]) => ({ name, value }));
     }, [todayOrders]);
 
@@ -146,6 +195,7 @@ const FinancialModule: React.FC<FinancialModuleProps> = ({ orders }) => {
         let title = '';
         let filteredOrders: Order[] = [];
         let filteredExpenses: Expense[] = [];
+        let filteredAdjustments: SalesAdjustment[] = [];
 
         // Filter Data
         if (type === 'TODAY') {
@@ -153,29 +203,42 @@ const FinancialModule: React.FC<FinancialModuleProps> = ({ orders }) => {
             title = `Daily Financial Report - ${today.toLocaleDateString()}`;
             filteredOrders = orders.filter(o => o.date.startsWith(dateStr));
             filteredExpenses = expenses.filter(e => e.date.startsWith(dateStr));
+            filteredAdjustments = salesAdjustments.filter(s => s.date.startsWith(dateStr));
         } else if (type === 'WEEK') {
             const oneWeekAgo = new Date(today);
             oneWeekAgo.setDate(today.getDate() - 7);
             title = `Weekly Financial Report - ${oneWeekAgo.toLocaleDateString()} to ${today.toLocaleDateString()}`;
             filteredOrders = orders.filter(o => new Date(o.date) >= oneWeekAgo);
             filteredExpenses = expenses.filter(e => new Date(e.date) >= oneWeekAgo);
+            filteredAdjustments = salesAdjustments.filter(s => new Date(s.date) >= oneWeekAgo);
         } else if (type === 'MONTH') {
             const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
             title = `Monthly Financial Report - ${today.toLocaleString('default', { month: 'long', year: 'numeric' })}`;
             filteredOrders = orders.filter(o => new Date(o.date) >= firstDay);
             filteredExpenses = expenses.filter(e => new Date(e.date) >= firstDay);
+            filteredAdjustments = salesAdjustments.filter(s => new Date(s.date) >= firstDay);
         }
 
         const blob = await pdf(
             <FinancialReportPDF
                 orders={filteredOrders}
                 expenses={filteredExpenses}
+                salesAdjustments={filteredAdjustments}
                 title={title}
             />
         ).toBlob();
 
         saveAs(blob, `Financial_Report_${type}_${today.toISOString().split('T')[0]}.pdf`);
     };
+
+    // Combine transactions for the list
+    const recentTransactions = React.useMemo(() => {
+        const combined = [
+            ...todayExpenses.map(e => ({ ...e, type: 'EXPENSE' as const, person: e.requested_by })),
+            ...todaySalesAdjustments.map(s => ({ ...s, type: 'SALES' as const, person: s.added_by }))
+        ];
+        return combined.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    }, [todayExpenses, todaySalesAdjustments]);
 
     return (
         <div className="h-full w-full bg-stone-100 overflow-y-auto p-6 font-roboto animate-in fade-in duration-300">
@@ -228,6 +291,11 @@ const FinancialModule: React.FC<FinancialModuleProps> = ({ orders }) => {
                     <div>
                         <p className="text-stone-500 font-bold text-xs uppercase tracking-wider mb-1">Total Gross Sales</p>
                         <h3 className="text-3xl font-black text-stone-800">₱{totalSales.toLocaleString()}</h3>
+                        {adjustmentsTotal > 0 && (
+                            <p className="text-xs text-green-600 font-bold mt-1">
+                                +₱{adjustmentsTotal.toLocaleString()} from adjustments
+                            </p>
+                        )}
                     </div>
                     <div className="p-3 bg-green-100 text-green-600 rounded-full">
                         <TrendingUp size={24} />
@@ -316,13 +384,36 @@ const FinancialModule: React.FC<FinancialModuleProps> = ({ orders }) => {
                 {/* Right Column: Cash Management (1/3 width) */}
                 <div className="space-y-6">
 
-                    {/* Expense Form */}
+                    {/* Transaction Form */}
                     <div className="bg-white p-6 rounded-2xl shadow-sm border border-stone-200">
                         <h3 className="font-bold text-stone-800 text-lg mb-4 flex items-center gap-2">
-                            <Plus className="text-red-600" size={20} />
-                            Record Expense / Withdrawal
+                            <Plus className={transactionType === 'EXPENSE' ? "text-red-600" : "text-green-600"} size={20} />
+                            Record Transaction
                         </h3>
-                        <form onSubmit={handleAddExpense} className="space-y-4">
+
+                        {/* Type Toggle */}
+                        <div className="flex p-1 bg-stone-100 rounded-xl mb-4">
+                            <button
+                                onClick={() => setTransactionType('EXPENSE')}
+                                className={`flex-1 py-2 text-sm font-bold rounded-lg transition-all ${transactionType === 'EXPENSE'
+                                    ? 'bg-white text-red-600 shadow-sm'
+                                    : 'text-stone-500 hover:text-stone-700'
+                                    }`}
+                            >
+                                Expense
+                            </button>
+                            <button
+                                onClick={() => setTransactionType('SALES')}
+                                className={`flex-1 py-2 text-sm font-bold rounded-lg transition-all ${transactionType === 'SALES'
+                                    ? 'bg-white text-green-600 shadow-sm'
+                                    : 'text-stone-500 hover:text-stone-700'
+                                    }`}
+                            >
+                                Add to Sales
+                            </button>
+                        </div>
+
+                        <form onSubmit={handleTransaction} className="space-y-4">
                             <div>
                                 <label className="block text-xs font-bold text-stone-500 uppercase mb-1">Amount</label>
                                 <div className="relative">
@@ -331,7 +422,8 @@ const FinancialModule: React.FC<FinancialModuleProps> = ({ orders }) => {
                                         type="number"
                                         value={amount}
                                         onChange={(e) => setAmount(e.target.value)}
-                                        className="w-full pl-8 pr-4 py-3 bg-stone-50 border border-stone-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500 font-bold text-stone-800"
+                                        className={`w-full pl-8 pr-4 py-3 bg-stone-50 border border-stone-200 rounded-xl focus:outline-none focus:ring-2 font-bold text-stone-800 ${transactionType === 'EXPENSE' ? 'focus:ring-red-500' : 'focus:ring-green-500'
+                                            }`}
                                         placeholder="0.00"
                                         required
                                     />
@@ -344,19 +436,23 @@ const FinancialModule: React.FC<FinancialModuleProps> = ({ orders }) => {
                                     type="text"
                                     value={reason}
                                     onChange={(e) => setReason(e.target.value)}
-                                    className="w-full px-4 py-3 bg-stone-50 border border-stone-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500 text-sm"
-                                    placeholder="e.g. Supplies, Cash Pull"
+                                    className={`w-full px-4 py-3 bg-stone-50 border border-stone-200 rounded-xl focus:outline-none focus:ring-2 text-sm ${transactionType === 'EXPENSE' ? 'focus:ring-red-500' : 'focus:ring-green-500'
+                                        }`}
+                                    placeholder={transactionType === 'EXPENSE' ? "e.g. Supplies, Cash Pull" : "e.g. Cash Adjustment, Late Entry"}
                                     required
                                 />
                             </div>
 
                             <div>
-                                <label className="block text-xs font-bold text-stone-500 uppercase mb-1">Requested By</label>
+                                <label className="block text-xs font-bold text-stone-500 uppercase mb-1">
+                                    {transactionType === 'EXPENSE' ? 'Requested By' : 'Added By'}
+                                </label>
                                 <input
                                     type="text"
-                                    value={requestedBy}
-                                    onChange={(e) => setRequestedBy(e.target.value)}
-                                    className="w-full px-4 py-3 bg-stone-50 border border-stone-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500 text-sm"
+                                    value={person}
+                                    onChange={(e) => setPerson(e.target.value)}
+                                    className={`w-full px-4 py-3 bg-stone-50 border border-stone-200 rounded-xl focus:outline-none focus:ring-2 text-sm ${transactionType === 'EXPENSE' ? 'focus:ring-red-500' : 'focus:ring-green-500'
+                                        }`}
                                     placeholder="Name"
                                     required
                                 />
@@ -365,30 +461,42 @@ const FinancialModule: React.FC<FinancialModuleProps> = ({ orders }) => {
                             <button
                                 type="submit"
                                 disabled={loading}
-                                className="w-full bg-red-600 text-white py-3 rounded-xl font-bold hover:bg-red-700 transition-colors shadow-lg disabled:opacity-50"
+                                className={`w-full text-white py-3 rounded-xl font-bold transition-colors shadow-lg disabled:opacity-50 ${transactionType === 'EXPENSE'
+                                    ? 'bg-red-600 hover:bg-red-700'
+                                    : 'bg-green-600 hover:bg-green-700'
+                                    }`}
                             >
-                                {loading ? 'Recording...' : 'Record Expense'}
+                                {loading ? 'Recording...' : (transactionType === 'EXPENSE' ? 'Record Expense' : 'Add to Sales')}
                             </button>
                         </form>
                     </div>
 
-                    {/* Recent Expenses List */}
+                    {/* Recent Transactions List */}
                     <div className="bg-white p-6 rounded-2xl shadow-sm border border-stone-200 flex-1">
                         <h3 className="font-bold text-stone-800 text-lg mb-4 flex items-center gap-2">
                             <History className="text-stone-400" size={20} />
                             Recent Transactions
                         </h3>
                         <div className="space-y-3 max-h-[400px] overflow-y-auto pr-2">
-                            {todayExpenses.length === 0 ? (
-                                <p className="text-center text-stone-400 text-sm py-4">No expenses recorded today</p>
+                            {recentTransactions.length === 0 ? (
+                                <p className="text-center text-stone-400 text-sm py-4">No transactions today</p>
                             ) : (
-                                todayExpenses.map(exp => (
-                                    <div key={exp.id} className="flex justify-between items-start p-3 bg-stone-50 rounded-lg border border-stone-100">
-                                        <div>
-                                            <p className="font-bold text-stone-800 text-sm">{exp.reason}</p>
-                                            <p className="text-xs text-stone-500">By: {exp.requested_by} • {new Date(exp.date).toLocaleDateString()}</p>
+                                recentTransactions.map((trans, idx) => (
+                                    <div key={trans.id || idx} className="flex justify-between items-start p-3 bg-stone-50 rounded-lg border border-stone-100">
+                                        <div className="flex items-start gap-3">
+                                            <div className={`mt-1 ${trans.type === 'EXPENSE' ? 'text-red-500' : 'text-green-500'}`}>
+                                                {trans.type === 'EXPENSE' ? <ArrowDownCircle size={16} /> : <ArrowUpCircle size={16} />}
+                                            </div>
+                                            <div>
+                                                <p className="font-bold text-stone-800 text-sm">{trans.reason}</p>
+                                                <p className="text-xs text-stone-500">
+                                                    {trans.type === 'EXPENSE' ? 'By: ' : 'Added by: '}{trans.person} • {new Date(trans.date).toLocaleDateString()}
+                                                </p>
+                                            </div>
                                         </div>
-                                        <span className="font-bold text-red-600 text-sm">-₱{exp.amount.toLocaleString()}</span>
+                                        <span className={`font-bold text-sm ${trans.type === 'EXPENSE' ? 'text-red-600' : 'text-green-600'}`}>
+                                            {trans.type === 'EXPENSE' ? '-' : '+'}₱{trans.amount.toLocaleString()}
+                                        </span>
                                     </div>
                                 ))
                             )}
