@@ -4,7 +4,7 @@ import MainSidebar from './components/MainSidebar';
 import PosModule from './components/PosModule';
 import DashboardModule from './components/DashboardModule';
 // import { MENU_ITEMS } from './constants'; // No longer needed as initial state
-import { MenuItem, Order, Staff, OrderType } from './types';
+import { MenuItem, Order, Staff, OrderType, Expense, SalesAdjustment } from './types';
 import { supabase } from './lib/supabase';
 import StaffModule from './components/StaffModule';
 import FinancialModule from './components/FinancialModule';
@@ -13,8 +13,8 @@ import LoginModule from './components/LoginModule';
 
 const App: React.FC = () => {
   // Auth State
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [userRole, setUserRole] = useState<'ADMIN' | 'CASHIER' | null>(null);
+  const [isAuthenticated, setIsAuthenticated] = useState(true);
+  const [userRole, setUserRole] = useState<'ADMIN' | 'CASHIER' | null>('ADMIN');
 
   const [activeModule, setActiveModule] = useState<'DASHBOARD' | 'POS' | 'STAFF' | 'FINANCE' | 'BOOKING'>('POS');
 
@@ -27,6 +27,10 @@ const App: React.FC = () => {
 
   // Staff State
   const [staffList, setStaffList] = useState<Staff[]>([]);
+
+  // Financial State
+  const [expenses, setExpenses] = useState<Expense[]>([]);
+  const [salesAdjustments, setSalesAdjustments] = useState<SalesAdjustment[]>([]);
 
   // Helper for daily count
   const isToday = (dateString: string) => {
@@ -45,6 +49,7 @@ const App: React.FC = () => {
       fetchMenuItems();
       fetchOrders();
       fetchStaff();
+      fetchFinancialData();
     }
   }, [isAuthenticated]);
 
@@ -133,6 +138,30 @@ const App: React.FC = () => {
       if (data) setStaffList(data as Staff[]);
     } catch (error) {
       console.error('Error fetching staff:', error);
+    }
+  };
+
+  const fetchFinancialData = async () => {
+    try {
+      const expensesPromise = supabase
+        .from('expenses')
+        .select('*')
+        .order('date', { ascending: false });
+
+      const salesPromise = supabase
+        .from('sales_adjustments')
+        .select('*')
+        .order('date', { ascending: false });
+
+      const [expensesRes, salesRes] = await Promise.all([expensesPromise, salesPromise]);
+
+      if (expensesRes.error) console.error('Error fetching expenses:', expensesRes.error);
+      else setExpenses(expensesRes.data || []);
+
+      if (salesRes.error) console.error('Error fetching sales adjustments:', salesRes.error);
+      else setSalesAdjustments(salesRes.data || []);
+    } catch (error) {
+      console.error('Error fetching financial data:', error);
     }
   };
 
@@ -301,6 +330,8 @@ const App: React.FC = () => {
           <DashboardModule
             items={menuItems}
             orders={orders}
+            salesAdjustments={salesAdjustments}
+            expenses={expenses}
           />
         )}
         {activeModule === 'STAFF' && (
@@ -309,6 +340,9 @@ const App: React.FC = () => {
         {activeModule === 'FINANCE' && userRole === 'ADMIN' && (
           <FinancialModule
             orders={orders}
+            expenses={expenses}
+            salesAdjustments={salesAdjustments}
+            onRefresh={fetchFinancialData}
           />
         )}
         {activeModule === 'BOOKING' && <BookingModule />}

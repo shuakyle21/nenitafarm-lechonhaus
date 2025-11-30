@@ -1,40 +1,29 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
-import { Order } from '../types';
+import { Order, Expense, SalesAdjustment } from '../types';
 import {
     LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
     PieChart, Pie, Cell, BarChart, Bar
 } from 'recharts';
-import { Wallet, TrendingUp, TrendingDown, DollarSign, Plus, History, PieChart as PieChartIcon, FileText, Download, ArrowUpCircle, ArrowDownCircle } from 'lucide-react';
+import { Wallet, TrendingUp, TrendingDown, DollarSign, Plus, History, PieChart as PieChartIcon, FileText, Download, ArrowUpCircle, ArrowDownCircle, Trash2 } from 'lucide-react';
 import { pdf } from '@react-pdf/renderer';
 import { saveAs } from 'file-saver';
 import FinancialReportPDF from './FinancialReportPDF';
 
-interface Expense {
-    id: string;
-    amount: number;
-    reason: string;
-    requested_by: string;
-    date: string;
-}
 
-interface SalesAdjustment {
-    id: string;
-    amount: number;
-    reason: string;
-    added_by: string;
-    date: string;
-}
 
 interface FinancialModuleProps {
     orders: Order[];
+    expenses: Expense[];
+    salesAdjustments: SalesAdjustment[];
+    onRefresh: () => void;
 }
 
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8', '#82ca9d'];
 
-const FinancialModule: React.FC<FinancialModuleProps> = ({ orders }) => {
-    const [expenses, setExpenses] = useState<Expense[]>([]);
-    const [salesAdjustments, setSalesAdjustments] = useState<SalesAdjustment[]>([]);
+const FinancialModule: React.FC<FinancialModuleProps> = ({ orders, expenses, salesAdjustments, onRefresh }) => {
+    // const [expenses, setExpenses] = useState<Expense[]>([]); // Lifted to App
+    // const [salesAdjustments, setSalesAdjustments] = useState<SalesAdjustment[]>([]); // Lifted to App
     const [transactionType, setTransactionType] = useState<'EXPENSE' | 'SALES'>('EXPENSE');
 
     const [amount, setAmount] = useState('');
@@ -42,29 +31,11 @@ const FinancialModule: React.FC<FinancialModuleProps> = ({ orders }) => {
     const [person, setPerson] = useState(''); // requestedBy or addedBy
     const [loading, setLoading] = useState(false);
 
-    useEffect(() => {
-        fetchFinancialData();
-    }, []);
+    // useEffect(() => {
+    //     fetchFinancialData();
+    // }, []);
 
-    const fetchFinancialData = async () => {
-        const expensesPromise = supabase
-            .from('expenses')
-            .select('*')
-            .order('date', { ascending: false });
-
-        const salesPromise = supabase
-            .from('sales_adjustments')
-            .select('*')
-            .order('date', { ascending: false });
-
-        const [expensesRes, salesRes] = await Promise.all([expensesPromise, salesPromise]);
-
-        if (expensesRes.error) console.error('Error fetching expenses:', expensesRes.error);
-        else setExpenses(expensesRes.data || []);
-
-        if (salesRes.error) console.error('Error fetching sales adjustments:', salesRes.error);
-        else setSalesAdjustments(salesRes.data || []);
-    };
+    // const fetchFinancialData = async () => { ... } // Lifted to App
 
     const handleTransaction = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -103,8 +74,26 @@ const FinancialModule: React.FC<FinancialModuleProps> = ({ orders }) => {
         setAmount('');
         setReason('');
         setPerson('');
-        fetchFinancialData();
+        setPerson('');
+        onRefresh();
         setLoading(false);
+    };
+
+    const handleDeleteTransaction = async (id: string, type: 'EXPENSE' | 'SALES') => {
+        if (!confirm('Are you sure you want to delete this transaction? This action cannot be undone.')) return;
+
+        const table = type === 'EXPENSE' ? 'expenses' : 'sales_adjustments';
+        const { error } = await supabase
+            .from(table)
+            .delete()
+            .eq('id', id);
+
+        if (error) {
+            console.error('Error deleting transaction:', error);
+            alert('Failed to delete transaction');
+        } else {
+            onRefresh();
+        }
     };
 
     // --- Analytics Calculations ---
@@ -482,7 +471,7 @@ const FinancialModule: React.FC<FinancialModuleProps> = ({ orders }) => {
                                 <p className="text-center text-stone-400 text-sm py-4">No transactions today</p>
                             ) : (
                                 recentTransactions.map((trans, idx) => (
-                                    <div key={trans.id || idx} className="flex justify-between items-start p-3 bg-stone-50 rounded-lg border border-stone-100">
+                                    <div key={trans.id || idx} className="flex justify-between items-start p-3 bg-stone-50 rounded-lg border border-stone-100 group">
                                         <div className="flex items-start gap-3">
                                             <div className={`mt-1 ${trans.type === 'EXPENSE' ? 'text-red-500' : 'text-green-500'}`}>
                                                 {trans.type === 'EXPENSE' ? <ArrowDownCircle size={16} /> : <ArrowUpCircle size={16} />}
@@ -494,9 +483,18 @@ const FinancialModule: React.FC<FinancialModuleProps> = ({ orders }) => {
                                                 </p>
                                             </div>
                                         </div>
-                                        <span className={`font-bold text-sm ${trans.type === 'EXPENSE' ? 'text-red-600' : 'text-green-600'}`}>
-                                            {trans.type === 'EXPENSE' ? '-' : '+'}₱{trans.amount.toLocaleString()}
-                                        </span>
+                                        <div className="flex items-center gap-3">
+                                            <span className={`font-bold text-sm ${trans.type === 'EXPENSE' ? 'text-red-600' : 'text-green-600'}`}>
+                                                {trans.type === 'EXPENSE' ? '-' : '+'}₱{trans.amount.toLocaleString()}
+                                            </span>
+                                            <button
+                                                onClick={() => handleDeleteTransaction(trans.id, trans.type)}
+                                                className="p-1.5 text-stone-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors opacity-0 group-hover:opacity-100"
+                                                title="Delete Transaction"
+                                            >
+                                                <Trash2 size={14} />
+                                            </button>
+                                        </div>
                                     </div>
                                 ))
                             )}

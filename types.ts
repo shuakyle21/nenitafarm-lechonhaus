@@ -64,6 +64,20 @@ export interface Order {
   contactNumber?: string;
 }
 
+export interface SavedOrder {
+  id: string;
+  name: string; // Auto-generated name e.g., "Order #1 - 10:30 AM"
+  timestamp: Date;
+  items: CartItem[];
+  discount: DiscountDetails | null;
+  orderType: OrderType;
+  deliveryDetails?: {
+    address: string;
+    time: string;
+    contact: string;
+  };
+}
+
 export interface Staff {
   id: string;
   name: string;
@@ -95,4 +109,20 @@ export interface Booking {
   status: 'PENDING' | 'CONFIRMED' | 'COMPLETED' | 'CANCELLED';
   notes?: string;
   created_at?: string;
+}
+
+export interface Expense {
+  id: string;
+  amount: number;
+  reason: string;
+  requested_by: string;
+  date: string;
+}
+
+export interface SalesAdjustment {
+  id: string;
+  amount: number;
+  reason: string;
+  added_by: string;
+  date: string;
 }

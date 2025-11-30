@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { useMemo, useState } from 'react';
 import { CartItem, DiscountDetails, Staff, OrderType } from '../types';
-import { Trash2, Minus, Plus, Receipt, Tag, Users, ChevronDown, Utensils, ShoppingBag } from 'lucide-react';
+import { Trash2, Minus, Plus, Receipt, Tag, Users, ChevronDown, Utensils, ShoppingBag, Clock } from 'lucide-react';
 
 interface SidebarCartProps {
   cart: CartItem[];
@@ -23,6 +23,9 @@ interface SidebarCartProps {
     contact: string;
   };
   onUpdateDeliveryDetails?: (details: { address: string; time: string; contact: string }) => void;
+  onSaveForLater: () => void;
+  savedOrdersCount: number;
+  onOpenSavedOrders: () => void;
 }
 
 const SidebarCart: React.FC<SidebarCartProps> = ({
@@ -40,7 +43,10 @@ const SidebarCart: React.FC<SidebarCartProps> = ({
   onSetOrderType,
   orderCount,
   deliveryDetails,
-  onUpdateDeliveryDetails
+  onUpdateDeliveryDetails,
+  onSaveForLater,
+  savedOrdersCount,
+  onOpenSavedOrders
 }) => {
   const [isServerMenuOpen, setIsServerMenuOpen] = useState(false);
 
@@ -282,6 +288,29 @@ const SidebarCart: React.FC<SidebarCartProps> = ({
             className="py-3 px-4 rounded-xl border-2 border-red-100 text-red-600 font-bold hover:bg-red-50 transition-colors"
           >
             Void
+          </button>
+        </div>
+
+        <div className="grid grid-cols-2 gap-3 mb-3">
+          <button
+            onClick={onSaveForLater}
+            disabled={cart.length === 0}
+            className="py-3 px-4 rounded-xl border-2 border-blue-100 text-blue-600 font-bold hover:bg-blue-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+          >
+            <ShoppingBag size={18} />
+            Save
+          </button>
+          <button
+            onClick={onOpenSavedOrders}
+            className="py-3 px-4 rounded-xl border-2 border-stone-200 text-stone-600 font-bold hover:bg-stone-50 transition-colors flex items-center justify-center gap-2 relative"
+          >
+            <Clock size={18} />
+            Saved
+            {savedOrdersCount > 0 && (
+              <span className="absolute -top-2 -right-2 bg-red-600 text-white text-[10px] font-bold w-5 h-5 rounded-full flex items-center justify-center shadow-sm">
+                {savedOrdersCount}
+              </span>
+            )}
           </button>
         </div>
 

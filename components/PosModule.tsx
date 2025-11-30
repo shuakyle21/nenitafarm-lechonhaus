@@ -2,10 +2,11 @@
 import * as React from 'react';
 import { useState } from 'react';
 import { CATEGORIES } from '../constants';
-import { Category, MenuItem, CartItem, DiscountDetails, Order, Variant, Staff, OrderType } from '../types';
+import { Category, MenuItem, CartItem, DiscountDetails, Order, Variant, Staff, OrderType, SavedOrder } from '../types';
 import SidebarCart from './SidebarCart';
 import LechonModal from './LechonModal';
 import DiscountModal from './DiscountModal';
+import SavedOrdersModal from './SavedOrdersModal';
 import ReceiptModal from './ReceiptModal';
 import MenuManagementModal from './MenuManagementModal';
 import { VariantSelector } from './VariantSelector';
@@ -48,6 +49,10 @@ const PosModule: React.FC<PosModuleProps> = ({
   const [discountDetails, setDiscountDetails] = useState<DiscountDetails | null>(null);
   const [isReceiptModalOpen, setIsReceiptModalOpen] = useState(false);
   const [isMenuManagerOpen, setIsMenuManagerOpen] = useState(false);
+
+  // Saved Orders State
+  const [savedOrders, setSavedOrders] = useState<SavedOrder[]>([]);
+  const [isSavedOrdersModalOpen, setIsSavedOrdersModalOpen] = useState(false);
 
   // Variant State
   const [selectedVariantItem, setSelectedVariantItem] = useState<MenuItem | null>(null);
@@ -163,6 +168,50 @@ const PosModule: React.FC<PosModuleProps> = ({
     setIsReceiptModalOpen(false);
   };
 
+  // --- Saved Orders Logic ---
+  const handleSaveForLater = () => {
+    if (cart.length === 0) return;
+
+    const newSavedOrder: SavedOrder = {
+      id: Math.random().toString(36).substr(2, 9),
+      name: `Order #${orderCount + 1} (Saved)`, // Simple naming convention
+      timestamp: new Date(),
+      items: [...cart],
+      discount: discountDetails,
+      orderType: orderType,
+      deliveryDetails: orderType === 'DELIVERY' ? { ...deliveryDetails } : undefined
+    };
+
+    setSavedOrders(prev => [newSavedOrder, ...prev]);
+    clearCart();
+  };
+
+  const handleRestoreSavedOrder = (order: SavedOrder) => {
+    // Check if current cart has items
+    if (cart.length > 0) {
+      if (!window.confirm("Current cart is not empty. Overwrite with saved order?")) {
+        return;
+      }
+    }
+
+    setCart(order.items);
+    setDiscountDetails(order.discount);
+    setOrderType(order.orderType);
+    if (order.deliveryDetails) {
+      setDeliveryDetails(order.deliveryDetails);
+    }
+
+    // Remove from saved list after restoring
+    setSavedOrders(prev => prev.filter(o => o.id !== order.id));
+    setIsSavedOrdersModalOpen(false);
+  };
+
+  const handleDeleteSavedOrder = (id: string) => {
+    if (window.confirm("Are you sure you want to delete this saved order?")) {
+      setSavedOrders(prev => prev.filter(o => o.id !== id));
+    }
+  };
+
   // --- Totals Calculation for passing to Receipt ---
   const subtotal = cart.reduce((acc, item) => acc + item.finalPrice, 0);
 
@@ -238,6 +287,9 @@ const PosModule: React.FC<PosModuleProps> = ({
           orderCount={orderCount}
           deliveryDetails={deliveryDetails}
           onUpdateDeliveryDetails={setDeliveryDetails}
+          onSaveForLater={handleSaveForLater}
+          savedOrdersCount={savedOrders.length}
+          onOpenSavedOrders={() => setIsSavedOrdersModalOpen(true)}
         />
       </div>
 
@@ -396,6 +448,14 @@ const PosModule: React.FC<PosModuleProps> = ({
         onAdd={onAddItem}
         onUpdate={onUpdateItem}
         onDelete={onDeleteItem}
+      />
+
+      <SavedOrdersModal
+        isOpen={isSavedOrdersModalOpen}
+        onClose={() => setIsSavedOrdersModalOpen(false)}
+        savedOrders={savedOrders}
+        onRestore={handleRestoreSavedOrder}
+        onDelete={handleDeleteSavedOrder}
       />
     </div>
   );

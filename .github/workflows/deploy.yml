@@ -32,4 +32,4 @@ jobs:
 
       - name: Deploy to VPS
         run: |
-          scp -r dist/* ${{ secrets.VPS_USER }}@${{ secrets.VPS_IP }}:/var/www/html/
+          scp -o StrictHostKeyChecking=no -r dist/* ${{ secrets.VPS_USER }}@${{ secrets.VPS_IP }}:/var/www/html/

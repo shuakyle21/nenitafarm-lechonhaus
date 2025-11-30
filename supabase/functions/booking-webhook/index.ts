@@ -1,48 +1,59 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
 
+const corsHeaders = {
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+}
+
 serve(async (req) => {
+    if (req.method === 'OPTIONS') {
+        return new Response('ok', { headers: corsHeaders })
+    }
+
     try {
         const supabase = createClient(
             Deno.env.get('SUPABASE_URL') ?? '',
             Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
         )
 
-        // 1. Parse Data
-        // We expect a clean JSON object from our Google Apps Script
-        const payload = await req.json()
+        const { customer_name, contact_number, booking_date, booking_time, pax, type, notes } = await req.json()
 
-        console.log("Received Booking Payload:", JSON.stringify(payload))
-
-        // 2. Validate & Map
-        // The Google Script will send keys matching our DB columns to make it easy
-        const bookingData = {
-            customer_name: payload.customer_name,
-            contact_number: payload.contact_number,
-            booking_date: payload.booking_date, // YYYY-MM-DD
-            booking_time: payload.booking_time, // HH:mm
-            pax: parseInt(payload.pax),
-            type: payload.type || 'RESERVATION',
-            status: 'PENDING', // Google Forms are usually pending until confirmed
-            notes: payload.notes
+        // Basic validation
+        if (!customer_name || !contact_number || !booking_date || !type) {
+            return new Response(
+                JSON.stringify({ error: 'Missing required fields' }),
+                { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+            )
         }
 
-        // 3. Insert into Supabase
         const { data, error } = await supabase
             .from('bookings')
-            .insert([bookingData])
+            .insert([
+                {
+                    customer_name,
+                    contact_number,
+                    booking_date,
+                    booking_time,
+                    pax: parseInt(pax) || 0,
+                    type: type.toUpperCase(), // Ensure uppercase for enum check
+                    notes,
+                    status: 'PENDING'
+                }
+            ])
+            .select()
 
         if (error) throw error
 
-        return new Response(JSON.stringify({ success: true, data }), {
-            headers: { "Content-Type": "application/json" },
-            status: 200,
-        })
+        return new Response(
+            JSON.stringify({ message: 'Booking created successfully', data }),
+            { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
+        )
 
     } catch (error) {
-        return new Response(JSON.stringify({ error: error.message }), {
-            headers: { "Content-Type": "application/json" },
-            status: 400,
-        })
+        return new Response(
+            JSON.stringify({ error: error.message }),
+            { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
+        )
     }
 })

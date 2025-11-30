@@ -190,7 +190,7 @@ const OrderHistoryModal: React.FC<OrderHistoryModalProps> = ({ isOpen, onClose, 
                                                 )}
                                             </td>
                                             <td className="p-4 text-stone-600">
-                                                <div className="max-w-[300px] truncate font-medium">
+                                                <div className="max-w-[300px] whitespace-normal font-medium">
                                                     {order.items.map(formatItemString).join(', ')}
                                                 </div>
                                                 <div className="text-xs text-stone-400 mt-1">
