@@ -20,7 +20,7 @@ fi
 
 # 2. Upload to VPS
 echo "📤 Uploading to VPS ($VPS_IP)..."
-scp -r dist/* $VPS_USER@$VPS_IP:$REMOTE_DIR
+scp -o StrictHostKeyChecking=no -r dist/* $VPS_USER@$VPS_IP:$REMOTE_DIR
 
 if [ $? -eq 0 ]; then
   echo "✅ Upload successful."
