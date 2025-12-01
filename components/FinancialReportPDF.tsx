@@ -130,9 +130,9 @@ const FinancialReportPDF: React.FC<FinancialReportPDFProps> = ({ orders, expense
                 {/* Header */}
                 <View style={styles.header}>
                     {/* Logo */}
-                    {/* <View style={{ marginBottom: 10, alignItems: 'center' }}>
-                        <Image src="/assets/logo.png" style={{ width: 100, height: 60, objectFit: 'contain' }} />
-                    </View> */}
+                    <View style={{ marginBottom: 10, alignItems: 'center' }}>
+                        <Image src="/assets/logo.png" style={{ width: 150, height: 80, objectFit: 'contain' }} />
+                    </View>
                     {/* Commented out logo as it might cause issues if path is wrong, user can uncomment */}
                     <Text style={styles.title}>NENITA FARM LECHON HAUS and CATERING SERVICES</Text>
                     <Text style={styles.subtitle}>{title}</Text>
