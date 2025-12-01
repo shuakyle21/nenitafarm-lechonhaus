@@ -170,6 +170,8 @@ const FinancialModule: React.FC<FinancialModuleProps> = ({ orders, expenses, sal
         return Object.entries(categories).map(([name, value]) => ({ name, value }));
     }, [todayOrders]);
 
+    const [selectedDate, setSelectedDate] = useState<string>('');
+
     // --- Report Generation ---
     const isSunday = () => new Date().getDay() === 0;
     const isLastDayOfMonth = () => {
@@ -179,7 +181,7 @@ const FinancialModule: React.FC<FinancialModuleProps> = ({ orders, expenses, sal
         return tomorrow.getDate() === 1;
     };
 
-    const generateReport = async (type: 'TODAY' | 'WEEK' | 'MONTH') => {
+    const generateReport = async (type: 'TODAY' | 'WEEK' | 'MONTH' | 'CUSTOM') => {
         const today = new Date();
         let title = '';
         let filteredOrders: Order[] = [];
@@ -206,6 +208,12 @@ const FinancialModule: React.FC<FinancialModuleProps> = ({ orders, expenses, sal
             filteredOrders = orders.filter(o => new Date(o.date) >= firstDay);
             filteredExpenses = expenses.filter(e => new Date(e.date) >= firstDay);
             filteredAdjustments = salesAdjustments.filter(s => new Date(s.date) >= firstDay);
+        } else if (type === 'CUSTOM' && selectedDate) {
+            const dateObj = new Date(selectedDate);
+            title = `Financial Report - ${dateObj.toLocaleDateString()}`;
+            filteredOrders = orders.filter(o => o.date.startsWith(selectedDate));
+            filteredExpenses = expenses.filter(e => e.date.startsWith(selectedDate));
+            filteredAdjustments = salesAdjustments.filter(s => s.date.startsWith(selectedDate));
         }
 
         const blob = await pdf(
@@ -217,7 +225,8 @@ const FinancialModule: React.FC<FinancialModuleProps> = ({ orders, expenses, sal
             />
         ).toBlob();
 
-        saveAs(blob, `Financial_Report_${type}_${today.toISOString().split('T')[0]}.pdf`);
+        const filenameDate = type === 'CUSTOM' ? selectedDate : today.toISOString().split('T')[0];
+        saveAs(blob, `Financial_Report_${type}_${filenameDate}.pdf`);
     };
 
     // Combine transactions for the list
@@ -245,7 +254,25 @@ const FinancialModule: React.FC<FinancialModuleProps> = ({ orders, expenses, sal
                 </div>
 
                 {/* Report Generation Buttons */}
-                <div className="flex gap-2">
+                <div className="flex gap-2 items-center">
+                    <div className="flex items-center gap-2 bg-white border border-stone-200 rounded-lg px-2 py-1 shadow-sm mr-2">
+                        <span className="text-xs font-bold text-stone-500 uppercase">Date:</span>
+                        <input
+                            type="date"
+                            value={selectedDate}
+                            onChange={(e) => setSelectedDate(e.target.value)}
+                            className="bg-transparent text-sm font-bold text-stone-700 focus:outline-none"
+                        />
+                        <button
+                            onClick={() => generateReport('CUSTOM')}
+                            disabled={!selectedDate}
+                            className="p-1 hover:bg-stone-100 rounded-md text-blue-600 disabled:opacity-50 disabled:cursor-not-allowed"
+                            title="Generate Report for Selected Date"
+                        >
+                            <Download size={16} />
+                        </button>
+                    </div>
+
                     <button
                         onClick={() => generateReport('TODAY')}
                         className="flex items-center gap-2 px-4 py-2 bg-white border border-stone-200 text-stone-700 font-bold rounded-lg hover:bg-stone-50 transition-colors shadow-sm"

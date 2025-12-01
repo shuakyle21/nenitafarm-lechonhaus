@@ -3,7 +3,6 @@ import * as React from 'react';
 import { useState } from 'react';
 import { Order, CartItem } from '../types';
 import { X, Search, FileText, Calendar, Clock, Utensils, ShoppingBag } from 'lucide-react';
-import { format } from 'date-fns';
 
 interface OrderHistoryModalProps {
     isOpen: boolean;
@@ -172,10 +171,10 @@ const OrderHistoryModal: React.FC<OrderHistoryModalProps> = ({ isOpen, onClose, 
                                             <td className="p-4 text-stone-600">
                                                 <div className="flex flex-col">
                                                     <span className="flex items-center gap-1 font-bold text-stone-700">
-                                                        <Calendar size={12} /> {format(new Date(order.date), 'MM/dd/yyyy')}
+                                                        <Calendar size={12} /> {order.date.split(',')[0]}
                                                     </span>
                                                     <span className="flex items-center gap-1 text-xs mt-0.5">
-                                                        <Clock size={12} /> {format(new Date(order.date), 'hh:mm a')}
+                                                        <Clock size={12} /> {order.date.split(',')[1]}
                                                     </span>
                                                 </div>
                                             </td>
