@@ -59,6 +59,7 @@ export interface Order {
   cash: number;
   change: number;
   orderType?: OrderType;
+  orderNumber?: number;
   deliveryAddress?: string;
   deliveryTime?: string;
   contactNumber?: string;
@@ -105,10 +106,13 @@ export interface Booking {
   booking_date: string; // YYYY-MM-DD
   booking_time: string; // HH:mm
   pax: number;
-  type: 'CATERING' | 'RESERVATION';
+  type: 'CATERING' | 'RESERVATION' | 'PRE_ORDER';
   status: 'PENDING' | 'CONFIRMED' | 'COMPLETED' | 'CANCELLED';
   notes?: string;
   created_at?: string;
+  items?: CartItem[];
+  payment_method?: 'CASH' | 'GCASH' | 'MAYA';
+  total_amount?: number;
 }
 
 export interface Expense {

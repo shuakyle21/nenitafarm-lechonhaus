@@ -214,6 +214,53 @@ const FinancialReportPDF: React.FC<FinancialReportPDFProps> = ({ orders, expense
                     </>
                 )}
 
+                {/* Transaction History (Orders) */}
+                <Text style={styles.sectionTitle}>Transaction History</Text>
+                {orders.length > 0 ? (
+                    <View style={styles.table}>
+                        <View style={[styles.tableRow, styles.summaryHeader]}>
+                            <View style={{ ...styles.tableCol, width: '20%' }}>
+                                <Text style={styles.tableCellHeader}>Order ID</Text>
+                            </View>
+                            <View style={{ ...styles.tableCol, width: '25%' }}>
+                                <Text style={styles.tableCellHeader}>Date & Time</Text>
+                            </View>
+                            <View style={{ ...styles.tableCol, width: '15%' }}>
+                                <Text style={styles.tableCellHeader}>Type</Text>
+                            </View>
+                            <View style={{ ...styles.tableCol, width: '25%' }}>
+                                <Text style={styles.tableCellHeader}>Items</Text>
+                            </View>
+                            <View style={{ ...styles.tableCol, width: '15%' }}>
+                                <Text style={[styles.tableCellHeader, styles.textRight]}>Total</Text>
+                            </View>
+                        </View>
+                        {orders.map((order) => (
+                            <View key={order.id} style={styles.tableRow}>
+                                <View style={{ ...styles.tableCol, width: '20%' }}>
+                                    <Text style={styles.tableCell}>#{order.orderNumber || order.id.substring(0, 8)}</Text>
+                                </View>
+                                <View style={{ ...styles.tableCol, width: '25%' }}>
+                                    <Text style={styles.tableCell}>
+                                        {new Date(order.date).toLocaleDateString()} {new Date(order.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                    </Text>
+                                </View>
+                                <View style={{ ...styles.tableCol, width: '15%' }}>
+                                    <Text style={styles.tableCell}>{order.orderType || 'DINE_IN'}</Text>
+                                </View>
+                                <View style={{ ...styles.tableCol, width: '25%' }}>
+                                    <Text style={styles.tableCell}>{order.items.length} items</Text>
+                                </View>
+                                <View style={{ ...styles.tableCol, width: '15%' }}>
+                                    <Text style={[styles.tableCell, styles.textRight]}>P {order.total.toLocaleString()}</Text>
+                                </View>
+                            </View>
+                        ))}
+                    </View>
+                ) : (
+                    <Text style={{ fontSize: 10, color: '#9CA3AF', fontStyle: 'italic' }}>No transactions recorded for this period.</Text>
+                )}
+
                 {/* Expense Breakdown */}
                 <Text style={styles.sectionTitle}>Expense Breakdown</Text>
                 {expenses.length > 0 ? (

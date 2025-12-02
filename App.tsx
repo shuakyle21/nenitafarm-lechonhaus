@@ -111,14 +111,16 @@ const App: React.FC = () => {
             finalPrice: item.price_at_time * item.quantity,
             category: item.menu_items?.category || 'Short Orders',
             image: item.menu_items?.image || '',
-            cartId: item.id // Use order_item id as cartId for display purposes
+            cartId: item.id, // Use order_item id as cartId for display purposes
+            weight: item.weight
           })),
           subtotal: order.total_amount, // Simplified
           discount: order.discount_details,
           total: order.total_amount,
           cash: order.cash,
           change: order.change,
-          orderType: order.order_type as OrderType // Map from DB column to TS property
+          orderType: order.order_type as OrderType, // Map from DB column to TS property
+          orderNumber: order.order_number
         }));
         setOrders(mappedOrders);
       }
@@ -262,7 +264,8 @@ const App: React.FC = () => {
         order_id: orderId,
         menu_item_id: item.id,
         quantity: item.quantity,
-        price_at_time: item.price // or finalPrice / quantity
+        price_at_time: item.price, // or finalPrice / quantity
+        weight: item.weight
       }));
 
       const { error: itemsError } = await supabase
@@ -272,7 +275,7 @@ const App: React.FC = () => {
       if (itemsError) throw itemsError;
 
       // Prepend new order to history (with the generated ID)
-      setOrders(prev => [{ ...order, id: orderId }, ...prev]);
+      setOrders(prev => [{ ...order, id: orderId, orderNumber: orderData.order_number }, ...prev]);
       alert('Order saved successfully!');
     } catch (error) {
       console.error('Error saving order:', error);
@@ -345,7 +348,7 @@ const App: React.FC = () => {
             onRefresh={fetchFinancialData}
           />
         )}
-        {activeModule === 'BOOKING' && <BookingModule />}
+        {activeModule === 'BOOKING' && <BookingModule items={menuItems} />}
       </div>
     </div>
   );

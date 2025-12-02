@@ -2,7 +2,7 @@
 import * as React from 'react';
 import { useState } from 'react';
 import { Order, CartItem } from '../types';
-import { X, Search, FileText, Calendar, Clock, Utensils, ShoppingBag } from 'lucide-react';
+import { X, Search, FileText, Calendar, Clock, Utensils, ShoppingBag, Printer } from 'lucide-react';
 
 interface OrderHistoryModalProps {
     isOpen: boolean;
@@ -51,7 +51,7 @@ const OrderHistoryModal: React.FC<OrderHistoryModalProps> = ({ isOpen, onClose, 
     };
 
     const filteredOrders = orders.filter(order => {
-        const matchesSearch = order.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        const matchesSearch = (order.orderNumber?.toString() || order.id).toLowerCase().includes(searchQuery.toLowerCase()) ||
             order.date.toLowerCase().includes(searchQuery.toLowerCase());
 
         let matchesTime = true;
@@ -155,6 +155,7 @@ const OrderHistoryModal: React.FC<OrderHistoryModalProps> = ({ isOpen, onClose, 
                                     <th className="p-4 border-b border-stone-200 text-right">Subtotal</th>
                                     <th className="p-4 border-b border-stone-200 text-right">Discount</th>
                                     <th className="p-4 border-b border-stone-200 text-right">Total</th>
+                                    <th className="p-4 border-b border-stone-200 text-center">Receipt</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-stone-100 text-sm">
@@ -167,7 +168,7 @@ const OrderHistoryModal: React.FC<OrderHistoryModalProps> = ({ isOpen, onClose, 
                                 ) : (
                                     filteredOrders.map((order) => (
                                         <tr key={order.id} className="hover:bg-stone-50 transition-colors">
-                                            <td className="p-4 font-mono font-bold text-stone-800">#{order.id}</td>
+                                            <td className="p-4 font-mono font-bold text-stone-800">#{order.orderNumber || order.id.substring(0, 8)}</td>
                                             <td className="p-4 text-stone-600">
                                                 <div className="flex flex-col">
                                                     <span className="flex items-center gap-1 font-bold text-stone-700">
@@ -211,9 +212,17 @@ const OrderHistoryModal: React.FC<OrderHistoryModalProps> = ({ isOpen, onClose, 
                                                 )}
                                             </td>
                                             <td className="p-4 text-right">
-                                                <span className="font-black text-stone-800 text-lg">
+                                                <span className="font-black text-stone-800 text-lg" data-testid={`order-total-${order.id}`}>
                                                     {formatCurrency(order.total)}
                                                 </span>
+                                            </td>
+                                            <td className="p-4 text-center">
+                                                <button
+                                                    className="p-2 bg-stone-100 hover:bg-stone-200 text-stone-600 rounded-full transition-colors"
+                                                    title="View Receipt"
+                                                >
+                                                    <Printer size={16} />
+                                                </button>
                                             </td>
                                         </tr>
                                     ))
