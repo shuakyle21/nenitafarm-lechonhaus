@@ -72,6 +72,9 @@ A comprehensive, all-in-one Restaurant Management System (RMS) tailored for **Ne
     cp .env.example .env
     ```
     Edit `.env` with your Supabase URL and Anon Key.
+    
+    > **IMPORTANT**: Never share or commit your `.env` file.
+    > On Unix/Linux systems, restrict file permissions: `chmod 600 .env`
 
 4.  **Run the development server**
     ```bash
