@@ -40,3 +40,4 @@ jobs:
         with:
           azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN_LIVELY_BEACH_041007E0F }}
           action: "close"
+          app_location: "./dist"
