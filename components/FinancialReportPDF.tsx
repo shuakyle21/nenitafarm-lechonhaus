@@ -1,6 +1,6 @@
 import React from 'react';
 import { Document, Page, Text, View, StyleSheet, Image } from '@react-pdf/renderer';
-import { Order } from '../types';
+import { Order, CartItem } from '../types';
 
 // Define styles
 const styles = StyleSheet.create({
@@ -123,6 +123,21 @@ const FinancialReportPDF: React.FC<FinancialReportPDFProps> = ({ orders, expense
     const reportSales = ordersTotal + adjustmentsTotal;
     const reportExpenses = expenses.reduce((acc, e) => acc + e.amount, 0);
     const reportNet = reportSales - reportExpenses;
+
+    const formatItemString = (item: CartItem) => {
+        if (item.weight) {
+            // Strip default unit from name if present for cleaner display
+            const cleanName = item.name.replace(' (1 Kilo)', '');
+
+            const weightInGrams = item.weight * 1000;
+            const weightStr = weightInGrams < 1000
+                ? `${Math.round(weightInGrams)}g`
+                : `${item.weight.toFixed(2)}kg`;
+
+            return `${item.quantity}x ${cleanName} (${weightStr})`;
+        }
+        return `${item.quantity}x ${item.name}`;
+    };
 
     return (
         <Document>
@@ -249,7 +264,13 @@ const FinancialReportPDF: React.FC<FinancialReportPDFProps> = ({ orders, expense
                                     <Text style={styles.tableCell}>{order.orderType || 'DINE_IN'}</Text>
                                 </View>
                                 <View style={{ ...styles.tableCol, width: '25%' }}>
-                                    <Text style={styles.tableCell}>{order.items.length} items</Text>
+                                    <Text style={styles.tableCell}>
+                                        {order.items.map(formatItemString).join(', ')}
+                                        {'\n'}
+                                        <Text style={{ color: '#6B7280', fontSize: 8 }}>
+                                            {order.items.length} items total
+                                        </Text>
+                                    </Text>
                                 </View>
                                 <View style={{ ...styles.tableCol, width: '15%' }}>
                                     <Text style={[styles.tableCell, styles.textRight]}>P {order.total.toLocaleString()}</Text>
