@@ -24,12 +24,11 @@ jobs:
       - name: Build Project
         run: npm run build
 
-      - name: Install SSH Key
-        uses: shimataro/ssh-key-action@v2
-        with:
-          key: ${{ secrets.VPS_SSH_KEY }}
-          known_hosts: ${{ secrets.KNOWN_HOSTS }}
-
       - name: Deploy to VPS
-        run: |
-          scp -o StrictHostKeyChecking=no -r dist/* ${{ secrets.VPS_USER }}@${{ secrets.VPS_IP }}:/var/www/html/
+        uses: easingthemes/ssh-deploy@v5.0.0
+        with:
+          SSH_PRIVATE_KEY: ${{ secrets.VPS_SSH_KEY }}
+          REMOTE_HOST: ${{ secrets.VPS_IP }}
+          REMOTE_USER: ${{ secrets.VPS_USER }}
+          SOURCE: "dist/"
+          TARGET: "/var/www/html/"
