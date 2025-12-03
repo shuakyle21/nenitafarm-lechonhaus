@@ -74,7 +74,7 @@ const App: React.FC = () => {
         setMenuItems(mappedItems);
       }
     } catch (error) {
-      console.error('Error fetching menu items:', error);
+      console.error('Error fetching menu items, please try again:', error);
     } finally {
       setLoading(false);
     }
