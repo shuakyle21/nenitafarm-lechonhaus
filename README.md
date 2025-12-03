@@ -24,6 +24,8 @@ View your app in AI Studio: https://ai.studio/apps/drive/1yFtQWgwRIlXR4o-2Ca64yw
 3. Set your Supabase credentials in `.env`:
    - `VITE_SUPABASE_URL`: Your Supabase project URL
    - `VITE_SUPABASE_ANON_KEY`: Your Supabase anonymous key
+   - **IMPORTANT**: Never share or commit your `.env` file
+   - On Unix/Linux systems, restrict file permissions: `chmod 600 .env`
 4. Run the app:
    `npm run dev`
 

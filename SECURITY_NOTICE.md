@@ -32,9 +32,13 @@
 
 **Required Actions**:
 1. Change these passwords immediately after deployment
-2. Implement password complexity requirements
-3. Consider adding password change on first login
-4. Use environment variables for initial passwords instead of hardcoding
+2. Implement password complexity requirements:
+   - Minimum 12 characters
+   - Must include uppercase, lowercase, numbers, and special characters
+   - No common words or patterns
+3. Add password strength validation in the application
+4. Consider adding password change on first login
+5. Use environment variables for initial passwords instead of hardcoding
 
 ### 3. ⚠️ Authentication Bypass Fixed
 
@@ -57,7 +61,12 @@
 
 ## Additional Recommendations
 
-1. Enable Supabase Row Level Security (RLS) on all tables
+1. **Enable Supabase Row Level Security (RLS) on all tables** - CRITICAL
+   - Currently, authorization is only enforced at the UI level
+   - UI-based authorization can be bypassed by making direct API calls
+   - Anyone can access admin functions by calling Supabase directly
+   - Implement RLS policies to enforce access control at the database level
+   
 2. Implement rate limiting on authentication endpoints
 3. Add session management and timeout
 4. Implement audit logging for sensitive operations
