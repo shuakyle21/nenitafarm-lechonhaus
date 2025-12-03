@@ -3,6 +3,7 @@ import * as React from 'react';
 import { useState } from 'react';
 import { Order, CartItem } from '../types';
 import { X, Search, FileText, Calendar, Clock, Utensils, ShoppingBag, Printer } from 'lucide-react';
+import ReceiptModal from './ReceiptModal';
 
 interface OrderHistoryModalProps {
     isOpen: boolean;
@@ -13,6 +14,7 @@ interface OrderHistoryModalProps {
 const OrderHistoryModal: React.FC<OrderHistoryModalProps> = ({ isOpen, onClose, orders }) => {
     const [searchQuery, setSearchQuery] = useState('');
     const [timeFilter, setTimeFilter] = useState<'TODAY' | 'YESTERDAY' | 'WEEK' | 'MONTH'>('TODAY');
+    const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
 
     if (!isOpen) return null;
 
@@ -75,7 +77,7 @@ const OrderHistoryModal: React.FC<OrderHistoryModalProps> = ({ isOpen, onClose, 
             const weightInGrams = item.weight * 1000;
             const weightStr = weightInGrams < 1000
                 ? `${Math.round(weightInGrams)}g`
-                : `${item.weight.toFixed(3)}kg`;
+                : `${item.weight.toFixed(2)}kg`;
 
             return `${item.quantity}x ${cleanName} (${weightStr})`;
         }
@@ -172,10 +174,10 @@ const OrderHistoryModal: React.FC<OrderHistoryModalProps> = ({ isOpen, onClose, 
                                             <td className="p-4 text-stone-600">
                                                 <div className="flex flex-col">
                                                     <span className="flex items-center gap-1 font-bold text-stone-700">
-                                                        <Calendar size={12} /> {order.date.split(',')[0]}
+                                                        <Calendar size={12} /> {new Date(order.date).toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' })}
                                                     </span>
                                                     <span className="flex items-center gap-1 text-xs mt-0.5">
-                                                        <Clock size={12} /> {order.date.split(',')[1]}
+                                                        <Clock size={12} /> {new Date(order.date).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
                                                     </span>
                                                 </div>
                                             </td>
@@ -218,8 +220,10 @@ const OrderHistoryModal: React.FC<OrderHistoryModalProps> = ({ isOpen, onClose, 
                                             </td>
                                             <td className="p-4 text-center">
                                                 <button
+                                                    onClick={() => setSelectedOrder(order)}
                                                     className="p-2 bg-stone-100 hover:bg-stone-200 text-stone-600 rounded-full transition-colors"
                                                     title="View Receipt"
+                                                    data-testid={`view-receipt-${order.id}`}
                                                 >
                                                     <Printer size={16} />
                                                 </button>
@@ -233,6 +237,12 @@ const OrderHistoryModal: React.FC<OrderHistoryModalProps> = ({ isOpen, onClose, 
                 </div>
 
             </div>
+
+            <ReceiptModal
+                isOpen={!!selectedOrder}
+                onClose={() => setSelectedOrder(null)}
+                existingOrder={selectedOrder}
+            />
         </div>
     );
 };

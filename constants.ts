@@ -17,7 +17,7 @@ export const MENU_ITEMS: MenuItem[] = [
   // Lechon & Grills
   {
     id: 'l1',
-    name: 'Lechon (1 Kilo)',
+    name: 'Lechon',
     price: 700,
     category: 'Lechon & Grills',
     image: 'https://picsum.photos/400/300?random=1',

@@ -7,14 +7,26 @@ import { toPng } from 'html-to-image';
 interface ReceiptModalProps {
   isOpen: boolean;
   onClose: () => void;
-  cart: CartItem[];
+  cart?: CartItem[];
   discount?: DiscountDetails | null;
-  total: number;
-  orderCount: number;
-  onSaveOrder: (order: Order) => void;
+  total?: number;
+  orderCount?: number;
+  onSaveOrder?: (order: Order) => void;
+  existingOrder?: Order | null;
+  tableNumber?: string;
 }
 
-const ReceiptModal: React.FC<ReceiptModalProps> = ({ isOpen, onClose, cart, discount, total, orderCount, onSaveOrder }) => {
+const ReceiptModal: React.FC<ReceiptModalProps> = ({
+  isOpen,
+  onClose,
+  cart = [],
+  discount = null,
+  total = 0,
+  orderCount = 0,
+  onSaveOrder = () => { },
+  existingOrder,
+  tableNumber
+}) => {
   const receiptRef = useRef<HTMLDivElement>(null);
   const [isDownloading, setIsDownloading] = useState(false);
   const [amountTendered, setAmountTendered] = useState<string>('');
@@ -26,30 +38,50 @@ const ReceiptModal: React.FC<ReceiptModalProps> = ({ isOpen, onClose, cart, disc
   // Initialize unique order details when modal opens
   useEffect(() => {
     if (isOpen) {
-      // Sequential Order ID: padded with zeros, e.g. 000001
-      setOrderNo((orderCount + 1).toString().padStart(6, '0'));
-      setDate(new Date().toLocaleString('en-PH'));
-      setAmountTendered('');
+      if (existingOrder) {
+        // Use existing order details
+        setOrderNo(existingOrder.orderNumber?.toString().padStart(6, '0') || existingOrder.id.substring(0, 6));
+
+        // Format date from ISO string if needed, or use as is
+        try {
+          const dateObj = new Date(existingOrder.date);
+          setDate(dateObj.toLocaleString('en-PH'));
+        } catch (e) {
+          setDate(existingOrder.date);
+        }
+
+        setAmountTendered(existingOrder.cash?.toString() || '0');
+      } else {
+        // New Order: Sequential Order ID
+        setOrderNo((orderCount + 1).toString().padStart(6, '0'));
+        setDate(new Date().toLocaleString('en-PH'));
+        setAmountTendered('');
+      }
     }
-  }, [isOpen, orderCount]);
+  }, [isOpen, orderCount, existingOrder]);
 
   if (!isOpen) return null;
 
-  const subtotal = cart.reduce((acc, item) => acc + item.finalPrice, 0);
+  // Determine values based on mode
+  const activeCart = existingOrder ? existingOrder.items : cart;
+  const activeTotal = existingOrder ? existingOrder.total : total;
+  const activeDiscount = existingOrder ? existingOrder.discount : discount;
+
+  const subtotal = activeCart.reduce((acc, item) => acc + item.finalPrice, 0);
 
   // Recalculate discount for display logic inside receipt
   let discountAmount = 0;
-  if (discount && discount.totalPax > 0) {
-    const costPerPerson = subtotal / discount.totalPax;
-    const discountableAmount = costPerPerson * discount.numberOfIds;
-    discountAmount = discountableAmount * discount.amount;
+  if (activeDiscount && activeDiscount.totalPax > 0) {
+    const costPerPerson = subtotal / activeDiscount.totalPax;
+    const discountableAmount = costPerPerson * activeDiscount.numberOfIds;
+    discountAmount = discountableAmount * activeDiscount.amount;
   }
 
   const cash = parseFloat(amountTendered) || 0;
-  const change = Math.max(0, cash - total);
+  const change = existingOrder ? (existingOrder.change || 0) : Math.max(0, cash - activeTotal);
 
   // Enable confirm button only if cash covers the total (allow 0.1 tolerance for float issues)
-  const isPaid = cash >= (total - 0.1);
+  const isPaid = cash >= (activeTotal - 0.1);
 
   const formatCurrency = (amount: number) => {
     return `₱${amount.toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
@@ -126,7 +158,7 @@ const ReceiptModal: React.FC<ReceiptModalProps> = ({ isOpen, onClose, cart, disc
             <div className="flex justify-between mb-4 text-[11px] uppercase font-bold border-b border-dashed border-stone-400 pb-4">
               <div className="text-left space-y-1">
                 <p>Order #: {orderNo}</p>
-                <p>Table: {orderCount + 1}</p>
+                <p>Table: {existingOrder?.tableNumber || tableNumber || (existingOrder ? 'N/A' : orderCount + 1)}</p>
               </div>
               <div className="text-right space-y-1">
                 <p>{date.split(',')[0]}</p>
@@ -143,12 +175,18 @@ const ReceiptModal: React.FC<ReceiptModalProps> = ({ isOpen, onClose, cart, disc
                 <span className="text-right">Amt</span>
               </div>
               <div className="space-y-2">
-                {cart.map((item) => (
+                {activeCart.map((item) => (
                   <div key={item.cartId} className="grid grid-cols-[30px_1fr_70px] gap-x-2 text-[11px] uppercase items-start">
                     <span className="font-bold">{item.isWeighted ? '1' : item.quantity}</span>
                     <div>
-                      <div className="leading-tight">{item.name}</div>
-                      {item.weight && <div className="text-[10px] text-stone-500">@{item.weight.toFixed(3)}kg</div>}
+                      <div className="leading-tight">
+                        {item.name}
+                        {item.weight && (
+                          <span className="ml-1 font-normal normal-case">
+                            ({item.weight < 1 ? `${Math.round(item.weight * 1000)}g` : `${item.weight.toFixed(2)}kg`})
+                          </span>
+                        )}
+                      </div>
                     </div>
                     <span className="text-right font-medium">{formatCurrency(item.finalPrice).replace('₱', '')}</span>
                   </div>
@@ -162,18 +200,18 @@ const ReceiptModal: React.FC<ReceiptModalProps> = ({ isOpen, onClose, cart, disc
                 <span>Subtotal</span>
                 <span className="font-bold">{formatCurrency(subtotal)}</span>
               </div>
-              {discount && (
+              {activeDiscount && (
                 <>
                   <div className="flex justify-between text-stone-500 mt-1">
                     <span>Total Pax:</span>
-                    <span>{discount.totalPax}</span>
+                    <span>{activeDiscount.totalPax}</span>
                   </div>
                   <div className="flex justify-between text-stone-500">
-                    <span>{discount.type} Pax:</span>
-                    <span>{discount.numberOfIds}</span>
+                    <span>{activeDiscount.type} Pax:</span>
+                    <span>{activeDiscount.numberOfIds}</span>
                   </div>
                   <div className="flex justify-between text-stone-800 font-bold">
-                    <span>Less: {discount.type} (20%)</span>
+                    <span>Less: {activeDiscount.type} (20%)</span>
                     <span>-{formatCurrency(discountAmount)}</span>
                   </div>
                 </>
@@ -181,7 +219,7 @@ const ReceiptModal: React.FC<ReceiptModalProps> = ({ isOpen, onClose, cart, disc
 
               <div className="flex justify-between text-xl font-bold mt-4 border-y-2 border-dashed border-stone-400 py-3">
                 <span>TOTAL</span>
-                <span>{formatCurrency(total)}</span>
+                <span>{formatCurrency(activeTotal)}</span>
               </div>
 
               {/* Payment Details */}
@@ -200,11 +238,11 @@ const ReceiptModal: React.FC<ReceiptModalProps> = ({ isOpen, onClose, cart, disc
             </div>
 
             {/* Discount Details */}
-            {discount && (
+            {activeDiscount && (
               <div className="mt-6 border border-stone-400 p-2 text-[10px] uppercase text-center border-dashed">
                 <p className="font-bold border-b border-stone-300 pb-1 mb-1 border-dashed">Discount Details</p>
-                <p>ID: {discount.idNumber}</p>
-                <p>Name: {discount.name}</p>
+                <p>ID: {activeDiscount.idNumber}</p>
+                <p>Name: {activeDiscount.name}</p>
               </div>
             )}
 
@@ -226,54 +264,56 @@ const ReceiptModal: React.FC<ReceiptModalProps> = ({ isOpen, onClose, cart, disc
 
         </div>
 
-        {/* Payment Input Controls (Screen Only) */}
-        <div className="w-[380px] mt-4 bg-stone-800 p-4 rounded-xl shadow-lg print:hidden space-y-4">
-          <div>
-            <div className="flex gap-2 items-center mb-2">
-              <Banknote className="text-green-400" size={20} />
-              <label className="text-white font-bold text-sm">Cash Tendered</label>
-            </div>
-            <div className="flex gap-2">
-              <input
-                type="number"
-                value={amountTendered}
-                onChange={(e) => setAmountTendered(e.target.value)}
-                placeholder="Enter Amount"
-                className="flex-1 bg-stone-700 text-white font-mono text-xl p-2 rounded-lg border border-stone-600 focus:outline-none focus:ring-2 focus:ring-green-500 text-right"
-                autoFocus
-              />
-            </div>
-            {/* Quick Suggestions */}
-            <div className="flex gap-2 mt-2">
-              {[100, 500, 1000].map(amt => (
+        {/* Payment Input Controls (Screen Only) - Hide if viewing existing order */}
+        {!existingOrder && (
+          <div className="w-[380px] mt-4 bg-stone-800 p-4 rounded-xl shadow-lg print:hidden space-y-4">
+            <div>
+              <div className="flex gap-2 items-center mb-2">
+                <Banknote className="text-green-400" size={20} />
+                <label className="text-white font-bold text-sm">Cash Tendered</label>
+              </div>
+              <div className="flex gap-2">
+                <input
+                  type="number"
+                  value={amountTendered}
+                  onChange={(e) => setAmountTendered(e.target.value)}
+                  placeholder="Enter Amount"
+                  className="flex-1 bg-stone-700 text-white font-mono text-xl p-2 rounded-lg border border-stone-600 focus:outline-none focus:ring-2 focus:ring-green-500 text-right"
+                  autoFocus
+                />
+              </div>
+              {/* Quick Suggestions */}
+              <div className="flex gap-2 mt-2">
+                {[100, 500, 1000].map(amt => (
+                  <button
+                    key={amt}
+                    onClick={() => setAmountTendered(amt.toString())}
+                    className="flex-1 bg-stone-700 text-stone-300 text-xs py-1 px-2 rounded hover:bg-stone-600 transition-colors"
+                  >
+                    {amt}
+                  </button>
+                ))}
                 <button
-                  key={amt}
-                  onClick={() => setAmountTendered(amt.toString())}
+                  onClick={() => setAmountTendered(Math.ceil(activeTotal).toString())}
                   className="flex-1 bg-stone-700 text-stone-300 text-xs py-1 px-2 rounded hover:bg-stone-600 transition-colors"
                 >
-                  {amt}
+                  Exact
                 </button>
-              ))}
-              <button
-                onClick={() => setAmountTendered(Math.ceil(total).toString())}
-                className="flex-1 bg-stone-700 text-stone-300 text-xs py-1 px-2 rounded hover:bg-stone-600 transition-colors"
-              >
-                Exact
-              </button>
+              </div>
             </div>
-          </div>
 
-          {/* CONFIRM BUTTON - Shown only when cash is sufficient */}
-          {isPaid && (
-            <button
-              onClick={handleConfirmOrder}
-              className="w-full bg-green-600 hover:bg-green-500 text-white py-4 rounded-lg font-bold text-lg shadow-lg flex items-center justify-center gap-2 animate-in slide-in-from-top-2 duration-300"
-            >
-              <CheckCircle size={24} />
-              CONFIRM & SAVE ORDER
-            </button>
-          )}
-        </div>
+            {/* CONFIRM BUTTON - Shown only when cash is sufficient */}
+            {isPaid && (
+              <button
+                onClick={handleConfirmOrder}
+                className="w-full bg-green-600 hover:bg-green-500 text-white py-4 rounded-lg font-bold text-lg shadow-lg flex items-center justify-center gap-2 animate-in slide-in-from-top-2 duration-300"
+              >
+                <CheckCircle size={24} />
+                CONFIRM & SAVE ORDER
+              </button>
+            )}
+          </div>
+        )}
 
         {/* Action Buttons - Hide during print */}
         <div className="mt-4 flex gap-3 w-[380px] print:hidden">

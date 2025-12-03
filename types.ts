@@ -63,6 +63,7 @@ export interface Order {
   deliveryAddress?: string;
   deliveryTime?: string;
   contactNumber?: string;
+  tableNumber?: string;
 }
 
 export interface SavedOrder {

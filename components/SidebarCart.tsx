@@ -26,6 +26,8 @@ interface SidebarCartProps {
   onSaveForLater: () => void;
   savedOrdersCount: number;
   onOpenSavedOrders: () => void;
+  tableNumber: string;
+  onSetTableNumber: (num: string) => void;
 }
 
 const SidebarCart: React.FC<SidebarCartProps> = ({
@@ -46,7 +48,9 @@ const SidebarCart: React.FC<SidebarCartProps> = ({
   onUpdateDeliveryDetails,
   onSaveForLater,
   savedOrdersCount,
-  onOpenSavedOrders
+  onOpenSavedOrders,
+  tableNumber,
+  onSetTableNumber
 }) => {
   const [isServerMenuOpen, setIsServerMenuOpen] = useState(false);
 
@@ -72,7 +76,19 @@ const SidebarCart: React.FC<SidebarCartProps> = ({
           <Receipt size={16} />
           <span className="text-xs font-bold uppercase tracking-wider">Order Summary</span>
         </div>
-        <h2 className="text-2xl font-brand font-bold">Table {orderCount + 1}</h2>
+        <div className="flex justify-between items-end">
+          <h2 className="text-2xl font-brand font-bold">Order #{orderCount + 1}</h2>
+          <div className="flex items-center gap-2 bg-red-800/50 px-2 py-1 rounded">
+            <span className="text-xs font-bold uppercase text-red-200">Table</span>
+            <input
+              type="text"
+              value={tableNumber}
+              onChange={(e) => onSetTableNumber(e.target.value)}
+              className="w-12 bg-transparent text-white font-bold text-center border-b border-red-300 focus:outline-none focus:border-white"
+              placeholder="#"
+            />
+          </div>
+        </div>
 
         {/* Order Type Toggle */}
         <div className="flex bg-red-800/50 p-1 rounded-lg mt-2 mb-2">

@@ -61,7 +61,7 @@ INSERT INTO menu_items (name, price, category, variants) VALUES
 
 -- Insert Lechon
 INSERT INTO menu_items (name, price, category, variants, is_weighted) VALUES
-('Lechon (1 kilo)', 700.00, 'Lechon & Grills', null, true),
+('Lechon', 700.00, 'Lechon & Grills', null, true),
 ('Lechon paksiw', 299.00, 'Lechon & Grills', null),
 ('Lechon sisig', 299.00, 'Lechon & Grills', null),
 ('Lechon Batchoy (special)', 99.00, 'Lechon & Grills', null),

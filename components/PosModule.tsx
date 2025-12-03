@@ -41,6 +41,7 @@ const PosModule: React.FC<PosModuleProps> = ({
     time: '',
     contact: ''
   });
+  const [tableNumber, setTableNumber] = useState('');
 
   // Modals & Discount State
   const [isLechonModalOpen, setIsLechonModalOpen] = useState(false);
@@ -161,7 +162,8 @@ const PosModule: React.FC<PosModuleProps> = ({
       orderType,
       deliveryAddress: orderType === 'DELIVERY' ? deliveryDetails.address : undefined,
       deliveryTime: orderType === 'DELIVERY' ? deliveryDetails.time : undefined,
-      contactNumber: orderType === 'DELIVERY' ? deliveryDetails.contact : undefined
+      contactNumber: orderType === 'DELIVERY' ? deliveryDetails.contact : undefined,
+      tableNumber: tableNumber
     };
     onSaveOrder(finalOrder);
     clearCart();
@@ -290,6 +292,8 @@ const PosModule: React.FC<PosModuleProps> = ({
           onSaveForLater={handleSaveForLater}
           savedOrdersCount={savedOrders.length}
           onOpenSavedOrders={() => setIsSavedOrdersModalOpen(true)}
+          tableNumber={tableNumber}
+          onSetTableNumber={setTableNumber}
         />
       </div>
 
@@ -439,6 +443,7 @@ const PosModule: React.FC<PosModuleProps> = ({
         total={total}
         orderCount={orderCount}
         onSaveOrder={handleOrderConfirmed}
+        tableNumber={tableNumber}
       />
 
       <MenuManagementModal

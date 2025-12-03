@@ -108,7 +108,7 @@ const App: React.FC = () => {
             name: item.menu_items?.name || 'Unknown Item',
             price: item.price_at_time,
             quantity: item.quantity,
-            finalPrice: item.price_at_time * item.quantity,
+            finalPrice: item.weight ? (item.price_at_time * item.weight) : (item.price_at_time * item.quantity),
             category: item.menu_items?.category || 'Short Orders',
             image: item.menu_items?.image || '',
             cartId: item.id, // Use order_item id as cartId for display purposes
