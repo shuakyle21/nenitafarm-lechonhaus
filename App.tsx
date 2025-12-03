@@ -13,8 +13,8 @@ import LoginModule from './components/LoginModule';
 
 const App: React.FC = () => {
   // Auth State
-  const [isAuthenticated, setIsAuthenticated] = useState(true);
-  const [userRole, setUserRole] = useState<'ADMIN' | 'CASHIER' | null>('ADMIN');
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [userRole, setUserRole] = useState<'ADMIN' | 'CASHIER' | null>(null);
 
   const [activeModule, setActiveModule] = useState<'DASHBOARD' | 'POS' | 'STAFF' | 'FINANCE' | 'BOOKING'>('POS');
 

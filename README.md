@@ -8,6 +8,12 @@ A comprehensive, all-in-one Restaurant Management System (RMS) tailored for **Ne
 
 ## 🚀 Features
 
+## ⚠️ SECURITY NOTICE
+
+**IMPORTANT**: Before running this application, please read [SECURITY_NOTICE.md](SECURITY_NOTICE.md) for critical security information.
+
+## 🚀 Features
+
 ### 🛒 Point of Sale (POS)
 - **Visual Menu:** Grid-based menu browsing with categories (Lechon, Pork, Chicken, etc.).
 - **Smart Cart:** Handles weighted items (e.g., Lechon by kg) and variants (e.g., Party Trays).
@@ -61,11 +67,11 @@ A comprehensive, all-in-one Restaurant Management System (RMS) tailored for **Ne
     ```
 
 3.  **Environment Setup**
-    Create a `.env` file in the root directory with your Supabase credentials:
-    ```env
-    VITE_SUPABASE_URL=your_supabase_url
-    VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
+    Copy `.env.example` to `.env` and set your credentials:
+    ```bash
+    cp .env.example .env
     ```
+    Edit `.env` with your Supabase URL and Anon Key.
 
 4.  **Run the development server**
     ```bash
@@ -90,6 +96,12 @@ Production deployment is handled via a custom shell script to a VPS (Nginx).
     ./deploy.sh
     ```
     *Note: Requires SSH access to the production server.*
+
+### Production Security Checklist
+1. Use secure environment variable management (GitHub Secrets, etc.)
+2. Never commit the `.env` file
+3. Change default passwords in the database
+4. Review and enable Row Level Security policies in Supabase
 
 ---
 
