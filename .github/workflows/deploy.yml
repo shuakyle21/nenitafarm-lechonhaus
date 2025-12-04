@@ -9,6 +9,8 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
 
+    environment: production
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -22,8 +24,15 @@ jobs:
       - name: Install Dependencies
         run: npm ci
 
+      - name: Run Tests
+        run: npm test
+
       - name: Build Project
         run: npm run build
+        env:
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
 
       - name: Deploy to VPS
         uses: easingthemes/ssh-deploy@main
