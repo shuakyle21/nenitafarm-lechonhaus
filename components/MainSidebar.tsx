@@ -1,14 +1,16 @@
 import * as React from 'react';
-import { LayoutDashboard, Store, Package, Settings, LogOut, Users, PieChart, Calendar } from 'lucide-react';
+import { LayoutDashboard, Store, Package, Settings, LogOut, Users, PieChart, Calendar, Wifi, WifiOff } from 'lucide-react';
 
 interface MainSidebarProps {
   activeModule: 'DASHBOARD' | 'POS' | 'STAFF' | 'FINANCE' | 'BOOKING';
   onModuleChange: (module: 'DASHBOARD' | 'POS' | 'STAFF' | 'FINANCE' | 'BOOKING') => void;
   userRole: 'ADMIN' | 'CASHIER' | null;
   onLogout: () => void;
+  isOnline?: boolean;
+  pendingOrdersCount?: number;
 }
 
-const MainSidebar: React.FC<MainSidebarProps> = ({ activeModule, onModuleChange, userRole, onLogout }) => {
+const MainSidebar: React.FC<MainSidebarProps> = ({ activeModule, onModuleChange, userRole, onLogout, isOnline = true, pendingOrdersCount = 0 }) => {
   return (
     <div className="w-24 bg-stone-950 flex flex-col items-center py-6 text-stone-500 shadow-2xl z-50 border-r border-stone-900">
 
@@ -101,6 +103,17 @@ const MainSidebar: React.FC<MainSidebarProps> = ({ activeModule, onModuleChange,
 
       {/* Bottom Actions */}
       <div className="w-full px-3 space-y-3">
+        {/* Connection Status */}
+        <div className={`w-full aspect-square rounded-2xl flex flex-col items-center justify-center gap-1.5 transition-all duration-300 border ${isOnline ? 'bg-stone-900/50 border-stone-800 text-green-500' : 'bg-red-950/20 border-red-900/50 text-red-500 animate-pulse'}`} title={isOnline ? 'System Online' : 'System Offline (Backup Active)'}>
+          {isOnline ? <Wifi size={20} /> : <WifiOff size={20} />}
+          <span className="text-[9px] font-bold tracking-wide">{isOnline ? 'ONLINE' : 'OFFLINE'}</span>
+          {pendingOrdersCount > 0 && (
+            <div className="absolute top-0 right-0 -mt-1 -mr-1 bg-red-600 text-white text-[9px] font-bold w-4 h-4 rounded-full flex items-center justify-center shadow-sm">
+              {pendingOrdersCount}
+            </div>
+          )}
+        </div>
+
         <button
           className="w-full aspect-square rounded-2xl flex flex-col items-center justify-center gap-1.5 transition-all hover:bg-stone-900 hover:text-stone-200 group"
           title="Settings"

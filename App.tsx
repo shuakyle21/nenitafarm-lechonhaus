@@ -10,6 +10,7 @@ import StaffModule from './components/StaffModule';
 import FinancialModule from './components/FinancialModule';
 import BookingModule from './components/BookingModule';
 import LoginModule from './components/LoginModule';
+import { useOfflineSync } from './hooks/useOfflineSync';
 
 const App: React.FC = () => {
   // Auth State
@@ -234,49 +235,23 @@ const App: React.FC = () => {
     }
   };
 
+  // Offline Sync Hook
+  const { isOnline, saveOrderWithOfflineSupport, pendingOrdersCount } = useOfflineSync();
+
   // Order Handler
   const handleSaveOrder = async (order: Order) => {
     try {
-      // 1. Insert into orders table
-      const { data: orderData, error: orderError } = await supabase
-        .from('orders')
-        .insert([{
-          total_amount: order.total,
-          status: 'completed',
-          payment_method: 'cash', // Defaulting to cash for now
-          discount_details: order.discount,
-          cash: order.cash,
-          change: order.change,
-          order_type: order.orderType || 'DINE_IN',
-          delivery_address: order.deliveryAddress,
-          delivery_time: order.deliveryTime,
-          contact_number: order.contactNumber
-        }])
-        .select()
-        .single();
+      const result = await saveOrderWithOfflineSupport(order);
 
-      if (orderError) throw orderError;
-
-      const orderId = orderData.id;
-
-      // 2. Insert into order_items table
-      const orderItems = order.items.map(item => ({
-        order_id: orderId,
-        menu_item_id: item.id,
-        quantity: item.quantity,
-        price_at_time: item.price, // or finalPrice / quantity
-        weight: item.weight
-      }));
-
-      const { error: itemsError } = await supabase
-        .from('order_items')
-        .insert(orderItems);
-
-      if (itemsError) throw itemsError;
-
-      // Prepend new order to history (with the generated ID)
-      setOrders(prev => [{ ...order, id: orderId, orderNumber: orderData.order_number }, ...prev]);
-      alert('Order saved successfully!');
+      if (result.success) {
+        if (result.mode === 'ONLINE') {
+          // Update local state with the returned real data
+          setOrders(prev => [result.data, ...prev]);
+          alert('Order saved successfully!');
+        } else {
+          alert('Offline: Order saved to local backup. Will sync when online.');
+        }
+      }
     } catch (error) {
       console.error('Error saving order:', error);
       alert('Failed to save order');
@@ -314,6 +289,8 @@ const App: React.FC = () => {
         onModuleChange={setActiveModule}
         userRole={userRole}
         onLogout={handleLogout}
+        isOnline={isOnline}
+        pendingOrdersCount={pendingOrdersCount}
       />
 
       {/* Main Content Area */}
