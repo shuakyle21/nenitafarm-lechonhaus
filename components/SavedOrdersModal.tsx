@@ -108,7 +108,7 @@ const SavedOrdersModal: React.FC<SavedOrdersModalProps> = ({
 
                 {/* Footer */}
                 <div className="p-4 border-t border-stone-200 bg-white text-center text-stone-400 text-xs">
-                    Saved orders are stored temporarily and will be cleared if you refresh the page.
+                    Saved orders are stored locally and will persist even if you refresh the page.
                 </div>
             </div>
         </div>

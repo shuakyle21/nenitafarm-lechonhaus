@@ -32,16 +32,44 @@ const PosModule: React.FC<PosModuleProps> = ({
   staffList
 }) => {
   const [activeCategory, setActiveCategory] = useState<Category>('Lechon & Grills');
-  const [cart, setCart] = useState<CartItem[]>([]);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [selectedServer, setSelectedServer] = useState<Staff | null>(null);
-  const [orderType, setOrderType] = useState<OrderType>('DINE_IN');
-  const [deliveryDetails, setDeliveryDetails] = useState({
-    address: '',
-    time: '',
-    contact: ''
+
+  // Persistence: Load initial state from localStorage
+  const [cart, setCart] = useState<CartItem[]>(() => {
+    try {
+      const stored = localStorage.getItem('pos_cart');
+      return stored ? JSON.parse(stored) : [];
+    } catch (e) {
+      console.error("Failed to load cart", e);
+      return [];
+    }
   });
-  const [tableNumber, setTableNumber] = useState('');
+
+  const [searchQuery, setSearchQuery] = useState('');
+
+  const [selectedServer, setSelectedServer] = useState<Staff | null>(() => {
+    try {
+      const stored = localStorage.getItem('pos_selected_server');
+      return stored ? JSON.parse(stored) : null;
+    } catch { return null; }
+  });
+
+  const [orderType, setOrderType] = useState<OrderType>(() => {
+    try {
+      const stored = localStorage.getItem('pos_order_type');
+      return stored ? JSON.parse(stored) : 'DINE_IN';
+    } catch { return 'DINE_IN'; }
+  });
+
+  const [deliveryDetails, setDeliveryDetails] = useState(() => {
+    try {
+      const stored = localStorage.getItem('pos_delivery_details');
+      return stored ? JSON.parse(stored) : { address: '', time: '', contact: '' };
+    } catch { return { address: '', time: '', contact: '' }; }
+  });
+
+  const [tableNumber, setTableNumber] = useState(() => {
+    return localStorage.getItem('pos_table_number') || '';
+  });
 
   // Modals & Discount State
   const [isLechonModalOpen, setIsLechonModalOpen] = useState(false);
@@ -52,11 +80,56 @@ const PosModule: React.FC<PosModuleProps> = ({
   const [isMenuManagerOpen, setIsMenuManagerOpen] = useState(false);
 
   // Saved Orders State
-  const [savedOrders, setSavedOrders] = useState<SavedOrder[]>([]);
+  const [savedOrders, setSavedOrders] = useState<SavedOrder[]>(() => {
+    try {
+      const stored = localStorage.getItem('pos_saved_orders');
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        // Revive Date objects
+        return parsed.map((o: any) => ({
+          ...o,
+          timestamp: new Date(o.timestamp)
+        }));
+      }
+      return [];
+    } catch (e) {
+      console.error("Failed to load saved orders", e);
+      return [];
+    }
+  });
   const [isSavedOrdersModalOpen, setIsSavedOrdersModalOpen] = useState(false);
 
   // Variant State
   const [selectedVariantItem, setSelectedVariantItem] = useState<MenuItem | null>(null);
+
+  // --- Persistence Effects ---
+  React.useEffect(() => {
+    localStorage.setItem('pos_cart', JSON.stringify(cart));
+  }, [cart]);
+
+  React.useEffect(() => {
+    localStorage.setItem('pos_saved_orders', JSON.stringify(savedOrders));
+  }, [savedOrders]);
+
+  React.useEffect(() => {
+    localStorage.setItem('pos_order_type', JSON.stringify(orderType));
+  }, [orderType]);
+
+  React.useEffect(() => {
+    localStorage.setItem('pos_table_number', tableNumber);
+  }, [tableNumber]);
+
+  React.useEffect(() => {
+    localStorage.setItem('pos_delivery_details', JSON.stringify(deliveryDetails));
+  }, [deliveryDetails]);
+
+  React.useEffect(() => {
+    if (selectedServer) {
+      localStorage.setItem('pos_selected_server', JSON.stringify(selectedServer));
+    } else {
+      localStorage.removeItem('pos_selected_server');
+    }
+  }, [selectedServer]);
 
   // --- Cart Logic ---
   const addToCart = (item: MenuItem) => {
