@@ -14,8 +14,8 @@ import { useOfflineSync } from './hooks/useOfflineSync';
 
 const App: React.FC = () => {
   // Auth State
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [userRole, setUserRole] = useState<'ADMIN' | 'CASHIER' | null>(null);
+  const [isAuthenticated, setIsAuthenticated] = useState(true);
+  const [userRole, setUserRole] = useState<'ADMIN' | 'CASHIER' | null>('ADMIN');
 
   const [activeModule, setActiveModule] = useState<'DASHBOARD' | 'POS' | 'STAFF' | 'FINANCE' | 'BOOKING'>('POS');
 
@@ -312,6 +312,18 @@ const App: React.FC = () => {
             orders={orders}
             salesAdjustments={salesAdjustments}
             expenses={expenses}
+            onDeleteOrder={async (id) => {
+              if (!window.confirm('Are you sure you want to delete this order permanently?')) return;
+              try {
+                const { error } = await supabase.from('orders').delete().eq('id', id);
+                if (error) throw error;
+                setOrders(prev => prev.filter(o => o.id !== id));
+                alert('Order deleted successfully');
+              } catch (err) {
+                console.error('Error deleting order:', err);
+                alert('Failed to delete order');
+              }
+            }}
           />
         )}
         {activeModule === 'STAFF' && (

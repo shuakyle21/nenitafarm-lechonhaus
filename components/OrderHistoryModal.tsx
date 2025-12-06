@@ -9,11 +9,12 @@ interface OrderHistoryModalProps {
     isOpen: boolean;
     onClose: () => void;
     orders: Order[];
+    onDeleteOrder?: (id: string) => Promise<void>;
 }
 
-const OrderHistoryModal: React.FC<OrderHistoryModalProps> = ({ isOpen, onClose, orders }) => {
+const OrderHistoryModal: React.FC<OrderHistoryModalProps> = ({ isOpen, onClose, orders, onDeleteOrder }) => {
     const [searchQuery, setSearchQuery] = useState('');
-    const [timeFilter, setTimeFilter] = useState<'TODAY' | 'YESTERDAY' | 'WEEK' | 'MONTH'>('TODAY');
+    const [timeFilter, setTimeFilter] = useState<'TODAY' | 'YESTERDAY' | 'WEEK' | 'MONTH' | 'ALL'>('TODAY');
     const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
 
     if (!isOpen) return null;
@@ -61,6 +62,7 @@ const OrderHistoryModal: React.FC<OrderHistoryModalProps> = ({ isOpen, onClose, 
         else if (timeFilter === 'YESTERDAY') matchesTime = isYesterday(order.date);
         else if (timeFilter === 'WEEK') matchesTime = isThisWeek(order.date);
         else if (timeFilter === 'MONTH') matchesTime = isThisMonth(order.date);
+        else if (timeFilter === 'ALL') matchesTime = true;
 
         return matchesSearch && matchesTime;
     });
@@ -108,7 +110,7 @@ const OrderHistoryModal: React.FC<OrderHistoryModalProps> = ({ isOpen, onClose, 
                 <div className="p-4 bg-white border-b border-stone-200 flex flex-col gap-4">
                     {/* Filter Buttons */}
                     <div className="flex gap-2 overflow-x-auto pb-2 md:pb-0">
-                        {(['TODAY', 'YESTERDAY', 'WEEK', 'MONTH'] as const).map((filter) => (
+                        {(['TODAY', 'YESTERDAY', 'WEEK', 'MONTH', 'ALL'] as const).map((filter) => (
                             <button
                                 key={filter}
                                 onClick={() => setTimeFilter(filter)}
@@ -119,7 +121,8 @@ const OrderHistoryModal: React.FC<OrderHistoryModalProps> = ({ isOpen, onClose, 
                             >
                                 {filter === 'TODAY' ? 'Today' :
                                     filter === 'YESTERDAY' ? 'Yesterday' :
-                                        filter === 'WEEK' ? 'Last 7 Days' : 'Last 30 Days'}
+                                        filter === 'WEEK' ? 'Last 7 Days' :
+                                            filter === 'MONTH' ? 'Last 30 Days' : 'All Time'}
                             </button>
                         ))}
                     </div>
@@ -227,6 +230,18 @@ const OrderHistoryModal: React.FC<OrderHistoryModalProps> = ({ isOpen, onClose, 
                                                 >
                                                     <Printer size={16} />
                                                 </button>
+                                                {onDeleteOrder && (
+                                                    <button
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            onDeleteOrder(order.id);
+                                                        }}
+                                                        className="p-2 ml-2 bg-red-100 hover:bg-red-200 text-red-600 rounded-full transition-colors"
+                                                        title="Delete Order"
+                                                    >
+                                                        <X size={16} />
+                                                    </button>
+                                                )}
                                             </td>
                                         </tr>
                                     ))

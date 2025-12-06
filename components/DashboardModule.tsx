@@ -11,9 +11,10 @@ interface DashboardModuleProps {
   orders?: Order[];
   salesAdjustments?: SalesAdjustment[];
   expenses?: Expense[];
+  onDeleteOrder?: (id: string) => Promise<void>;
 }
 
-const DashboardModule: React.FC<DashboardModuleProps> = ({ items, orders = [], salesAdjustments = [], expenses = [] }) => {
+const DashboardModule: React.FC<DashboardModuleProps> = ({ items, orders = [], salesAdjustments = [], expenses = [], onDeleteOrder }) => {
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
   const [timeFilter, setTimeFilter] = useState<'TODAY' | 'WEEK' | 'MONTH'>('TODAY');
 
@@ -325,6 +326,7 @@ const DashboardModule: React.FC<DashboardModuleProps> = ({ items, orders = [], s
         isOpen={isHistoryOpen}
         onClose={() => setIsHistoryOpen(false)}
         orders={orders}
+        onDeleteOrder={onDeleteOrder}
       />
     </div>
   );
