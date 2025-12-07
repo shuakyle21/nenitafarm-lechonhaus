@@ -54,7 +54,7 @@ const ReceiptModal: React.FC<ReceiptModalProps> = ({
       } else {
         // New Order: Sequential Order ID
         setOrderNo((orderCount + 1).toString().padStart(6, '0'));
-        setDate(new Date().toLocaleString('en-PH'));
+        setDate(new Date().toISOString());
         setAmountTendered('');
       }
     }
@@ -85,6 +85,19 @@ const ReceiptModal: React.FC<ReceiptModalProps> = ({
 
   const formatCurrency = (amount: number) => {
     return `₱${amount.toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  };
+
+  const formatDate = (dateString: string) => {
+    try {
+      if (!dateString) return { date: '', time: '' };
+      const d = new Date(dateString);
+      return {
+        date: d.toLocaleDateString('en-PH'),
+        time: d.toLocaleTimeString('en-PH', { hour: '2-digit', minute: '2-digit' })
+      };
+    } catch {
+      return { date: dateString, time: '' };
+    }
   };
 
   const handleDownload = async () => {
@@ -125,6 +138,8 @@ const ReceiptModal: React.FC<ReceiptModalProps> = ({
     onSaveOrder(newOrder);
   };
 
+  const dateTime = formatDate(date);
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 print:p-0 print:bg-white print:static print:h-auto print:block">
       <div className="h-full flex flex-col items-center justify-center py-10 print:h-auto print:max-h-none print:block print:py-0">
@@ -161,8 +176,8 @@ const ReceiptModal: React.FC<ReceiptModalProps> = ({
                 <p>Table: {existingOrder?.tableNumber || tableNumber || (existingOrder ? 'N/A' : orderCount + 1)}</p>
               </div>
               <div className="text-right space-y-1">
-                <p>{date.split(',')[0]}</p>
-                <p>{date.split(',')[1]}</p>
+                <p>{dateTime.date}</p>
+                <p>{dateTime.time}</p>
                 <p>Server: Maria C.</p>
               </div>
             </div>
