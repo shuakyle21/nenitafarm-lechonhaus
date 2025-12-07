@@ -36,7 +36,12 @@ VALUES
     (208, '2025-12-07 15:30:00+08', 'PostgreSQL format with timezone');
 
 -- Display the test data
-RAISE NOTICE 'Original test data:';
+DO $$
+BEGIN
+    RAISE NOTICE '';
+    RAISE NOTICE 'Original test data (see SELECT results below):';
+END $$;
+
 SELECT 
     order_number,
     created_at as timestamp_text,
@@ -45,8 +50,11 @@ FROM orders_test
 ORDER BY order_number;
 
 -- Now test the migration logic
-RAISE NOTICE '';
-RAISE NOTICE 'Running migration logic...';
+DO $$
+BEGIN
+    RAISE NOTICE '';
+    RAISE NOTICE 'Running migration logic...';
+END $$;
 
 -- Add temporary column
 ALTER TABLE orders_test ADD COLUMN IF NOT EXISTS created_at_fixed TEXT;
@@ -86,8 +94,13 @@ SET created_at_fixed = CASE
 END;
 
 -- Show the results
-RAISE NOTICE '';
-RAISE NOTICE 'Migration Results:';
+DO $$
+BEGIN
+    RAISE NOTICE '';
+    RAISE NOTICE 'Migration Results (see SELECT results below):';
+    RAISE NOTICE '';
+END $$;
+
 SELECT 
     order_number,
     description,

@@ -76,22 +76,32 @@ SET created_at_fixed = CASE
 END;
 
 -- Step 5: View what will be changed (REVIEW THIS BEFORE APPLYING!)
+WITH timestamp_analysis AS (
+    SELECT 
+        id,
+        order_number,
+        created_at,
+        created_at_fixed,
+        created_at::TEXT as old_timestamp_text,
+        created_at_fixed::TEXT as new_timestamp_text
+    FROM orders
+)
 SELECT 
     id,
     order_number,
-    created_at::TEXT as old_timestamp,
-    created_at_fixed::TEXT as new_timestamp_utc,
+    old_timestamp_text as old_timestamp,
+    new_timestamp_text as new_timestamp_utc,
     (created_at_fixed AT TIME ZONE 'Asia/Manila')::TEXT as new_timestamp_philippines,
     CASE 
-        WHEN created_at::TEXT != created_at_fixed::TEXT THEN '✓ WILL BE FIXED'
+        WHEN old_timestamp_text != new_timestamp_text THEN '✓ WILL BE FIXED'
         ELSE '○ No change needed'
     END as status,
     CASE 
-        WHEN created_at::TEXT ~ '^\d{1,2}/\d{1,2}/\d{4},' THEN 'Localized Format'
-        WHEN created_at::TEXT LIKE '%T%Z%' THEN 'ISO 8601 Format'
+        WHEN old_timestamp_text ~ '^\d{1,2}/\d{1,2}/\d{4},' THEN 'Localized Format'
+        WHEN old_timestamp_text LIKE '%T%Z%' THEN 'ISO 8601 Format'
         ELSE 'Other Format'
     END as detected_format
-FROM orders
+FROM timestamp_analysis
 ORDER BY created_at;
 
 -- ================================================================================
