@@ -13,9 +13,28 @@ Previously, the `ReceiptModal` component was generating localized date strings (
   - Database interpreted it as: 11:09 AM UTC
   - When displayed back in Philippines Time: Showed as 7:09 PM (incorrect!)
 
+For a detailed technical explanation, see [`TIMESTAMP_ISSUE_EXPLANATION.md`](TIMESTAMP_ISSUE_EXPLANATION.md).
+
 ## The Solution
 
 The code has been fixed to use ISO 8601 format (`new Date().toISOString()`) for new orders. However, **existing orders** still have the incorrect format and need to be migrated.
+
+## Pre-Migration: Diagnosis
+
+**Before running any migration**, first check if you actually need it:
+
+1. Run the diagnostic script: [`diagnose_timestamps.sql`](diagnose_timestamps.sql)
+2. This will show you:
+   - How many orders have incorrect format
+   - Examples of the problematic data
+   - Whether migration is needed
+
+```sql
+-- Run in Supabase SQL Editor
+-- File: supabase/diagnose_timestamps.sql
+```
+
+If the diagnostic shows **0 orders need migration**, you're done! Otherwise, continue below.
 
 ## Migration Steps
 
@@ -154,3 +173,23 @@ If you encounter issues:
 2. Review the preview output before applying
 3. Test on a development/staging database first
 4. Document any orders that seem incorrect after migration
+
+## Quick Reference
+
+### Files in this directory:
+
+1. **`diagnose_timestamps.sql`** - Check if migration is needed (run this first!)
+2. **`fix_order_timestamps.sql`** - Step-by-step migration with preview
+3. **`fix_order_timestamps_auto.sql`** - Automated migration with backup
+4. **`test_migration.sql`** - Test the migration logic (development only)
+5. **`MIGRATION_GUIDE.md`** - This file
+6. **`TIMESTAMP_ISSUE_EXPLANATION.md`** - Technical explanation of the issue
+
+### Recommended Workflow:
+
+```
+1. diagnose_timestamps.sql  → Check if migration needed
+2. Backup database          → Create safety net
+3. fix_order_timestamps.sql → Review and apply changes
+4. Verify results           → Check orders display correctly
+```
