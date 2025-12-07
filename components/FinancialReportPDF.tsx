@@ -226,6 +226,17 @@ const FinancialReportPDF: React.FC<FinancialReportPDFProps> = ({ orders, expense
                                 </View>
                             ))}
                         </View>
+                        {/* Sales Adjustment Total Footer */}
+                        <View style={[styles.table, { borderTopWidth: 0, marginTop: -1 }]}>
+                            <View style={styles.tableRow}>
+                                <View style={{ ...styles.tableCol, width: '85%', borderRightWidth: 0 }}>
+                                    <Text style={[styles.tableCell, styles.textRight, { fontWeight: 'bold' }]}>TOTAL SALES ADJUSTMENT</Text>
+                                </View>
+                                <View style={{ ...styles.tableCol, width: '15%' }}>
+                                    <Text style={[styles.tableCell, styles.textRight, { fontWeight: 'bold', color: '#16A34A' }]}>P {adjustmentsTotal.toLocaleString()}</Text>
+                                </View>
+                            </View>
+                        </View>
                     </>
                 )}
 
@@ -281,42 +292,68 @@ const FinancialReportPDF: React.FC<FinancialReportPDFProps> = ({ orders, expense
                 ) : (
                     <Text style={{ fontSize: 10, color: '#9CA3AF', fontStyle: 'italic' }}>No transactions recorded for this period.</Text>
                 )}
+                {/* Transaction History Total - Added Footer */}
+                {orders.length > 0 && (
+                    <View style={[styles.table, { borderTopWidth: 0, marginTop: -1 }]}>
+                        <View style={styles.tableRow}>
+                            <View style={{ ...styles.tableCol, width: '85%', borderRightWidth: 0 }}>
+                                <Text style={[styles.tableCell, styles.textRight, { fontWeight: 'bold' }]}>TOTAL TRANSACTION HISTORY</Text>
+                            </View>
+                            <View style={{ ...styles.tableCol, width: '15%' }}>
+                                <Text style={[styles.tableCell, styles.textRight, { fontWeight: 'bold' }]}>P {ordersTotal.toLocaleString()}</Text>
+                            </View>
+                        </View>
+                    </View>
+                )}
 
                 {/* Expense Breakdown */}
                 <Text style={styles.sectionTitle}>Expense Breakdown</Text>
                 {expenses.length > 0 ? (
-                    <View style={styles.table}>
-                        <View style={[styles.tableRow, styles.expenseHeader]}>
-                            <View style={{ ...styles.tableCol, width: '25%' }}>
-                                <Text style={styles.tableCellHeader}>Date</Text>
-                            </View>
-                            <View style={{ ...styles.tableCol, width: '35%' }}>
-                                <Text style={styles.tableCellHeader}>Reason</Text>
-                            </View>
-                            <View style={{ ...styles.tableCol, width: '25%' }}>
-                                <Text style={styles.tableCellHeader}>Requested By</Text>
-                            </View>
-                            <View style={{ ...styles.tableCol, width: '15%' }}>
-                                <Text style={[styles.tableCellHeader, styles.textRight]}>Amount</Text>
-                            </View>
-                        </View>
-                        {expenses.map((e, i) => (
-                            <View key={i} style={styles.tableRow}>
+                    <>
+                        <View style={styles.table}>
+                            <View style={[styles.tableRow, styles.expenseHeader]}>
                                 <View style={{ ...styles.tableCol, width: '25%' }}>
-                                    <Text style={styles.tableCell}>{new Date(e.date).toLocaleDateString()}</Text>
+                                    <Text style={styles.tableCellHeader}>Date</Text>
                                 </View>
                                 <View style={{ ...styles.tableCol, width: '35%' }}>
-                                    <Text style={styles.tableCell}>{e.reason}</Text>
+                                    <Text style={styles.tableCellHeader}>Reason</Text>
                                 </View>
                                 <View style={{ ...styles.tableCol, width: '25%' }}>
-                                    <Text style={styles.tableCell}>{e.requested_by}</Text>
+                                    <Text style={styles.tableCellHeader}>Requested By</Text>
                                 </View>
                                 <View style={{ ...styles.tableCol, width: '15%' }}>
-                                    <Text style={[styles.tableCell, styles.textRight, styles.textRed]}>P {e.amount.toLocaleString()}</Text>
+                                    <Text style={[styles.tableCellHeader, styles.textRight]}>Amount</Text>
                                 </View>
                             </View>
-                        ))}
-                    </View>
+                            {expenses.map((e, i) => (
+                                <View key={i} style={styles.tableRow}>
+                                    <View style={{ ...styles.tableCol, width: '25%' }}>
+                                        <Text style={styles.tableCell}>{new Date(e.date).toLocaleDateString()}</Text>
+                                    </View>
+                                    <View style={{ ...styles.tableCol, width: '35%' }}>
+                                        <Text style={styles.tableCell}>{e.reason}</Text>
+                                    </View>
+                                    <View style={{ ...styles.tableCol, width: '25%' }}>
+                                        <Text style={styles.tableCell}>{e.requested_by}</Text>
+                                    </View>
+                                    <View style={{ ...styles.tableCol, width: '15%' }}>
+                                        <Text style={[styles.tableCell, styles.textRight, styles.textRed]}>P {e.amount.toLocaleString()}</Text>
+                                    </View>
+                                </View>
+                            ))}
+                        </View>
+                        {/* Expense Total Footer */}
+                        <View style={[styles.table, { borderTopWidth: 0, marginTop: -1 }]}>
+                            <View style={styles.tableRow}>
+                                <View style={{ ...styles.tableCol, width: '85%', borderRightWidth: 0 }}>
+                                    <Text style={[styles.tableCell, styles.textRight, { fontWeight: 'bold' }]}>TOTAL EXPENSES</Text>
+                                </View>
+                                <View style={{ ...styles.tableCol, width: '15%' }}>
+                                    <Text style={[styles.tableCell, styles.textRight, { fontWeight: 'bold', color: '#DC2626' }]}>P {reportExpenses.toLocaleString()}</Text>
+                                </View>
+                            </View>
+                        </View>
+                    </>
                 ) : (
                     <Text style={{ fontSize: 10, color: '#9CA3AF', fontStyle: 'italic' }}>No expenses recorded for this period.</Text>
                 )}

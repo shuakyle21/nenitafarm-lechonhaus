@@ -189,12 +189,22 @@ const FinancialModule: React.FC<FinancialModuleProps> = ({ orders, expenses, sal
         let filteredAdjustments: SalesAdjustment[] = [];
 
         // Filter Data
+        const checkDateMatch = (dateStr: string, targetDateStr: string) => {
+            const d = new Date(dateStr);
+            const localDate = d.getFullYear() + '-' +
+                String(d.getMonth() + 1).padStart(2, '0') + '-' +
+                String(d.getDate()).padStart(2, '0');
+            return localDate === targetDateStr;
+        };
+
         if (type === 'TODAY') {
-            const dateStr = today.toISOString().split('T')[0];
+            const todayStr = today.getFullYear() + '-' +
+                String(today.getMonth() + 1).padStart(2, '0') + '-' +
+                String(today.getDate()).padStart(2, '0');
             title = `Daily Financial Report - ${today.toLocaleDateString()}`;
-            filteredOrders = orders.filter(o => o.date.startsWith(dateStr));
-            filteredExpenses = expenses.filter(e => e.date.startsWith(dateStr));
-            filteredAdjustments = salesAdjustments.filter(s => s.date.startsWith(dateStr));
+            filteredOrders = orders.filter(o => checkDateMatch(o.date, todayStr));
+            filteredExpenses = expenses.filter(e => checkDateMatch(e.date, todayStr));
+            filteredAdjustments = salesAdjustments.filter(s => checkDateMatch(s.date, todayStr));
         } else if (type === 'WEEK') {
             const oneWeekAgo = new Date(today);
             oneWeekAgo.setDate(today.getDate() - 7);
@@ -211,9 +221,9 @@ const FinancialModule: React.FC<FinancialModuleProps> = ({ orders, expenses, sal
         } else if (type === 'CUSTOM' && selectedDate) {
             const dateObj = new Date(selectedDate);
             title = `Financial Report - ${dateObj.toLocaleDateString()}`;
-            filteredOrders = orders.filter(o => o.date.startsWith(selectedDate));
-            filteredExpenses = expenses.filter(e => e.date.startsWith(selectedDate));
-            filteredAdjustments = salesAdjustments.filter(s => s.date.startsWith(selectedDate));
+            filteredOrders = orders.filter(o => checkDateMatch(o.date, selectedDate));
+            filteredExpenses = expenses.filter(e => checkDateMatch(e.date, selectedDate));
+            filteredAdjustments = salesAdjustments.filter(s => checkDateMatch(s.date, selectedDate));
         }
 
         const blob = await pdf(
