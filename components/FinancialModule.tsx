@@ -189,18 +189,8 @@ const FinancialModule: React.FC<FinancialModuleProps> = ({ orders, expenses, sal
         let filteredAdjustments: SalesAdjustment[] = [];
 
         // Filter Data
-        const checkDateMatch = (dateStr: string, targetDateStr: string) => {
-            const d = new Date(dateStr);
-            const localDate = d.getFullYear() + '-' +
-                String(d.getMonth() + 1).padStart(2, '0') + '-' +
-                String(d.getDate()).padStart(2, '0');
-            return localDate === targetDateStr;
-        };
-
         if (type === 'TODAY') {
-            const todayStr = today.getFullYear() + '-' +
-                String(today.getMonth() + 1).padStart(2, '0') + '-' +
-                String(today.getDate()).padStart(2, '0');
+            const todayStr = getLocalDateString(today);
             title = `Daily Financial Report - ${today.toLocaleDateString()}`;
             filteredOrders = orders.filter(o => checkDateMatch(o.date, todayStr));
             filteredExpenses = expenses.filter(e => checkDateMatch(e.date, todayStr));
