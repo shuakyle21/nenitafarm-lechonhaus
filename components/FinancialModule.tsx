@@ -9,7 +9,7 @@ import { Wallet, TrendingUp, TrendingDown, DollarSign, Plus, History, PieChart a
 import { pdf } from '@react-pdf/renderer';
 import { saveAs } from 'file-saver';
 import FinancialReportPDF from './FinancialReportPDF';
-
+import { checkDateMatch, getLocalDateString } from '../lib/dateUtils';
 
 
 interface FinancialModuleProps {
