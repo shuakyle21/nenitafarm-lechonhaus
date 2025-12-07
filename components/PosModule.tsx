@@ -342,6 +342,15 @@ const PosModule: React.FC<PosModuleProps> = ({
     return url;
   };
 
+  const handleConfirmOrder = () => {
+    // Validate cart has items before proceeding to checkout
+    if (cart.length === 0) {
+      alert('Cannot proceed to checkout. Please add items to your order first.');
+      return;
+    }
+    setIsReceiptModalOpen(true);
+  };
+
   return (
     <div className="flex h-full w-full bg-stone-100 overflow-hidden font-roboto animate-in fade-in duration-300">
       {/* LEFT PANEL: CART (30%) */}
@@ -353,7 +362,7 @@ const PosModule: React.FC<PosModuleProps> = ({
           onUpdateQuantity={updateQuantity}
           onClear={() => setCart([])}
           onOpenDiscount={() => setIsDiscountModalOpen(true)}
-          onConfirmOrder={() => setIsReceiptModalOpen(true)}
+          onConfirmOrder={handleConfirmOrder}
           staffList={staffList}
           selectedServer={selectedServer}
           onSelectServer={setSelectedServer}
