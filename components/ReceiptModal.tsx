@@ -60,6 +60,13 @@ const ReceiptModal: React.FC<ReceiptModalProps> = ({
     }
   }, [isOpen, orderCount, existingOrder]);
 
+  // Close modal if cart becomes empty (unless viewing existing order)
+  React.useEffect(() => {
+    if (isOpen && !existingOrder && cart.length === 0) {
+      onClose();
+    }
+  }, [cart.length, isOpen, existingOrder, onClose]);
+
   if (!isOpen) return null;
 
   // Determine values based on mode
@@ -122,7 +129,14 @@ const ReceiptModal: React.FC<ReceiptModalProps> = ({
   };
 
   const handleConfirmOrder = () => {
+    // Validate payment is sufficient
     if (!isPaid) return;
+
+    // Validate cart has items before saving order
+    if (cart.length === 0) {
+      alert('Cannot confirm order. Cart is empty.');
+      return;
+    }
 
     const newOrder: Order = {
       id: orderNo,
