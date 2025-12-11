@@ -88,8 +88,7 @@ const DashboardModule: React.FC<DashboardModuleProps> = ({ items, orders = [], s
 
     // 3. Convert to array and sort
     return Array.from(itemMap.values())
-      .sort((a, b) => b.count - a.count)
-      .slice(0, 5);
+      .sort((a, b) => b.count - a.count);
   };
 
   const topItems = getTopItems();
@@ -223,7 +222,7 @@ const DashboardModule: React.FC<DashboardModuleProps> = ({ items, orders = [], s
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
 
         {/* Popular Items */}
-        <div className="lg:col-span-2 bg-white rounded-2xl shadow-sm border border-stone-200 overflow-hidden flex flex-col">
+        <div className="lg:col-span-2 bg-white rounded-2xl shadow-sm border border-stone-200 overflow-hidden flex flex-col h-[500px]">
           <div className="p-6 border-b border-stone-100 flex justify-between items-center">
             <h3 className="font-bold text-lg text-stone-800">Top Menu Items</h3>
             <div className="flex bg-stone-100 p-1 rounded-lg">
