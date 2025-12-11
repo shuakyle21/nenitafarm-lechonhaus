@@ -330,27 +330,27 @@ const FinancialModule: React.FC<FinancialModuleProps> = ({ orders, expenses, sal
         <div className="h-full w-full bg-stone-100 overflow-y-auto p-6 font-roboto animate-in fade-in duration-300">
 
             {/* Header */}
-            <div className="flex items-center justify-between mb-8">
+            <div className="flex flex-col xl:flex-row xl:items-end justify-between mb-8 gap-6">
                 <div className="flex items-center gap-3">
-                    <div className="p-3 bg-blue-600 text-white rounded-xl shadow-lg">
+                    <div className="p-3 bg-blue-600 text-white rounded-xl shadow-lg shadow-blue-200">
                         <Wallet size={24} />
                     </div>
-                    <div>
-                        <h1 className="text-3xl font-black text-stone-800 tracking-tight">Financial Analysis</h1>
+                    <div className="font-roboto animate-in fade-in duration-300">
+                        <h1 className="text-3xl font-brand font-black text-stone-800 tracking-tight">Financial Analysis</h1>
                         <p className="text-stone-500 font-medium">Cash Management & Sales Analytics</p>
                     </div>
                 </div>
 
                 {/* Report Generation Buttons */}
-                <div className="flex flex-col xl:flex-row gap-2 items-end xl:items-center">
-                    <div className="flex flex-col sm:flex-row items-center gap-2 bg-white border border-stone-200 rounded-lg px-2 py-1 shadow-sm mr-2">
+                <div className="flex flex-wrap items-center gap-3">
+                    <div className="flex items-center gap-2 bg-white border border-stone-200 rounded-lg px-3 py-1.5 shadow-sm">
                          <div className="flex items-center gap-2">
                             <span className="text-xs font-bold text-stone-500 uppercase">From:</span>
                              <input
                                 type="date"
                                 value={startDate}
                                 onChange={(e) => setStartDate(e.target.value)}
-                                className="bg-transparent text-sm font-bold text-stone-700 focus:outline-none w-32"
+                                className="bg-transparent text-sm font-bold text-stone-700 focus:outline-none w-auto"
                             />
                          </div>
                          <div className="flex items-center gap-2">
@@ -359,87 +359,87 @@ const FinancialModule: React.FC<FinancialModuleProps> = ({ orders, expenses, sal
                                 type="date"
                                 value={endDate}
                                 onChange={(e) => setEndDate(e.target.value)}
-                                className="bg-transparent text-sm font-bold text-stone-700 focus:outline-none w-32"
+                                className="bg-transparent text-sm font-bold text-stone-700 focus:outline-none w-auto"
                             />
                          </div>
                         
-                         <div className="flex items-center gap-1 border-l border-stone-200 pl-2 ml-1">
+                         <div className="flex items-center gap-1 border-l border-stone-200 pl-2 ml-2">
                              <button
                                 onClick={() => generateReport('CUSTOM')}
                                 disabled={!startDate || !endDate}
-                                className="p-1 hover:bg-stone-100 rounded-md text-blue-600 disabled:opacity-50 disabled:cursor-not-allowed"
+                                className="p-1.5 hover:bg-stone-100 rounded-md text-blue-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                                 title="Generate PDF Report"
                              >
-                                <FileText size={16} />
+                                <FileText size={18} />
                             </button>
                              <button
                                 onClick={() => handleExport('CUSTOM')}
                                 disabled={!startDate || !endDate}
-                                className="p-1 hover:bg-stone-100 rounded-md text-green-600 disabled:opacity-50 disabled:cursor-not-allowed"
+                                className="p-1.5 hover:bg-stone-100 rounded-md text-green-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                                 title="Export CSV Data"
                              >
-                                <Download size={16} />
+                                <Download size={18} />
                             </button>
                          </div>
                     </div>
 
                     <div className="flex gap-2">
-                        <div className="flex">
-                             <button
-                                onClick={() => generateReport('TODAY')}
-                                className="flex items-center gap-2 px-3 py-2 bg-white border border-stone-200 text-stone-700 font-bold rounded-l-lg hover:bg-stone-50 transition-colors shadow-sm"
-                                title="Today PDF"
-                            >
-                                <FileText size={16} />
-                                Today
-                            </button>
-                            <button
-                                onClick={() => handleExport('TODAY')}
-                                className="flex items-center px-2 py-2 bg-stone-50 border-y border-r border-stone-200 text-stone-600 font-bold rounded-r-lg hover:bg-stone-100 transition-colors shadow-sm"
-                                title="Today CSV"
-                            >
-                                <Download size={16} />
-                            </button>
-                        </div>
+                        {/* Period Buttons */}
+                        <div className="flex bg-white rounded-lg shadow-sm border border-stone-200 p-1">
+                             {/* Today */}
+                            <div className="flex items-center">
+                                <button
+                                    onClick={() => generateReport('TODAY')}
+                                    className="px-3 py-1.5 text-xs font-bold text-stone-600 hover:text-stone-900 hover:bg-stone-50 rounded-l-md transition-colors"
+                                >
+                                    Today
+                                </button>
+                                <button
+                                    onClick={() => handleExport('TODAY')}
+                                    className="px-2 py-1.5 text-green-600 hover:bg-green-50 rounded-r-md transition-colors border-l border-stone-100"
+                                    title="Export Today"
+                                >
+                                    <Download size={14} />
+                                </button>
+                            </div>
 
-                         <div className="flex">
-                             <button
-                                onClick={() => generateReport('WEEK')}
-                                disabled={!isSunday()}
-                                className="flex items-center gap-2 px-3 py-2 bg-white border border-stone-200 text-stone-700 font-bold rounded-l-lg hover:bg-stone-50 transition-colors shadow-sm disabled:opacity-50"
-                                title={!isSunday() ? "Only on Sundays" : "Week PDF"}
-                            >
-                                <FileText size={16} />
-                                Week
-                            </button>
-                             <button
-                                onClick={() => handleExport('WEEK')}
-                                disabled={!isSunday()}
-                                className="flex items-center px-2 py-2 bg-stone-50 border-y border-r border-stone-200 text-stone-600 font-bold rounded-r-lg hover:bg-stone-100 transition-colors shadow-sm disabled:opacity-50"
-                                title="Week CSV"
-                            >
-                                <Download size={16} />
-                            </button>
-                        </div>
-                        
-                         <div className="flex">
-                             <button
-                                onClick={() => generateReport('MONTH')}
-                                disabled={!isLastDayOfMonth()}
-                                className="flex items-center gap-2 px-3 py-2 bg-white border border-stone-200 text-stone-700 font-bold rounded-l-lg hover:bg-stone-50 transition-colors shadow-sm disabled:opacity-50"
-                                title={!isLastDayOfMonth() ? "End of Month" : "Month PDF"}
-                            >
-                                <FileText size={16} />
-                                Month
-                            </button>
-                             <button
-                                onClick={() => handleExport('MONTH')}
-                                disabled={!isLastDayOfMonth()}
-                                className="flex items-center px-2 py-2 bg-stone-50 border-y border-r border-stone-200 text-stone-600 font-bold rounded-r-lg hover:bg-stone-100 transition-colors shadow-sm disabled:opacity-50"
-                                title="Month CSV"
-                            >
-                                <Download size={16} />
-                            </button>
+                             {/* Week */}
+                             <div className="flex items-center border-l border-stone-200 pl-1 ml-1">
+                                <button
+                                    onClick={() => generateReport('WEEK')}
+                                    disabled={!isSunday()}
+                                    className="px-3 py-1.5 text-xs font-bold text-stone-600 hover:text-stone-900 hover:bg-stone-50 rounded-l-md transition-colors disabled:opacity-40"
+                                >
+                                    Week
+                                </button>
+                                <button
+                                    onClick={() => handleExport('WEEK')}
+                                    disabled={!isSunday()}
+                                    className="px-2 py-1.5 text-green-600 hover:bg-green-50 rounded-r-md transition-colors border-l border-stone-100 disabled:opacity-40"
+                                    title="Export Week"
+                                >
+                                    <Download size={14} />
+                                </button>
+                            </div>
+
+                             {/* Month */}
+                             <div className="flex items-center border-l border-stone-200 pl-1 ml-1">
+                                <button
+                                    onClick={() => generateReport('MONTH')}
+                                    disabled={!isLastDayOfMonth()}
+                                    className="px-3 py-1.5 text-xs font-bold text-stone-600 hover:text-stone-900 hover:bg-stone-50 rounded-l-md transition-colors disabled:opacity-40"
+                                >
+                                    Month
+                                </button>
+                                <button
+                                    onClick={() => handleExport('MONTH')}
+                                    disabled={!isLastDayOfMonth()}
+                                    className="px-2 py-1.5 text-green-600 hover:bg-green-50 rounded-r-md transition-colors border-l border-stone-100 disabled:opacity-40"
+                                    title="Export Month"
+                                >
+                                    <Download size={14} />
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -447,37 +447,37 @@ const FinancialModule: React.FC<FinancialModuleProps> = ({ orders, expenses, sal
 
             {/* Summary Cards */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                <div className="bg-white p-6 rounded-2xl shadow-sm border border-stone-200 flex items-center justify-between">
+                <div className="bg-white p-6 rounded-2xl shadow-sm border border-stone-200 flex items-center justify-between hover:shadow-md transition-all">
                     <div>
                         <p className="text-stone-500 font-bold text-xs uppercase tracking-wider mb-1">Total Gross Sales</p>
-                        <h3 className="text-3xl font-black text-stone-800">₱{totalSales.toLocaleString()}</h3>
+                        <h3 className="text-3xl font-brand font-black text-stone-800 tracking-tight">₱{totalSales.toLocaleString()}</h3>
                         {adjustmentsTotal > 0 && (
-                            <p className="text-xs text-green-600 font-bold mt-1">
-                                +₱{adjustmentsTotal.toLocaleString()} from adjustments
+                            <p className="text-xs text-green-600 font-bold mt-1 bg-green-50 px-2 py-0.5 rounded-full inline-block">
+                                +₱{adjustmentsTotal.toLocaleString()} adjustments
                             </p>
                         )}
                     </div>
-                    <div className="p-3 bg-green-100 text-green-600 rounded-full">
+                    <div className="p-3 bg-green-50 text-green-600 rounded-xl">
                         <TrendingUp size={24} />
                     </div>
                 </div>
 
-                <div className="bg-white p-6 rounded-2xl shadow-sm border border-stone-200 flex items-center justify-between">
+                <div className="bg-white p-6 rounded-2xl shadow-sm border border-stone-200 flex items-center justify-between hover:shadow-md transition-all">
                     <div>
                         <p className="text-stone-500 font-bold text-xs uppercase tracking-wider mb-1">Total Expenses</p>
-                        <h3 className="text-3xl font-black text-red-600">₱{totalExpenses.toLocaleString()}</h3>
+                        <h3 className="text-3xl font-brand font-black text-red-600 tracking-tight">₱{totalExpenses.toLocaleString()}</h3>
                     </div>
-                    <div className="p-3 bg-red-100 text-red-600 rounded-full">
+                    <div className="p-3 bg-red-50 text-red-600 rounded-xl">
                         <TrendingDown size={24} />
                     </div>
                 </div>
 
-                <div className="bg-stone-800 p-6 rounded-2xl shadow-lg flex items-center justify-between text-white">
+                <div className="bg-stone-800 p-6 rounded-2xl shadow-lg flex items-center justify-between text-white hover:shadow-xl transition-all border border-stone-700">
                     <div>
                         <p className="text-stone-400 font-bold text-xs uppercase tracking-wider mb-1">Net Cash on Hand</p>
-                        <h3 className="text-3xl font-black">₱{netCash.toLocaleString()}</h3>
+                        <h3 className="text-3xl font-brand font-black tracking-tight">₱{netCash.toLocaleString()}</h3>
                     </div>
-                    <div className="p-3 bg-stone-700 rounded-full text-yellow-400">
+                    <div className="p-3 bg-stone-700/50 rounded-xl text-yellow-400 border border-stone-600">
                         <DollarSign size={24} />
                     </div>
                 </div>
@@ -490,21 +490,25 @@ const FinancialModule: React.FC<FinancialModuleProps> = ({ orders, expenses, sal
 
                     {/* Sales Trend Chart */}
                     <div className="bg-white p-6 rounded-2xl shadow-sm border border-stone-200">
-                        <div className="flex items-center gap-2 mb-6">
-                            <TrendingUp className="text-blue-600" size={20} />
-                            <h3 className="font-bold text-stone-800 text-lg">Sales Trend (Last 7 Days)</h3>
+                        <div className="flex items-center justify-between mb-6">
+                            <div className="flex items-center gap-2">
+                                <TrendingUp className="text-blue-600" size={20} />
+                                <h3 className="font-bold text-stone-800 text-lg">Sales Trend</h3>
+                            </div>
+                            <span className="text-xs font-bold text-stone-400 bg-stone-100 px-2 py-1 rounded-md">Last 7 Days</span>
                         </div>
                         <div className="h-64 w-full">
                             <ResponsiveContainer width="100%" height="100%">
                                 <LineChart data={salesTrendData}>
-                                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e5e7eb" />
-                                    <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fill: '#6b7280', fontSize: 12 }} dy={10} />
-                                    <YAxis axisLine={false} tickLine={false} tick={{ fill: '#6b7280', fontSize: 12 }} tickFormatter={(value) => `₱${value / 1000}k`} />
+                                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f3f4f6" />
+                                    <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fill: '#9ca3af', fontSize: 11, fontWeight: 500 }} dy={10} />
+                                    <YAxis axisLine={false} tickLine={false} tick={{ fill: '#9ca3af', fontSize: 11, fontWeight: 500 }} tickFormatter={(value) => `₱${value / 1000}k`} />
                                     <Tooltip
-                                        contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}
+                                        contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 20px -2px rgba(0, 0, 0, 0.1)' }}
                                         formatter={(value: number) => [`₱${value.toLocaleString()}`, 'Sales']}
+                                        labelStyle={{ color: '#6b7280', marginBottom: '4px', fontSize: '12px' }}
                                     />
-                                    <Line type="monotone" dataKey="sales" stroke="#2563eb" strokeWidth={3} dot={{ r: 4, fill: '#2563eb', strokeWidth: 2, stroke: '#fff' }} activeDot={{ r: 6 }} />
+                                    <Line type="monotone" dataKey="sales" stroke="#2563eb" strokeWidth={3} dot={{ r: 4, fill: '#2563eb', strokeWidth: 2, stroke: '#fff' }} activeDot={{ r: 6, strokeWidth: 0 }} />
                                 </LineChart>
                             </ResponsiveContainer>
                         </div>
@@ -527,13 +531,23 @@ const FinancialModule: React.FC<FinancialModuleProps> = ({ orders, expenses, sal
                                         outerRadius={80}
                                         paddingAngle={5}
                                         dataKey="value"
+                                        stroke="none"
                                     >
                                         {categoryData.map((entry, index) => (
                                             <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                                         ))}
                                     </Pie>
-                                    <Tooltip formatter={(value: number) => `₱${value.toLocaleString()}`} />
-                                    <Legend layout="vertical" verticalAlign="middle" align="right" />
+                                    <Tooltip 
+                                        formatter={(value: number) => `₱${value.toLocaleString()}`}
+                                        contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 20px -2px rgba(0, 0, 0, 0.1)' }}
+                                    />
+                                    <Legend 
+                                        layout="vertical" 
+                                        verticalAlign="middle" 
+                                        align="right"
+                                        iconType="circle"
+                                        formatter={(value) => <span className="text-xs font-bold text-stone-600 ml-1">{value}</span>}
+                                    />
                                 </PieChart>
                             </ResponsiveContainer>
                         </div>
@@ -632,42 +646,52 @@ const FinancialModule: React.FC<FinancialModuleProps> = ({ orders, expenses, sal
                     </div>
 
                     {/* Recent Transactions List */}
-                    <div className="bg-white p-6 rounded-2xl shadow-sm border border-stone-200 flex-1">
-                        <h3 className="font-bold text-stone-800 text-lg mb-4 flex items-center gap-2">
-                            <History className="text-stone-400" size={20} />
-                            Recent Transactions
-                        </h3>
-                        <div className="space-y-3 max-h-[400px] overflow-y-auto pr-2">
+                    <div className="bg-white rounded-2xl shadow-sm border border-stone-200 flex-1 overflow-hidden flex flex-col">
+                        <div className="p-6 border-b border-stone-100 flex justify-between items-center bg-white sticky top-0 z-10">
+                            <h3 className="font-bold text-stone-800 text-lg flex items-center gap-2">
+                                <History className="text-stone-400" size={20} />
+                                Recent Transactions
+                            </h3>
+                        </div>
+                        <div className="flex-1 overflow-y-auto p-0">
                             {recentTransactions.length === 0 ? (
-                                <p className="text-center text-stone-400 text-sm py-4">No transactions today</p>
+                                <div className="flex flex-col items-center justify-center h-40 text-stone-400">
+                                    <p className="font-medium">No transactions found</p>
+                                </div>
                             ) : (
-                                recentTransactions.map((trans, idx) => (
-                                    <div key={trans.id || idx} className="flex justify-between items-start p-3 bg-stone-50 rounded-lg border border-stone-100 group">
-                                        <div className="flex items-start gap-3">
-                                            <div className={`mt-1 ${trans.type === 'EXPENSE' ? 'text-red-500' : 'text-green-500'}`}>
-                                                {trans.type === 'EXPENSE' ? <ArrowDownCircle size={16} /> : <ArrowUpCircle size={16} />}
+                                <div className="divide-y divide-stone-100">
+                                    {recentTransactions.map((trans, idx) => (
+                                        <div key={trans.id || idx} className="flex justify-between items-center p-4 hover:bg-stone-50 transition-colors group">
+                                            <div className="flex items-center gap-4">
+                                                <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                                                    trans.type === 'EXPENSE' ? 'bg-red-50 text-red-500' : 'bg-green-50 text-green-500'
+                                                }`}>
+                                                    {trans.type === 'EXPENSE' ? <ArrowDownCircle size={18} /> : <ArrowUpCircle size={18} />}
+                                                </div>
+                                                <div>
+                                                    <p className="font-bold text-stone-800 text-sm mb-0.5">{trans.reason}</p>
+                                                    <div className="flex items-center gap-2 text-xs text-stone-500">
+                                                        <span className="font-medium">{trans.type === 'EXPENSE' ? 'By: ' : 'Added by: '}{trans.person}</span>
+                                                        <span>•</span>
+                                                        <span>{new Date(trans.date).toLocaleDateString()}</span>
+                                                    </div>
+                                                </div>
                                             </div>
-                                            <div>
-                                                <p className="font-bold text-stone-800 text-sm">{trans.reason}</p>
-                                                <p className="text-xs text-stone-500">
-                                                    {trans.type === 'EXPENSE' ? 'By: ' : 'Added by: '}{trans.person} • {new Date(trans.date).toLocaleDateString()}
-                                                </p>
+                                            <div className="flex items-center gap-4">
+                                                <span className={`font-black text-sm ${trans.type === 'EXPENSE' ? 'text-red-600' : 'text-green-600'}`}>
+                                                    {trans.type === 'EXPENSE' ? '-' : '+'}₱{trans.amount.toLocaleString()}
+                                                </span>
+                                                <button
+                                                    onClick={() => handleDeleteTransaction(trans.id, trans.type)}
+                                                    className="p-2 text-stone-300 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all opacity-0 group-hover:opacity-100"
+                                                    title="Delete"
+                                                >
+                                                    <Trash2 size={16} />
+                                                </button>
                                             </div>
                                         </div>
-                                        <div className="flex items-center gap-3">
-                                            <span className={`font-bold text-sm ${trans.type === 'EXPENSE' ? 'text-red-600' : 'text-green-600'}`}>
-                                                {trans.type === 'EXPENSE' ? '-' : '+'}₱{trans.amount.toLocaleString()}
-                                            </span>
-                                            <button
-                                                onClick={() => handleDeleteTransaction(trans.id, trans.type)}
-                                                className="p-1.5 text-stone-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors opacity-0 group-hover:opacity-100"
-                                                title="Delete Transaction"
-                                            >
-                                                <Trash2 size={14} />
-                                            </button>
-                                        </div>
-                                    </div>
-                                ))
+                                    ))}
+                                </div>
                             )}
                         </div>
                     </div>
