@@ -9,7 +9,9 @@ import { Wallet, TrendingUp, TrendingDown, DollarSign, Plus, History, PieChart a
 import { pdf } from '@react-pdf/renderer';
 import { saveAs } from 'file-saver';
 import FinancialReportPDF from './FinancialReportPDF';
+
 import { checkDateMatch, getLocalDateString } from '../lib/dateUtils';
+import { exportToCSV } from '../lib/exportUtils';
 
 
 interface FinancialModuleProps {
@@ -171,6 +173,8 @@ const FinancialModule: React.FC<FinancialModuleProps> = ({ orders, expenses, sal
     }, [todayOrders]);
 
     const [selectedDate, setSelectedDate] = useState<string>('');
+    const [startDate, setStartDate] = useState<string>('');
+    const [endDate, setEndDate] = useState<string>('');
 
     // --- Report Generation ---
     const isSunday = () => new Date().getDay() === 0;
@@ -181,14 +185,13 @@ const FinancialModule: React.FC<FinancialModuleProps> = ({ orders, expenses, sal
         return tomorrow.getDate() === 1;
     };
 
-    const generateReport = async (type: 'TODAY' | 'WEEK' | 'MONTH' | 'CUSTOM') => {
+    const getFilteredData = (type: 'TODAY' | 'WEEK' | 'MONTH' | 'CUSTOM') => {
         const today = new Date();
-        let title = '';
         let filteredOrders: Order[] = [];
         let filteredExpenses: Expense[] = [];
         let filteredAdjustments: SalesAdjustment[] = [];
+        let title = '';
 
-        // Filter Data
         if (type === 'TODAY') {
             const todayStr = getLocalDateString(today);
             title = `Daily Financial Report - ${today.toLocaleDateString()}`;
@@ -208,12 +211,45 @@ const FinancialModule: React.FC<FinancialModuleProps> = ({ orders, expenses, sal
             filteredOrders = orders.filter(o => new Date(o.date) >= firstDay);
             filteredExpenses = expenses.filter(e => new Date(e.date) >= firstDay);
             filteredAdjustments = salesAdjustments.filter(s => new Date(s.date) >= firstDay);
-        } else if (type === 'CUSTOM' && selectedDate) {
-            const dateObj = new Date(selectedDate);
-            title = `Financial Report - ${dateObj.toLocaleDateString()}`;
-            filteredOrders = orders.filter(o => checkDateMatch(o.date, selectedDate));
-            filteredExpenses = expenses.filter(e => checkDateMatch(e.date, selectedDate));
-            filteredAdjustments = salesAdjustments.filter(s => checkDateMatch(s.date, selectedDate));
+        } else if (type === 'CUSTOM') {
+           if (startDate && endDate) {
+                const start = new Date(startDate);
+                const end = new Date(endDate);
+                end.setHours(23, 59, 59, 999); // Include the entire end day
+
+                title = `Financial Report - ${start.toLocaleDateString()} to ${end.toLocaleDateString()}`;
+                
+                filteredOrders = orders.filter(o => {
+                    const d = new Date(o.date);
+                    return d >= start && d <= end;
+                });
+                filteredExpenses = expenses.filter(e => {
+                    const d = new Date(e.date);
+                    return d >= start && d <= end;
+                });
+                filteredAdjustments = salesAdjustments.filter(s => {
+                    const d = new Date(s.date);
+                    return d >= start && d <= end;
+                });
+            } else if (selectedDate) {
+                 // Fallback to single date if only selectedDate is used (legacy support or single day pick)
+                const dateObj = new Date(selectedDate);
+                title = `Financial Report - ${dateObj.toLocaleDateString()}`;
+                filteredOrders = orders.filter(o => checkDateMatch(o.date, selectedDate));
+                filteredExpenses = expenses.filter(e => checkDateMatch(e.date, selectedDate));
+                filteredAdjustments = salesAdjustments.filter(s => checkDateMatch(s.date, selectedDate));
+            }
+        }
+        
+        return { filteredOrders, filteredExpenses, filteredAdjustments, title };
+    };
+
+    const generateReport = async (type: 'TODAY' | 'WEEK' | 'MONTH' | 'CUSTOM') => {
+        const { filteredOrders, filteredExpenses, filteredAdjustments, title } = getFilteredData(type);
+        
+        if (type === 'CUSTOM' && !startDate && !endDate && !selectedDate) {
+             alert("Please select a date or date range.");
+             return;
         }
 
         const blob = await pdf(
@@ -225,8 +261,60 @@ const FinancialModule: React.FC<FinancialModuleProps> = ({ orders, expenses, sal
             />
         ).toBlob();
 
-        const filenameDate = type === 'CUSTOM' ? selectedDate : today.toISOString().split('T')[0];
+        let filenameDate = new Date().toISOString().split('T')[0];
+        if (type === 'CUSTOM') {
+             filenameDate = startDate && endDate ? `${startDate}_to_${endDate}` : selectedDate;
+        }
+
         saveAs(blob, `Financial_Report_${type}_${filenameDate}.pdf`);
+    };
+
+    const handleExport = (type: 'TODAY' | 'WEEK' | 'MONTH' | 'CUSTOM') => {
+         const { filteredOrders, filteredExpenses, filteredAdjustments } = getFilteredData(type);
+
+          if (type === 'CUSTOM' && !startDate && !endDate && !selectedDate) {
+             alert("Please select a date or date range.");
+             return;
+        }
+
+         // Export Orders
+         if (filteredOrders.length > 0) {
+             const ordersData = filteredOrders.map(o => ({
+                 Date: new Date(o.date).toLocaleDateString(),
+                 OrderId: o.id || 'N/A',
+                 Total: o.total,
+                 Items: o.items.map(i => `${i.name} (x${i.quantity})`).join('; ')
+             }));
+             exportToCSV(ordersData, `Orders_${type}_${new Date().toISOString().split('T')[0]}.csv`);
+         }
+
+          // Export Expenses
+         if (filteredExpenses.length > 0) {
+             const expensesData = filteredExpenses.map(e => ({
+                 Date: new Date(e.date).toLocaleDateString(),
+                 Category: 'Expense',
+                 Reason: e.reason,
+                 Amount: e.amount,
+                 RequestedBy: e.requested_by
+             }));
+             exportToCSV(expensesData, `Expenses_${type}_${new Date().toISOString().split('T')[0]}.csv`);
+         }
+         
+         // Export Adjustments
+         if (filteredAdjustments.length > 0) {
+             const adjData = filteredAdjustments.map(a => ({
+                 Date: new Date(a.date).toLocaleDateString(),
+                 Category: 'Adjustment',
+                 Reason: a.reason,
+                 Amount: a.amount,
+                 AddedBy: a.added_by
+             }));
+             exportToCSV(adjData, `Adjustments_${type}_${new Date().toISOString().split('T')[0]}.csv`);
+         }
+
+         if (filteredOrders.length === 0 && filteredExpenses.length === 0 && filteredAdjustments.length === 0) {
+             alert('No data to export for this period.');
+         }
     };
 
     // Combine transactions for the list
@@ -254,50 +342,106 @@ const FinancialModule: React.FC<FinancialModuleProps> = ({ orders, expenses, sal
                 </div>
 
                 {/* Report Generation Buttons */}
-                <div className="flex gap-2 items-center">
-                    <div className="flex items-center gap-2 bg-white border border-stone-200 rounded-lg px-2 py-1 shadow-sm mr-2">
-                        <span className="text-xs font-bold text-stone-500 uppercase">Date:</span>
-                        <input
-                            type="date"
-                            value={selectedDate}
-                            onChange={(e) => setSelectedDate(e.target.value)}
-                            className="bg-transparent text-sm font-bold text-stone-700 focus:outline-none"
-                        />
-                        <button
-                            onClick={() => generateReport('CUSTOM')}
-                            disabled={!selectedDate}
-                            className="p-1 hover:bg-stone-100 rounded-md text-blue-600 disabled:opacity-50 disabled:cursor-not-allowed"
-                            title="Generate Report for Selected Date"
-                        >
-                            <Download size={16} />
-                        </button>
+                <div className="flex flex-col xl:flex-row gap-2 items-end xl:items-center">
+                    <div className="flex flex-col sm:flex-row items-center gap-2 bg-white border border-stone-200 rounded-lg px-2 py-1 shadow-sm mr-2">
+                         <div className="flex items-center gap-2">
+                            <span className="text-xs font-bold text-stone-500 uppercase">From:</span>
+                             <input
+                                type="date"
+                                value={startDate}
+                                onChange={(e) => setStartDate(e.target.value)}
+                                className="bg-transparent text-sm font-bold text-stone-700 focus:outline-none w-32"
+                            />
+                         </div>
+                         <div className="flex items-center gap-2">
+                             <span className="text-xs font-bold text-stone-500 uppercase">To:</span>
+                             <input
+                                type="date"
+                                value={endDate}
+                                onChange={(e) => setEndDate(e.target.value)}
+                                className="bg-transparent text-sm font-bold text-stone-700 focus:outline-none w-32"
+                            />
+                         </div>
+                        
+                         <div className="flex items-center gap-1 border-l border-stone-200 pl-2 ml-1">
+                             <button
+                                onClick={() => generateReport('CUSTOM')}
+                                disabled={!startDate || !endDate}
+                                className="p-1 hover:bg-stone-100 rounded-md text-blue-600 disabled:opacity-50 disabled:cursor-not-allowed"
+                                title="Generate PDF Report"
+                             >
+                                <FileText size={16} />
+                            </button>
+                             <button
+                                onClick={() => handleExport('CUSTOM')}
+                                disabled={!startDate || !endDate}
+                                className="p-1 hover:bg-stone-100 rounded-md text-green-600 disabled:opacity-50 disabled:cursor-not-allowed"
+                                title="Export CSV Data"
+                             >
+                                <Download size={16} />
+                            </button>
+                         </div>
                     </div>
 
-                    <button
-                        onClick={() => generateReport('TODAY')}
-                        className="flex items-center gap-2 px-4 py-2 bg-white border border-stone-200 text-stone-700 font-bold rounded-lg hover:bg-stone-50 transition-colors shadow-sm"
-                    >
-                        <FileText size={16} />
-                        Today
-                    </button>
-                    <button
-                        onClick={() => generateReport('WEEK')}
-                        disabled={!isSunday()}
-                        className="flex items-center gap-2 px-4 py-2 bg-white border border-stone-200 text-stone-700 font-bold rounded-lg hover:bg-stone-50 transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
-                        title={!isSunday() ? "Available only on Sundays" : "Generate Weekly Report"}
-                    >
-                        <FileText size={16} />
-                        This Week
-                    </button>
-                    <button
-                        onClick={() => generateReport('MONTH')}
-                        disabled={!isLastDayOfMonth()}
-                        className="flex items-center gap-2 px-4 py-2 bg-white border border-stone-200 text-stone-700 font-bold rounded-lg hover:bg-stone-50 transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
-                        title={!isLastDayOfMonth() ? "Available only on last day of month" : "Generate Monthly Report"}
-                    >
-                        <FileText size={16} />
-                        This Month
-                    </button>
+                    <div className="flex gap-2">
+                        <div className="flex">
+                             <button
+                                onClick={() => generateReport('TODAY')}
+                                className="flex items-center gap-2 px-3 py-2 bg-white border border-stone-200 text-stone-700 font-bold rounded-l-lg hover:bg-stone-50 transition-colors shadow-sm"
+                                title="Today PDF"
+                            >
+                                <FileText size={16} />
+                                Today
+                            </button>
+                            <button
+                                onClick={() => handleExport('TODAY')}
+                                className="flex items-center px-2 py-2 bg-stone-50 border-y border-r border-stone-200 text-stone-600 font-bold rounded-r-lg hover:bg-stone-100 transition-colors shadow-sm"
+                                title="Today CSV"
+                            >
+                                <Download size={16} />
+                            </button>
+                        </div>
+
+                         <div className="flex">
+                             <button
+                                onClick={() => generateReport('WEEK')}
+                                disabled={!isSunday()}
+                                className="flex items-center gap-2 px-3 py-2 bg-white border border-stone-200 text-stone-700 font-bold rounded-l-lg hover:bg-stone-50 transition-colors shadow-sm disabled:opacity-50"
+                                title={!isSunday() ? "Only on Sundays" : "Week PDF"}
+                            >
+                                <FileText size={16} />
+                                Week
+                            </button>
+                             <button
+                                onClick={() => handleExport('WEEK')}
+                                disabled={!isSunday()}
+                                className="flex items-center px-2 py-2 bg-stone-50 border-y border-r border-stone-200 text-stone-600 font-bold rounded-r-lg hover:bg-stone-100 transition-colors shadow-sm disabled:opacity-50"
+                                title="Week CSV"
+                            >
+                                <Download size={16} />
+                            </button>
+                        </div>
+                        
+                         <div className="flex">
+                             <button
+                                onClick={() => generateReport('MONTH')}
+                                disabled={!isLastDayOfMonth()}
+                                className="flex items-center gap-2 px-3 py-2 bg-white border border-stone-200 text-stone-700 font-bold rounded-l-lg hover:bg-stone-50 transition-colors shadow-sm disabled:opacity-50"
+                                title={!isLastDayOfMonth() ? "End of Month" : "Month PDF"}
+                            >
+                                <FileText size={16} />
+                                Month
+                            </button>
+                             <button
+                                onClick={() => handleExport('MONTH')}
+                                disabled={!isLastDayOfMonth()}
+                                className="flex items-center px-2 py-2 bg-stone-50 border-y border-r border-stone-200 text-stone-600 font-bold rounded-r-lg hover:bg-stone-100 transition-colors shadow-sm disabled:opacity-50"
+                                title="Month CSV"
+                            >
+                                <Download size={16} />
+                            </button>
+                        </div>
+                    </div>
                 </div>
             </div>
 
