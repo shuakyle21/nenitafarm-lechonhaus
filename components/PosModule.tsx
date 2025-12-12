@@ -11,6 +11,8 @@ import ReceiptModal from './ReceiptModal';
 import MenuManagementModal from './MenuManagementModal';
 import { VariantSelector } from './VariantSelector';
 import { Search, Settings } from 'lucide-react';
+import { supabase } from '../lib/supabase';
+import OpeningFundModal from './OpeningFundModal';
 
 interface PosModuleProps {
   items: MenuItem[];
@@ -98,6 +100,53 @@ const PosModule: React.FC<PosModuleProps> = ({
     }
   });
   const [isSavedOrdersModalOpen, setIsSavedOrdersModalOpen] = useState(false);
+
+  // Opening Fund State
+  const [isOpeningFundModalOpen, setIsOpeningFundModalOpen] = useState(false);
+  const [openingFundLoading, setOpeningFundLoading] = useState(false);
+
+  // Check Opening Fund Status
+  React.useEffect(() => {
+    const checkOpeningFund = async () => {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+
+      const { data, error } = await supabase
+        .from('cash_transactions')
+        .select('id')
+        .eq('type', 'OPENING_FUND')
+        .gte('created_at', today.toISOString())
+        .limit(1);
+
+      if (!error && (!data || data.length === 0)) {
+        setIsOpeningFundModalOpen(true);
+      }
+    };
+
+    checkOpeningFund();
+  }, []);
+
+  const handleOpeningFundSubmit = async (amount: number, performedBy: string) => {
+    setOpeningFundLoading(true);
+    try {
+      const { error } = await supabase
+        .from('cash_transactions')
+        .insert([{
+          amount,
+          type: 'OPENING_FUND',
+          description: 'Start of Shift',
+          performed_by: performedBy
+        }]);
+
+      if (error) throw error;
+      setIsOpeningFundModalOpen(false);
+    } catch (err) {
+      console.error('Error setting opening fund:', err);
+      alert('Failed to set opening fund. Please try again.');
+    } finally {
+      setOpeningFundLoading(false);
+    }
+  };
 
   // Variant State
   const [selectedVariantItem, setSelectedVariantItem] = useState<MenuItem | null>(null);
@@ -367,6 +416,11 @@ const PosModule: React.FC<PosModuleProps> = ({
           onOpenSavedOrders={() => setIsSavedOrdersModalOpen(true)}
           tableNumber={tableNumber}
           onSetTableNumber={setTableNumber}
+        />
+        <OpeningFundModal
+          isOpen={isOpeningFundModalOpen}
+          onSubmit={handleOpeningFundSubmit}
+          isLoading={openingFundLoading}
         />
       </div>
 

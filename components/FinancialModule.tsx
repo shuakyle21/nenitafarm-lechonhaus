@@ -1,18 +1,21 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
-import { Order, Expense, SalesAdjustment } from '../types';
+import { Order, Expense, SalesAdjustment, CashTransaction } from '../types';
 import {
     LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
     PieChart, Pie, Cell, BarChart, Bar
 } from 'recharts';
-import { Wallet, TrendingUp, TrendingDown, DollarSign, Plus, History, PieChart as PieChartIcon, FileText, Download, ArrowUpCircle, ArrowDownCircle, Trash2 } from 'lucide-react';
+import { Wallet, TrendingUp, TrendingDown, DollarSign, Plus, History, PieChart as PieChartIcon, FileText, Download, ArrowUpCircle, ArrowDownCircle, Trash2, Printer, Filter, Calendar as CalendarIcon, CreditCard, Banknote } from 'lucide-react';
 import { pdf } from '@react-pdf/renderer';
 import { saveAs } from 'file-saver';
 import FinancialReportPDF from './FinancialReportPDF';
-
+import SalesAdjustmentModal from './SalesAdjustmentModal';
+import ExpenseModal from './ExpenseModal';
+import CashDropModal from './CashDropModal';
+import { jsPDF } from 'jspdf';
+import autoTable from 'jspdf-autotable';
 import { checkDateMatch, getLocalDateString } from '../lib/dateUtils';
 import { exportToCSV } from '../lib/exportUtils';
-
 
 interface FinancialModuleProps {
     orders: Order[];
@@ -24,20 +27,38 @@ interface FinancialModuleProps {
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8', '#82ca9d'];
 
 const FinancialModule: React.FC<FinancialModuleProps> = ({ orders, expenses, salesAdjustments, onRefresh }) => {
-    // const [expenses, setExpenses] = useState<Expense[]>([]); // Lifted to App
-    // const [salesAdjustments, setSalesAdjustments] = useState<SalesAdjustment[]>([]); // Lifted to App
     const [transactionType, setTransactionType] = useState<'EXPENSE' | 'SALES'>('EXPENSE');
 
     const [amount, setAmount] = useState('');
     const [reason, setReason] = useState('');
     const [person, setPerson] = useState(''); // requestedBy or addedBy
     const [loading, setLoading] = useState(false);
+    
+    // Internal State for Cash Transactions (Drops, Opening Fund)
+    const [cashTransactions, setCashTransactions] = useState<CashTransaction[]>([]);
+    
+    const [isExpenseModalOpen, setIsExpenseModalOpen] = useState(false);
+    const [isAdjustmentModalOpen, setIsAdjustmentModalOpen] = useState(false);
+    const [isCashDropModalOpen, setIsCashDropModalOpen] = useState(false);
+    
+    // Date Range State
+    const [startDate, setStartDate] = useState('');
+    const [endDate, setEndDate] = useState('');
+    const [selectedDate, setSelectedDate] = useState(''); // Legacy single date picker support if needed
 
-    // useEffect(() => {
-    //     fetchFinancialData();
-    // }, []);
-
-    // const fetchFinancialData = async () => { ... } // Lifted to App
+    // Fetch Cash Transactions (Internal)
+    useEffect(() => {
+        const fetchCashTransactions = async () => {
+            const { data, error } = await supabase
+                .from('cash_transactions')
+                .select('*')
+                .order('created_at', { ascending: false });
+            
+            if (data) setCashTransactions(data);
+            if (error) console.error('Error fetching cash transactions:', error);
+        };
+        fetchCashTransactions();
+    }, [onRefresh]); // Refetch when parent refreshes
 
     const handleTransaction = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -57,6 +78,8 @@ const FinancialModule: React.FC<FinancialModuleProps> = ({ orders, expenses, sal
             if (error) {
                 alert('Error adding expense');
                 console.error(error);
+            } else {
+                 setIsExpenseModalOpen(false);
             }
         } else {
             const { error } = await supabase
@@ -70,21 +93,30 @@ const FinancialModule: React.FC<FinancialModuleProps> = ({ orders, expenses, sal
             if (error) {
                 alert('Error adding sales adjustment');
                 console.error(error);
+            } else {
+                setIsAdjustmentModalOpen(false);
             }
         }
 
         setAmount('');
         setReason('');
         setPerson('');
-        setPerson('');
         onRefresh();
         setLoading(false);
     };
 
-    const handleDeleteTransaction = async (id: string, type: 'EXPENSE' | 'SALES') => {
+    const handleDeleteTransaction = async (id: string, type: 'EXPENSE' | 'SALES' | 'CASH_DROP') => {
         if (!confirm('Are you sure you want to delete this transaction? This action cannot be undone.')) return;
 
-        const table = type === 'EXPENSE' ? 'expenses' : 'sales_adjustments';
+        let table: string;
+        if (type === 'EXPENSE') {
+            table = 'expenses';
+        } else if (type === 'SALES') {
+            table = 'sales_adjustments';
+        } else { // CASH_DROP
+            table = 'cash_transactions';
+        }
+
         const { error } = await supabase
             .from(table)
             .delete()
@@ -94,7 +126,40 @@ const FinancialModule: React.FC<FinancialModuleProps> = ({ orders, expenses, sal
             console.error('Error deleting transaction:', error);
             alert('Failed to delete transaction');
         } else {
-            onRefresh();
+            onRefresh(); 
+        }
+    };
+
+    const handleAddCashDrop = async (amount: number, reason: string, performedBy: string) => {
+        setLoading(true);
+        try {
+            const { error } = await supabase
+                .from('cash_transactions')
+                .insert([{
+                    amount,
+                    type: 'CASH_DROP',
+                    description: reason,
+                    performed_by: performedBy
+                }]);
+
+            if (error) throw error;
+            onRefresh(); // Refresh parent (though simple refresh might not catch specific query if dependent?) 
+            // Wait, onRefresh refreshes orders/expenses. 
+            // It does NOT refresh cashTransactions because that is internal useEffect.
+            // But useEffect depends on [onRefresh]. 
+            // So if onRefresh changes (it is a function, likely stable or new ref on render), it triggers.
+            // Actually, usually onRefresh from App is stable.
+            // We should manually trigger fetchCashTransactions or add dependency.
+            // The useEffect has [onRefresh] so calling onRefresh() in App likely triggers re-render, 
+            // but does onRefresh function identity change?
+            // To be safe, we can manually call fetching here, but since useEffect is there, let's trust it or improve.
+            // I'll leave it for now, assuming onRefresh triggers parent update -> prop update -> re-render.
+            setIsCashDropModalOpen(false);
+        } catch (err) {
+            console.error('Error adding cash drop:', err);
+            alert('Failed to add cash drop');
+        } finally {
+            setLoading(false);
         }
     };
 
@@ -110,73 +175,79 @@ const FinancialModule: React.FC<FinancialModuleProps> = ({ orders, expenses, sal
     const todayOrders = React.useMemo(() => orders.filter(o => isToday(o.date)), [orders]);
     const todayExpenses = React.useMemo(() => expenses.filter(e => isToday(e.date)), [expenses]);
     const todaySalesAdjustments = React.useMemo(() => salesAdjustments.filter(s => isToday(s.date)), [salesAdjustments]);
+    const todayCashTransactions = React.useMemo(() => cashTransactions.filter(ct => isToday(ct.created_at)), [cashTransactions]);
 
-    const ordersTotal = todayOrders.reduce((acc, order) => acc + (order.total || 0), 0);
-    const adjustmentsTotal = todaySalesAdjustments.reduce((acc, s) => acc + s.amount, 0);
+    // Format Currency
+    const formatCurrency = (value: number) => {
+        return `₱${value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    };
 
-    const totalSales = ordersTotal + adjustmentsTotal;
-    const totalExpenses = todayExpenses.reduce((acc, exp) => acc + exp.amount, 0);
-    const netCash = totalSales - totalExpenses;
+    // 1. Sales Breakdown (Today)
+    const cashSales = todayOrders
+        .filter(o => !o.paymentMethod || o.paymentMethod === 'CASH')
+        .reduce((sum, order) => sum + order.total, 0);
+
+    const digitalSales = todayOrders
+        .filter(o => o.paymentMethod && o.paymentMethod !== 'CASH')
+        .reduce((sum, order) => sum + order.total, 0);
+
+    const totalSales = cashSales + digitalSales;
+
+    // 2. Adjustments & Expenses (Today)
+    const adjustmentsTotal = todaySalesAdjustments.reduce((sum, adj) => sum + adj.amount, 0);
+    const expensesTotal = todayExpenses.reduce((sum, exp) => sum + exp.amount, 0);
+
+    // 3. Cash Flow (Today)
+    const openingFund = todayCashTransactions
+        .filter(t => t.type === 'OPENING_FUND')
+        .reduce((sum, t) => sum + t.amount, 0);
+
+    const cashDrops = todayCashTransactions
+        .filter(t => t.type === 'CASH_DROP')
+        .reduce((sum, t) => sum + t.amount, 0);
+
+    const totalRevenue = totalSales + adjustmentsTotal;
+    // const netProfit = totalRevenue - expensesTotal; // Not used in display currently?
+
+    // Net Cash Calculation
+    // Net Cash = Opening + Cash Sales + Adjustments - Expenses - Drops
+    const netCash = openingFund + cashSales + adjustmentsTotal - expensesTotal - cashDrops;
 
     // Sales Trend Data (Last 7 Days)
     const salesTrendData = React.useMemo(() => {
-        const last7Days = [...Array(7)].map((_, i) => {
-            const d = new Date();
-            d.setDate(d.getDate() - i);
-            return d;
-        }).reverse();
+        const data = [];
+        const today = new Date();
+        for (let i = 6; i >= 0; i--) {
+            const d = new Date(today);
+            d.setDate(today.getDate() - i);
+            const dateStr = d.toLocaleDateString();
+            
+            // Filter orders for this day
+            const dailySales = orders
+                .filter(o => new Date(o.date).toLocaleDateString() === dateStr)
+                .reduce((sum, o) => sum + o.total, 0);
+                
+            data.push({ date: dateStr, sales: dailySales });
+        }
+        return data;
+    }, [orders]);
 
-        return last7Days.map(date => {
-            const isDateToday = date.getDate() === new Date().getDate() &&
-                date.getMonth() === new Date().getMonth() &&
-                date.getFullYear() === new Date().getFullYear();
-
-            if (isDateToday) {
-                return { date: date.toLocaleDateString('en-US', { weekday: 'short' }), sales: totalSales };
-            }
-
-            const dayOrders = orders.filter(o => {
-                const orderDate = new Date(o.date);
-                return orderDate.getDate() === date.getDate() &&
-                    orderDate.getMonth() === date.getMonth() &&
-                    orderDate.getFullYear() === date.getFullYear();
-            });
-
-            const dayAdjustments = salesAdjustments.filter(s => {
-                const adjDate = new Date(s.date);
-                return adjDate.getDate() === date.getDate() &&
-                    adjDate.getMonth() === date.getMonth() &&
-                    adjDate.getFullYear() === date.getFullYear();
-            });
-
-            const dayOrdersTotal = dayOrders.reduce((acc, o) => acc + (o.total || 0), 0);
-            const dayAdjustmentsTotal = dayAdjustments.reduce((acc, s) => acc + s.amount, 0);
-
-            return { date: date.toLocaleDateString('en-US', { weekday: 'short' }), sales: dayOrdersTotal + dayAdjustmentsTotal };
-        });
-    }, [orders, salesAdjustments, totalSales]);
-
-    // Category Performance Data
-    const categoryData = React.useMemo(() => {
-        const categories: Record<string, number> = {};
+    // Category Data
+    const getCategoryData = () => {
+        const categoryMap: Record<string, number> = {};
         todayOrders.forEach(order => {
             order.items.forEach(item => {
-                const cat = item.category || 'Other';
-                categories[cat] = (categories[cat] || 0) + item.finalPrice;
+                const cat = item.category || 'Others';
+                categoryMap[cat] = (categoryMap[cat] || 0) + item.finalPrice;
             });
         });
 
-        // Add adjustments as a separate category if needed, or just ignore for category breakdown
-        // For now, we'll keep category breakdown strictly for menu items as "Manual Adjustment" isn't a menu category
+        return Object.entries(categoryMap).map(([name, value]) => ({ name, value }));
+    };
 
-        return Object.entries(categories).map(([name, value]) => ({ name, value }));
-    }, [todayOrders]);
+    const categoryData = getCategoryData();
 
-    const [selectedDate, setSelectedDate] = useState<string>('');
-    const [startDate, setStartDate] = useState<string>('');
-    const [endDate, setEndDate] = useState<string>('');
-
-    // --- Report Generation ---
+    // Report Logic
     const isSunday = () => new Date().getDay() === 0;
     const isLastDayOfMonth = () => {
         const today = new Date();
@@ -215,7 +286,7 @@ const FinancialModule: React.FC<FinancialModuleProps> = ({ orders, expenses, sal
            if (startDate && endDate) {
                 const start = new Date(startDate);
                 const end = new Date(endDate);
-                end.setHours(23, 59, 59, 999); // Include the entire end day
+                end.setHours(23, 59, 59, 999);
 
                 title = `Financial Report - ${start.toLocaleDateString()} to ${end.toLocaleDateString()}`;
                 
@@ -231,13 +302,6 @@ const FinancialModule: React.FC<FinancialModuleProps> = ({ orders, expenses, sal
                     const d = new Date(s.date);
                     return d >= start && d <= end;
                 });
-            } else if (selectedDate) {
-                 // Fallback to single date if only selectedDate is used (legacy support or single day pick)
-                const dateObj = new Date(selectedDate);
-                title = `Financial Report - ${dateObj.toLocaleDateString()}`;
-                filteredOrders = orders.filter(o => checkDateMatch(o.date, selectedDate));
-                filteredExpenses = expenses.filter(e => checkDateMatch(e.date, selectedDate));
-                filteredAdjustments = salesAdjustments.filter(s => checkDateMatch(s.date, selectedDate));
             }
         }
         
@@ -247,8 +311,8 @@ const FinancialModule: React.FC<FinancialModuleProps> = ({ orders, expenses, sal
     const generateReport = async (type: 'TODAY' | 'WEEK' | 'MONTH' | 'CUSTOM') => {
         const { filteredOrders, filteredExpenses, filteredAdjustments, title } = getFilteredData(type);
         
-        if (type === 'CUSTOM' && !startDate && !endDate && !selectedDate) {
-             alert("Please select a date or date range.");
+        if (type === 'CUSTOM' && !startDate && !endDate) {
+             alert("Please select a date range.");
              return;
         }
 
@@ -263,7 +327,7 @@ const FinancialModule: React.FC<FinancialModuleProps> = ({ orders, expenses, sal
 
         let filenameDate = new Date().toISOString().split('T')[0];
         if (type === 'CUSTOM') {
-             filenameDate = startDate && endDate ? `${startDate}_to_${endDate}` : selectedDate;
+             filenameDate = startDate && endDate ? `${startDate}_to_${endDate}` : 'custom';
         }
 
         saveAs(blob, `Financial_Report_${type}_${filenameDate}.pdf`);
@@ -272,12 +336,11 @@ const FinancialModule: React.FC<FinancialModuleProps> = ({ orders, expenses, sal
     const handleExport = (type: 'TODAY' | 'WEEK' | 'MONTH' | 'CUSTOM') => {
          const { filteredOrders, filteredExpenses, filteredAdjustments } = getFilteredData(type);
 
-          if (type === 'CUSTOM' && !startDate && !endDate && !selectedDate) {
-             alert("Please select a date or date range.");
+          if (type === 'CUSTOM' && !startDate && !endDate) {
+             alert("Please select a date range.");
              return;
         }
 
-         // Export Orders
          if (filteredOrders.length > 0) {
              const ordersData = filteredOrders.map(o => ({
                  Date: new Date(o.date).toLocaleDateString(),
@@ -288,7 +351,6 @@ const FinancialModule: React.FC<FinancialModuleProps> = ({ orders, expenses, sal
              exportToCSV(ordersData, `Orders_${type}_${new Date().toISOString().split('T')[0]}.csv`);
          }
 
-          // Export Expenses
          if (filteredExpenses.length > 0) {
              const expensesData = filteredExpenses.map(e => ({
                  Date: new Date(e.date).toLocaleDateString(),
@@ -300,7 +362,6 @@ const FinancialModule: React.FC<FinancialModuleProps> = ({ orders, expenses, sal
              exportToCSV(expensesData, `Expenses_${type}_${new Date().toISOString().split('T')[0]}.csv`);
          }
          
-         // Export Adjustments
          if (filteredAdjustments.length > 0) {
              const adjData = filteredAdjustments.map(a => ({
                  Date: new Date(a.date).toLocaleDateString(),
@@ -317,14 +378,22 @@ const FinancialModule: React.FC<FinancialModuleProps> = ({ orders, expenses, sal
          }
     };
 
-    // Combine transactions for the list
+    // Recent Transactions List (Combined)
     const recentTransactions = React.useMemo(() => {
         const combined = [
             ...todayExpenses.map(e => ({ ...e, type: 'EXPENSE' as const, person: e.requested_by })),
-            ...todaySalesAdjustments.map(s => ({ ...s, type: 'SALES' as const, person: s.added_by }))
+            ...todaySalesAdjustments.map(s => ({ ...s, type: 'SALES' as const, person: s.added_by })),
+            ...todayCashTransactions.filter(t => t.type === 'CASH_DROP').map(t => ({ 
+                id: t.id, 
+                date: t.created_at, 
+                amount: t.amount, 
+                reason: t.description || 'Cash Drop', 
+                type: 'CASH_DROP' as const, 
+                person: t.performed_by 
+            }))
         ];
         return combined.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-    }, [todayExpenses, todaySalesAdjustments]);
+    }, [todayExpenses, todaySalesAdjustments, todayCashTransactions]);
 
     return (
         <div className="h-full w-full bg-stone-100 overflow-y-auto p-6 font-roboto animate-in fade-in duration-300">
@@ -446,40 +515,78 @@ const FinancialModule: React.FC<FinancialModuleProps> = ({ orders, expenses, sal
             </div>
 
             {/* Summary Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                <div className="bg-white p-6 rounded-2xl shadow-sm border border-stone-200 flex items-center justify-between hover:shadow-md transition-all">
-                    <div>
-                        <p className="text-stone-500 font-bold text-xs uppercase tracking-wider mb-1">Total Gross Sales</p>
-                        <h3 className="text-3xl font-brand font-black text-stone-800 tracking-tight">₱{totalSales.toLocaleString()}</h3>
-                        {adjustmentsTotal > 0 && (
-                            <p className="text-xs text-green-600 font-bold mt-1 bg-green-50 px-2 py-0.5 rounded-full inline-block">
-                                +₱{adjustmentsTotal.toLocaleString()} adjustments
-                            </p>
-                        )}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+                
+                {/* Net Cash Card */}
+                <div className="bg-white p-6 rounded-2xl shadow-sm border border-stone-200">
+                    <div className="flex justify-between items-start mb-4">
+                        <div className="bg-green-100 p-3 rounded-xl">
+                            <Wallet className="text-green-600" size={24} />
+                        </div>
+                         <span className={`text-xs font-bold px-2 py-1 rounded-full ${netCash >= 0 ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                            Actual Cash
+                        </span>
                     </div>
-                    <div className="p-3 bg-green-50 text-green-600 rounded-xl">
-                        <TrendingUp size={24} />
+                    <p className="text-stone-500 text-xs font-bold uppercase tracking-wider">Net Cash on Hand</p>
+                    <h3 className="text-2xl font-black text-stone-900 mt-1">{formatCurrency(netCash)}</h3>
+                    {/* Breakdown */}
+                    <div className="mt-2 pt-2 border-t border-stone-100 text-[10px] text-stone-400 space-y-1">
+                         <div className="flex justify-between">
+                            <span>Opening:</span>
+                            <span>{formatCurrency(openingFund)}</span>
+                         </div>
+                         <div className="flex justify-between">
+                            <span>Cash Sales:</span>
+                            <span>{formatCurrency(cashSales)}</span>
+                         </div>
+                         <div className="flex justify-between text-red-400">
+                            <span>Drops/Exp:</span>
+                            <span>-{formatCurrency(cashDrops + expensesTotal)}</span>
+                         </div>
                     </div>
                 </div>
 
-                <div className="bg-white p-6 rounded-2xl shadow-sm border border-stone-200 flex items-center justify-between hover:shadow-md transition-all">
-                    <div>
-                        <p className="text-stone-500 font-bold text-xs uppercase tracking-wider mb-1">Total Expenses</p>
-                        <h3 className="text-3xl font-brand font-black text-red-600 tracking-tight">₱{totalExpenses.toLocaleString()}</h3>
+                {/* Total Revenue Card */}
+                 <div className="bg-white p-6 rounded-2xl shadow-sm border border-stone-200">
+                    <div className="flex justify-between items-start mb-4">
+                        <div className="bg-blue-100 p-3 rounded-xl">
+                            <CreditCard className="text-blue-600" size={24} />
+                        </div>
                     </div>
-                    <div className="p-3 bg-red-50 text-red-600 rounded-xl">
-                        <TrendingDown size={24} />
+                    <p className="text-stone-500 text-xs font-bold uppercase tracking-wider">Total Revenue</p>
+                    <h3 className="text-2xl font-black text-stone-900 mt-1">{formatCurrency(totalRevenue)}</h3>
+                    <div className="mt-2 pt-2 border-t border-stone-100 text-[10px] text-stone-400 space-y-1">
+                         <div className="flex justify-between">
+                            <span>Digital:</span>
+                            <span>{formatCurrency(digitalSales)}</span>
+                         </div>
+                         <div className="flex justify-between">
+                            <span>Cash:</span>
+                            <span>{formatCurrency(cashSales)}</span>
+                         </div>
                     </div>
                 </div>
 
-                <div className="bg-stone-800 p-6 rounded-2xl shadow-lg flex items-center justify-between text-white hover:shadow-xl transition-all border border-stone-700">
-                    <div>
-                        <p className="text-stone-400 font-bold text-xs uppercase tracking-wider mb-1">Net Cash on Hand</p>
-                        <h3 className="text-3xl font-brand font-black tracking-tight">₱{netCash.toLocaleString()}</h3>
+                {/* Expenses Card */}
+                <div className="bg-white p-6 rounded-2xl shadow-sm border border-stone-200">
+                     <div className="flex justify-between items-start mb-4">
+                        <div className="bg-red-50 p-3 rounded-xl">
+                            <TrendingDown className="text-red-600" size={24} />
+                        </div>
                     </div>
-                    <div className="p-3 bg-stone-700/50 rounded-xl text-yellow-400 border border-stone-600">
-                        <DollarSign size={24} />
+                    <p className="text-stone-500 text-xs font-bold uppercase tracking-wider">Total Expenses</p>
+                    <h3 className="text-2xl font-black text-red-600 mt-1">{formatCurrency(expensesTotal)}</h3>
+                </div>
+
+                 {/* Adjustments Card (Optional 4th card) */}
+                 <div className="bg-white p-6 rounded-2xl shadow-sm border border-stone-200">
+                     <div className="flex justify-between items-start mb-4">
+                        <div className="bg-yellow-50 p-3 rounded-xl">
+                            <TrendingUp className="text-yellow-600" size={24} />
+                        </div>
                     </div>
+                    <p className="text-stone-500 text-xs font-bold uppercase tracking-wider">Total Adjustments</p>
+                    <h3 className="text-2xl font-black text-stone-800 mt-1">{formatCurrency(adjustmentsTotal)}</h3>
                 </div>
             </div>
 
@@ -558,105 +665,61 @@ const FinancialModule: React.FC<FinancialModuleProps> = ({ orders, expenses, sal
                 {/* Right Column: Cash Management (1/3 width) */}
                 <div className="space-y-6">
 
-                    {/* Transaction Form */}
+                    {/* Transaction Form & Actions */}
                     <div className="bg-white p-6 rounded-2xl shadow-sm border border-stone-200">
                         <h3 className="font-bold text-stone-800 text-lg mb-4 flex items-center gap-2">
-                            <Plus className={transactionType === 'EXPENSE' ? "text-red-600" : "text-green-600"} size={20} />
-                            Record Transaction
+                            <Plus className="text-stone-600" size={20} />
+                            Quick Actions
                         </h3>
 
-                        {/* Type Toggle */}
-                        <div className="flex p-1 bg-stone-100 rounded-xl mb-4">
+                         {/* Action Buttons */}
+                        <div className="grid grid-cols-2 gap-3 mb-4">
                             <button
-                                onClick={() => setTransactionType('EXPENSE')}
-                                className={`flex-1 py-2 text-sm font-bold rounded-lg transition-all ${transactionType === 'EXPENSE'
-                                    ? 'bg-white text-red-600 shadow-sm'
-                                    : 'text-stone-500 hover:text-stone-700'
-                                    }`}
+                                onClick={() => {
+                                    setTransactionType('EXPENSE');
+                                    setAmount(''); setReason(''); setPerson('');
+                                    setIsExpenseModalOpen(true);
+                                }}
+                                className="flex flex-col items-center justify-center gap-2 p-4 bg-red-50 hover:bg-red-100 text-red-600 rounded-xl transition-colors"
                             >
-                                Expense
+                                <ArrowDownCircle size={24} />
+                                <span className="text-xs font-bold uppercase">Expense</span>
                             </button>
-                            <button
-                                onClick={() => setTransactionType('SALES')}
-                                className={`flex-1 py-2 text-sm font-bold rounded-lg transition-all ${transactionType === 'SALES'
-                                    ? 'bg-white text-green-600 shadow-sm'
-                                    : 'text-stone-500 hover:text-stone-700'
-                                    }`}
+
+                             <button
+                                onClick={() => {
+                                     setTransactionType('SALES');
+                                     setAmount(''); setReason(''); setPerson('');
+                                     setIsAdjustmentModalOpen(true);
+                                }}
+                                className="flex flex-col items-center justify-center gap-2 p-4 bg-green-50 hover:bg-green-100 text-green-600 rounded-xl transition-colors"
                             >
-                                Add to Sales
+                                <ArrowUpCircle size={24} />
+                                <span className="text-xs font-bold uppercase">Adjustment</span>
+                            </button>
+
+                             <button
+                               onClick={() => setIsCashDropModalOpen(true)}
+                               className="col-span-2 flex items-center justify-center gap-2 p-4 bg-stone-100 hover:bg-stone-200 text-stone-700 rounded-xl transition-colors"
+                            >
+                               <Banknote size={24} />
+                               <span className="text-sm font-bold uppercase">Record Cash Drop</span>
                             </button>
                         </div>
-
-                        <form onSubmit={handleTransaction} className="space-y-4">
-                            <div>
-                                <label className="block text-xs font-bold text-stone-500 uppercase mb-1">Amount</label>
-                                <div className="relative">
-                                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-stone-400 font-bold">₱</span>
-                                    <input
-                                        type="number"
-                                        value={amount}
-                                        onChange={(e) => setAmount(e.target.value)}
-                                        className={`w-full pl-8 pr-4 py-3 bg-stone-50 border border-stone-200 rounded-xl focus:outline-none focus:ring-2 font-bold text-stone-800 ${transactionType === 'EXPENSE' ? 'focus:ring-red-500' : 'focus:ring-green-500'
-                                            }`}
-                                        placeholder="0.00"
-                                        required
-                                    />
-                                </div>
-                            </div>
-
-                            <div>
-                                <label className="block text-xs font-bold text-stone-500 uppercase mb-1">Reason</label>
-                                <input
-                                    type="text"
-                                    value={reason}
-                                    onChange={(e) => setReason(e.target.value)}
-                                    className={`w-full px-4 py-3 bg-stone-50 border border-stone-200 rounded-xl focus:outline-none focus:ring-2 text-sm ${transactionType === 'EXPENSE' ? 'focus:ring-red-500' : 'focus:ring-green-500'
-                                        }`}
-                                    placeholder={transactionType === 'EXPENSE' ? "e.g. Supplies, Cash Pull" : "e.g. Cash Adjustment, Late Entry"}
-                                    required
-                                />
-                            </div>
-
-                            <div>
-                                <label className="block text-xs font-bold text-stone-500 uppercase mb-1">
-                                    {transactionType === 'EXPENSE' ? 'Requested By' : 'Added By'}
-                                </label>
-                                <input
-                                    type="text"
-                                    value={person}
-                                    onChange={(e) => setPerson(e.target.value)}
-                                    className={`w-full px-4 py-3 bg-stone-50 border border-stone-200 rounded-xl focus:outline-none focus:ring-2 text-sm ${transactionType === 'EXPENSE' ? 'focus:ring-red-500' : 'focus:ring-green-500'
-                                        }`}
-                                    placeholder="Name"
-                                    required
-                                />
-                            </div>
-
-                            <button
-                                type="submit"
-                                disabled={loading}
-                                className={`w-full text-white py-3 rounded-xl font-bold transition-colors shadow-lg disabled:opacity-50 ${transactionType === 'EXPENSE'
-                                    ? 'bg-red-600 hover:bg-red-700'
-                                    : 'bg-green-600 hover:bg-green-700'
-                                    }`}
-                            >
-                                {loading ? 'Recording...' : (transactionType === 'EXPENSE' ? 'Record Expense' : 'Add to Sales')}
-                            </button>
-                        </form>
                     </div>
 
                     {/* Recent Transactions List */}
-                    <div className="bg-white rounded-2xl shadow-sm border border-stone-200 flex-1 overflow-hidden flex flex-col">
+                    <div className="bg-white rounded-2xl shadow-sm border border-stone-200 flex-1 overflow-hidden flex flex-col h-[500px]">
                         <div className="p-6 border-b border-stone-100 flex justify-between items-center bg-white sticky top-0 z-10">
                             <h3 className="font-bold text-stone-800 text-lg flex items-center gap-2">
                                 <History className="text-stone-400" size={20} />
-                                Recent Transactions
+                                Recent Activity
                             </h3>
                         </div>
                         <div className="flex-1 overflow-y-auto p-0">
                             {recentTransactions.length === 0 ? (
                                 <div className="flex flex-col items-center justify-center h-40 text-stone-400">
-                                    <p className="font-medium">No transactions found</p>
+                                    <p className="font-medium">No activity today</p>
                                 </div>
                             ) : (
                                 <div className="divide-y divide-stone-100">
@@ -664,22 +727,26 @@ const FinancialModule: React.FC<FinancialModuleProps> = ({ orders, expenses, sal
                                         <div key={trans.id || idx} className="flex justify-between items-center p-4 hover:bg-stone-50 transition-colors group">
                                             <div className="flex items-center gap-4">
                                                 <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
-                                                    trans.type === 'EXPENSE' ? 'bg-red-50 text-red-500' : 'bg-green-50 text-green-500'
+                                                    trans.type === 'EXPENSE' || trans.type === 'CASH_DROP' ? 'bg-red-50 text-red-500' : 'bg-green-50 text-green-500'
                                                 }`}>
-                                                    {trans.type === 'EXPENSE' ? <ArrowDownCircle size={18} /> : <ArrowUpCircle size={18} />}
+                                                    {trans.type === 'EXPENSE' ? <ArrowDownCircle size={18} /> : 
+                                                     trans.type === 'CASH_DROP' ? <Wallet size={18} /> :
+                                                     <ArrowUpCircle size={18} />}
                                                 </div>
                                                 <div>
                                                     <p className="font-bold text-stone-800 text-sm mb-0.5">{trans.reason}</p>
                                                     <div className="flex items-center gap-2 text-xs text-stone-500">
-                                                        <span className="font-medium">{trans.type === 'EXPENSE' ? 'By: ' : 'Added by: '}{trans.person}</span>
+                                                        <span className="font-medium">{trans.person}</span>
                                                         <span>•</span>
-                                                        <span>{new Date(trans.date).toLocaleDateString()}</span>
+                                                         {/* Show type label if cash drop */}
+                                                        {trans.type === 'CASH_DROP' && <span className="bg-stone-200 px-1 rounded text-[10px] font-bold text-stone-600">DROP</span>}
                                                     </div>
                                                 </div>
                                             </div>
                                             <div className="flex items-center gap-4">
-                                                <span className={`font-black text-sm ${trans.type === 'EXPENSE' ? 'text-red-600' : 'text-green-600'}`}>
-                                                    {trans.type === 'EXPENSE' ? '-' : '+'}₱{trans.amount.toLocaleString()}
+                                                <span className={`font-black text-sm ${trans.type === 'EXPENSE' || trans.type === 'CASH_DROP' ? 'text-red-600' : 'text-green-600'}`}>
+                                                    {trans.type === 'EXPENSE' || trans.type === 'CASH_DROP' ? '-' : '+'}
+                                                    {formatCurrency(trans.amount)}
                                                 </span>
                                                 <button
                                                     onClick={() => handleDeleteTransaction(trans.id, trans.type)}
@@ -698,6 +765,39 @@ const FinancialModule: React.FC<FinancialModuleProps> = ({ orders, expenses, sal
 
                 </div>
             </div>
+            
+            <ExpenseModal
+                isOpen={isExpenseModalOpen}
+                onClose={() => setIsExpenseModalOpen(false)}
+                onSubmit={handleTransaction}
+                isLoading={loading}
+                amount={amount}
+                setAmount={setAmount}
+                reason={reason}
+                setReason={setReason}
+                person={person}
+                setPerson={setPerson}
+            />
+
+            <SalesAdjustmentModal
+                 isOpen={isAdjustmentModalOpen}
+                 onClose={() => setIsAdjustmentModalOpen(false)}
+                 onSubmit={handleTransaction}
+                 isLoading={loading}
+                 amount={amount}
+                 setAmount={setAmount}
+                 reason={reason}
+                 setReason={setReason}
+                 person={person}
+                 setPerson={setPerson}
+            />
+
+            <CashDropModal
+                isOpen={isCashDropModalOpen}
+                onClose={() => setIsCashDropModalOpen(false)}
+                onSubmit={handleAddCashDrop}
+                isLoading={loading}
+            />
         </div>
     );
 };

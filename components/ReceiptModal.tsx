@@ -30,6 +30,8 @@ const ReceiptModal: React.FC<ReceiptModalProps> = ({
   const receiptRef = useRef<HTMLDivElement>(null);
   const [isDownloading, setIsDownloading] = useState(false);
   const [amountTendered, setAmountTendered] = useState<string>('');
+  const [paymentMethod, setPaymentMethod] = useState<'CASH' | 'GCASH' | 'MAYA'>('CASH');
+  const [referenceNo, setReferenceNo] = useState('');
 
   // Stable Order Details per session
   const [orderNo, setOrderNo] = useState('');
@@ -51,11 +53,15 @@ const ReceiptModal: React.FC<ReceiptModalProps> = ({
         }
 
         setAmountTendered(existingOrder.cash?.toString() || '0');
+        setPaymentMethod((existingOrder.paymentMethod as any) || 'CASH');
+        setReferenceNo(existingOrder.paymentReference || '');
       } else {
         // New Order: Sequential Order ID
         setOrderNo((orderCount + 1).toString().padStart(6, '0'));
         setDate(new Date().toISOString());
         setAmountTendered('');
+        setPaymentMethod('CASH');
+        setReferenceNo('');
       }
     }
   }, [isOpen, orderCount, existingOrder]);
@@ -77,11 +83,17 @@ const ReceiptModal: React.FC<ReceiptModalProps> = ({
     discountAmount = discountableAmount * activeDiscount.amount;
   }
 
+  // Payment Logic
   const cash = parseFloat(amountTendered) || 0;
-  const change = existingOrder ? (existingOrder.change || 0) : Math.max(0, cash - activeTotal);
+  // If non-cash, change is 0. If cash, standard calculation.
+  const change = paymentMethod === 'CASH' 
+    ? (existingOrder ? (existingOrder.change || 0) : Math.max(0, cash - activeTotal))
+    : 0;
 
-  // Enable confirm button only if cash covers the total (allow 0.1 tolerance for float issues)
-  const isPaid = cash >= (activeTotal - 0.1);
+  // Paid Check
+  const isPaid = paymentMethod === 'CASH' 
+    ? cash >= (activeTotal - 0.1) 
+    : !!referenceNo; // Digital payments require a reference number (simple validation)
 
   const formatCurrency = (amount: number) => {
     return `₱${amount.toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
@@ -131,8 +143,11 @@ const ReceiptModal: React.FC<ReceiptModalProps> = ({
       subtotal,
       discount: discount || null,
       total,
-      cash,
-      change
+      cash: paymentMethod === 'CASH' ? cash : total, // Record full amount as 'cash' equivalent for digital or distinct? 
+      // Better: Keep cash as tendered amount.
+      change,
+      paymentMethod,
+      paymentReference: referenceNo
     };
 
     onSaveOrder(newOrder);
@@ -238,18 +253,30 @@ const ReceiptModal: React.FC<ReceiptModalProps> = ({
               </div>
 
               {/* Payment Details */}
-              {cash > 0 && (
-                <div className="pt-4 space-y-1">
-                  <div className="flex justify-between font-bold text-sm">
-                    <span>CASH</span>
-                    <span>{formatCurrency(cash)}</span>
-                  </div>
-                  <div className="flex justify-between font-bold text-lg mt-2">
-                    <span>CHANGE</span>
-                    <span>{formatCurrency(change)}</span>
-                  </div>
-                </div>
-              )}
+              <div className="pt-4 space-y-1">
+                 <div className="flex justify-between font-bold text-sm">
+                   <span>Payment Method</span>
+                   <span>{paymentMethod}</span>
+                 </div>
+                 {paymentMethod !== 'CASH' && (
+                    <div className="flex justify-between font-bold text-xs text-stone-500">
+                        <span>Ref #</span>
+                        <span>{referenceNo || existingOrder?.paymentReference || 'N/A'}</span>
+                    </div>
+                 )}
+                 {paymentMethod === 'CASH' && cash > 0 && (
+                   <>
+                    <div className="flex justify-between font-bold text-sm mt-1">
+                        <span>CASH</span>
+                        <span>{formatCurrency(cash)}</span>
+                    </div>
+                    <div className="flex justify-between font-bold text-lg mt-2">
+                        <span>CHANGE</span>
+                        <span>{formatCurrency(change)}</span>
+                    </div>
+                   </>
+                 )}
+              </div>
             </div>
 
             {/* Discount Details */}
@@ -282,42 +309,77 @@ const ReceiptModal: React.FC<ReceiptModalProps> = ({
         {/* Payment Input Controls (Screen Only) - Hide if viewing existing order */}
         {!existingOrder && (
           <div className="w-[380px] mt-4 bg-stone-800 p-4 rounded-xl shadow-lg print:hidden space-y-4">
-            <div>
-              <div className="flex gap-2 items-center mb-2">
-                <Banknote className="text-green-400" size={20} />
-                <label className="text-white font-bold text-sm">Cash Tendered</label>
-              </div>
-              <div className="flex gap-2">
-                <input
-                  type="number"
-                  value={amountTendered}
-                  onChange={(e) => setAmountTendered(e.target.value)}
-                  placeholder="Enter Amount"
-                  className="flex-1 bg-stone-700 text-white font-mono text-xl p-2 rounded-lg border border-stone-600 focus:outline-none focus:ring-2 focus:ring-green-500 text-right"
-                  autoFocus
-                />
-              </div>
-              {/* Quick Suggestions */}
-              <div className="flex gap-2 mt-2">
-                {[100, 500, 1000].map(amt => (
-                  <button
-                    key={amt}
-                    onClick={() => setAmountTendered(amt.toString())}
-                    className="flex-1 bg-stone-700 text-stone-300 text-xs py-1 px-2 rounded hover:bg-stone-600 transition-colors"
-                  >
-                    {amt}
-                  </button>
+            
+            {/* Method Tabs */}
+            <div className="grid grid-cols-3 gap-2 bg-stone-700 p-1 rounded-lg">
+                {['CASH', 'GCASH', 'MAYA'].map(method => (
+                    <button
+                        key={method}
+                        onClick={() => { setPaymentMethod(method as any); }}
+                        className={`text-xs font-bold py-2 rounded-md transition-all ${paymentMethod === method ? 'bg-white text-stone-900 shadow-sm' : 'text-stone-400 hover:text-white'}`}
+                    >
+                        {method}
+                    </button>
                 ))}
-                <button
-                  onClick={() => setAmountTendered(Math.ceil(activeTotal).toString())}
-                  className="flex-1 bg-stone-700 text-stone-300 text-xs py-1 px-2 rounded hover:bg-stone-600 transition-colors"
-                >
-                  Exact
-                </button>
-              </div>
             </div>
 
-            {/* CONFIRM BUTTON - Shown only when cash is sufficient */}
+            {paymentMethod === 'CASH' ? (
+                <div>
+                <div className="flex gap-2 items-center mb-2">
+                    <Banknote className="text-green-400" size={20} />
+                    <label className="text-white font-bold text-sm">Cash Tendered</label>
+                </div>
+                <div className="flex gap-2">
+                    <input
+                    type="number"
+                    value={amountTendered}
+                    onChange={(e) => setAmountTendered(e.target.value)}
+                    placeholder="Enter Amount"
+                    className="flex-1 bg-stone-700 text-white font-mono text-xl p-2 rounded-lg border border-stone-600 focus:outline-none focus:ring-2 focus:ring-green-500 text-right"
+                    autoFocus
+                    />
+                </div>
+                {/* Quick Suggestions */}
+                <div className="flex gap-2 mt-2">
+                    {[100, 500, 1000].map(amt => (
+                    <button
+                        key={amt}
+                        onClick={() => setAmountTendered(amt.toString())}
+                        className="flex-1 bg-stone-700 text-stone-300 text-xs py-1 px-2 rounded hover:bg-stone-600 transition-colors"
+                    >
+                        {amt}
+                    </button>
+                    ))}
+                    <button
+                    onClick={() => setAmountTendered(Math.ceil(activeTotal).toString())}
+                    className="flex-1 bg-stone-700 text-stone-300 text-xs py-1 px-2 rounded hover:bg-stone-600 transition-colors"
+                    >
+                        Exact
+                    </button>
+                </div>
+                </div>
+            ) : (
+                <div className="animate-in fade-in duration-200">
+                    <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-lg p-3 mb-3">
+                         <p className="text-yellow-200 text-xs text-center">
+                            Please verify the transfer of 
+                            <span className="font-bold text-white text-lg block my-1">₱{activeTotal.toLocaleString()}</span>
+                            to the store account.
+                         </p>
+                    </div>
+                    <label className="text-white font-bold text-sm mb-1 block">Reference Number</label>
+                    <input
+                        type="text"
+                        value={referenceNo}
+                        onChange={(e) => setReferenceNo(e.target.value)}
+                        placeholder="Enter Ref #"
+                        className="w-full bg-stone-700 text-white font-mono text-lg p-2 rounded-lg border border-stone-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        autoFocus
+                    />
+                </div>
+            )}
+
+            {/* CONFIRM BUTTON - Shown only when valid */}
             {isPaid && (
               <button
                 onClick={handleConfirmOrder}

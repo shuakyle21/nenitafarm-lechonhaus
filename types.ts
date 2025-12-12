@@ -64,6 +64,19 @@ export interface Order {
   deliveryTime?: string;
   contactNumber?: string;
   tableNumber?: string;
+  paymentMethod?: string;
+  paymentReference?: string;
+}
+
+export type CashTransactionType = 'OPENING_FUND' | 'CASH_DROP' | 'CLOSING_FUND' | 'EXPENSE';
+
+export interface CashTransaction {
+  id: string;
+  amount: number;
+  type: CashTransactionType;
+  description?: string;
+  performed_by: string;
+  created_at: string;
 }
 
 export interface SavedOrder {

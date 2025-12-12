@@ -42,7 +42,8 @@ export const useOfflineSync = () => {
             .insert([{
                 total_amount: order.total,
                 status: 'completed',
-                payment_method: 'cash', // Defaulting to cash for now
+                payment_method: order.paymentMethod || 'CASH',
+                payment_reference: order.paymentReference,
                 discount_details: order.discount,
                 cash: order.cash,
                 change: order.change,
