@@ -1,0 +1,11 @@
+INSERT INTO menu_items (id, name, price, category, image, available, created_at, is_weighted, description, variants) VALUES
+('4be5ede4-1c24-4e3c-954e-3994a35131d3', 'Lechon Manok (Native)', 550, 'Chicken Dishes', 'https://picsum.photos/400/300', true, '2025-11-29 05:00:18.041608+00', true, NULL, NULL),
+('4e41a580-6ad5-44f9-a8a2-a634a2b21af7', 'Mango tapioca', 150.00, 'Desserts', NULL, true, '2025-11-28 05:09:26.539525+00', false, NULL, NULL),
+('4f71c509-7057-435d-bef4-82953e70ee4e', 'Lechon Belly', 650, 'Lechon & Grills', 'https://www.kawalingpinoy.com/wp-content/uploads/2018/12/pork-belly-lechon-4.jpg', true, '2025-11-29 04:15:19.965579+00', true, NULL, NULL),
+('5176bb6c-aeae-4d6a-ada7-a212d805ac3b', 'Chicken cordon blue', 0, 'Chicken Dishes', NULL, true, '2025-11-28 05:09:26.539525+00', false, NULL, NULL),
+('55a56a1f-a3c3-4c94-a859-565e98000008', 'Tinolang isda', 299.00, 'Seafood', NULL, true, '2025-11-28 05:09:26.539525+00', false, NULL, NULL),
+('59a7e88e-ebaf-441a-9366-89661d9a4af0', 'Buttered Shrimp', 310.00, 'Seafood', NULL, true, '2025-11-28 05:09:26.539525+00', false, NULL, NULL),
+('59eaaa45-cd73-4ccc-9cb0-d0975b5d0c5d', 'Lechon Batchoy (Special)', 99, 'Lechon & Grills', 'https://scontent.fcgy1-2.fna.fbcdn.net/v/t39.30808-6/590408799_2248039535678054_1610585735869544846_n.jpg?stp=cp6_dst-jpg_tt6&_nc_cat=109&ccb=1-7&_nc_sid=833d8c&_nc_ohc=bdvmhiIH1t8Q7kNvwErwGtp&_nc_oc=Adl_vgfPZZ7DenXkRQOFjym3T_bPjXkLCPjJMvQaUJ65vL68JyD9muxwABES9uf6TsA&_nc_zt=23&_nc_ht=scontent.fcgy1-2.fna&_nc_gid=p6OtWDNbPNR4063KVDnDxQ&oh=00_AfiuQntQD1nqFy5sl0qc94eXBUpEQ97wr-Sn1nOPxAEFKQ&oe=69305ED3', true, '2025-11-28 04:56:51.875219+00', false, NULL, NULL),
+('608686b5-f8ef-4488-ab6e-a3feec55bed2', 'Banana cream', 120.00, 'Desserts', NULL, true, '2025-11-28 05:09:26.539525+00', false, NULL, NULL),
+('6aaaa1ce-8df8-4192-9cbc-4752bcef5969', 'Coke', 25, 'Extras', 'https://133220665.cdn6.editmysite.com/uploads/1/3/3/2/133220665/TBQONWKVFPZ3MHOEKSGXF45T.jpeg', true, '2025-11-29 05:08:07.345916+00', false, NULL, '[{"name":"Mismo","price":25},{"name":"1.25L","price":65},{"name":"1.5L","price":85},{"name":"1.75L","price":100}]'),
+('6c72fe53-9b3f-45df-aae7-a6fc7327212a', 'Sinigang', 320.00, 'Pork Dishes', NULL, true, '2025-11-28 05:09:26.539525+00', false, NULL, NULL);

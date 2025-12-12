@@ -1,0 +1,1 @@
+TRUNCATE TABLE menu_items CASCADE;
