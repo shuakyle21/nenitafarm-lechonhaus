@@ -7,8 +7,15 @@ REMOTE_DIR="/var/www/html"
 
 echo "🚀 Starting Deployment..."
 
-# 1. Build the project
-echo "📦 Building project..."
+# 1. Pre-deployment Checks
+if [ ! -f ".env.production" ]; then
+  echo "❌ Error: .env.production file not found!"
+  echo "Please create it using the template or copy it from your secure storage."
+  exit 1
+fi
+
+# 2. Build the project
+echo "📦 Building project (Production Mode)..."
 npm run build
 
 if [ $? -eq 0 ]; then
