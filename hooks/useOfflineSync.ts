@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { Order } from '../types';
 import { supabase } from '../lib/supabase';
 
@@ -13,25 +13,10 @@ export const useOfflineSync = () => {
         }
     });
     const [isSyncing, setIsSyncing] = useState(false);
+    const isSyncingRef = useRef(false);
 
     useEffect(() => {
         localStorage.setItem('pending_orders', JSON.stringify(pendingOrders));
-    }, [pendingOrders]);
-
-    useEffect(() => {
-        const handleOnline = () => {
-            setIsOnline(true);
-            syncOfflineOrders();
-        };
-        const handleOffline = () => setIsOnline(false);
-
-        window.addEventListener('online', handleOnline);
-        window.addEventListener('offline', handleOffline);
-
-        return () => {
-            window.removeEventListener('online', handleOnline);
-            window.removeEventListener('offline', handleOffline);
-        };
     }, [pendingOrders]);
 
     // Function to actually insert the order into Supabase
@@ -79,10 +64,11 @@ export const useOfflineSync = () => {
     };
 
     const syncOfflineOrders = useCallback(async () => {
-        if (pendingOrders.length === 0 || isSyncing) return;
+        if (pendingOrders.length === 0 || isSyncingRef.current) return;
 
+        isSyncingRef.current = true;
         setIsSyncing(true);
-        const remainingOrders = [...pendingOrders];
+        
         const syncedOrders: Order[] = [];
 
         try {
@@ -91,7 +77,6 @@ export const useOfflineSync = () => {
                 try {
                     await insertOrderToSupabase(order);
                     syncedOrders.push(order);
-                    // Remove from local list as we go (or in bulk later)
                 } catch (error) {
                     console.error("Failed to sync order:", order.id, error);
                     // If specific error, maybe keep it. For now, we try all.
@@ -100,10 +85,26 @@ export const useOfflineSync = () => {
         } finally {
             // Update pending orders - remove the ones that were synced
             setPendingOrders(prev => prev.filter(o => !syncedOrders.find(so => so.id === o.id)));
+            isSyncingRef.current = false;
             setIsSyncing(false);
         }
-    }, [pendingOrders, isSyncing]);
+    }, [pendingOrders]);
 
+    useEffect(() => {
+        const handleOnline = () => {
+            setIsOnline(true);
+            syncOfflineOrders();
+        };
+        const handleOffline = () => setIsOnline(false);
+
+        window.addEventListener('online', handleOnline);
+        window.addEventListener('offline', handleOffline);
+
+        return () => {
+            window.removeEventListener('online', handleOnline);
+            window.removeEventListener('offline', handleOffline);
+        };
+    }, [syncOfflineOrders]); // correct dependency: syncOfflineOrders (which depends on pendingOrders)
 
     const saveOrderWithOfflineSupport = async (order: Order): Promise<{ success: boolean; mode: 'ONLINE' | 'OFFLINE'; data?: any }> => {
         if (isOnline) {
