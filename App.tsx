@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import MainSidebar from './components/MainSidebar';
 import PosModule from './components/PosModule';
 import DashboardModule from './components/DashboardModule';
@@ -37,12 +37,15 @@ const App: React.FC = () => {
   // Cache today's date for performance
   const todayRef = useMemo(() => new Date(), []);
 
-  // Optimized helper using cached date reference
-  const isToday = (dateString: string) => isTodayUtil(dateString, todayRef);
+  // Optimized helper using cached date reference - wrapped in useCallback for stable reference
+  const isToday = useCallback(
+    (dateString: string) => isTodayUtil(dateString, todayRef),
+    [todayRef]
+  );
 
   const todayOrderCount = useMemo(() => 
     orders.filter(o => isToday(o.date)).length,
-    [orders]
+    [orders, isToday]
   );
 
   // Fetch Menu Items on Mount

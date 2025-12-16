@@ -28,6 +28,19 @@ export function debounce<T extends (...args: any[]) => void>(
 /**
  * Memoize expensive computations
  * Cache results based on a simple key
+ * 
+ * Note: Default key generation uses JSON.stringify which may be inefficient
+ * for complex objects. For complex scenarios, provide a custom getKey function.
+ * 
+ * @example
+ * // Simple use case (default key)
+ * const memoizedSum = memoize((a, b) => a + b);
+ * 
+ * // Complex use case (custom key)
+ * const memoizedFilter = memoize(
+ *   (items, filter) => items.filter(filter),
+ *   (items, filter) => `${items.length}-${filter.toString()}`
+ * );
  */
 export function memoize<T>(
   fn: (...args: any[]) => T,
