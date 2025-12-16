@@ -8,6 +8,12 @@ A comprehensive, all-in-one Restaurant Management System (RMS) tailored for **Ne
 
 ## 🚀 Features
 
+## 🛠️ Recent Improvements
+
+- **Offline Sync Fix**: Prevents duplicate order entries on reconnection by using a `useRef` lock in `hooks/useOfflineSync.ts`.
+- **False Offline Mode Prevention**: `saveOrderWithOfflineSupport` now distinguishes network errors from other errors, avoiding accidental offline saves.
+- **Delete Persistence**: Added RLS `DELETE` policies for `orders` and `order_items` in Supabase (`supabase/fix_delete_policy.sql`).
+
 ## ⚠️ SECURITY NOTICE
 
 **IMPORTANT**: Before running this application, please read [SECURITY_NOTICE.md](SECURITY_NOTICE.md) for critical security information.
