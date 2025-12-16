@@ -23,9 +23,9 @@ const DashboardModule: React.FC<DashboardModuleProps> = ({ items, orders = [], s
   const topItems = useMemo(() => {
     // 1. Filter orders based on time
     const filteredOrders = orders.filter(order => {
-      if (timeFilter === 'TODAY') return isToday(order.date);
-      if (timeFilter === 'WEEK') return isThisWeek(order.date);
-      if (timeFilter === 'MONTH') return isThisMonth(order.date);
+      if (timeFilter === 'TODAY') return dateMatcher.isToday(order.date);
+      if (timeFilter === 'WEEK') return dateMatcher.isThisWeek(order.date);
+      if (timeFilter === 'MONTH') return dateMatcher.isThisMonth(order.date);
       return true;
     });
 
@@ -143,6 +143,52 @@ const DashboardModule: React.FC<DashboardModuleProps> = ({ items, orders = [], s
     return url;
   };
 
+  // Sales chart data - Memoized to avoid recalculating on every render
+  const salesChartData = useMemo(() => {
+    const last7Days = [...Array(7)].map((_, i) => {
+      const d = new Date();
+      d.setDate(d.getDate() - i);
+      d.setHours(0, 0, 0, 0);
+      return d;
+    }).reverse();
+
+    const today = dateMatcher.getToday();
+    const todayTime = today.getTime();
+
+    return last7Days.map(date => {
+      const dateTime = date.getTime();
+      const isDateToday = dateTime === todayTime;
+
+      if (isDateToday) {
+        return { 
+          date: date.toLocaleDateString('en-US', { weekday: 'short' }), 
+          sales: todayData.totalSales 
+        };
+      }
+
+      // Use getTime() for faster comparisons instead of comparing date parts
+      const dayOrders = orders.filter(o => {
+        const orderDate = new Date(o.date);
+        orderDate.setHours(0, 0, 0, 0);
+        return orderDate.getTime() === dateTime;
+      });
+
+      const dayAdjustments = salesAdjustments.filter(s => {
+        const adjDate = new Date(s.date);
+        adjDate.setHours(0, 0, 0, 0);
+        return adjDate.getTime() === dateTime;
+      });
+
+      const dayOrdersTotal = dayOrders.reduce((acc, o) => acc + (o.total || 0), 0);
+      const dayAdjustmentsTotal = dayAdjustments.reduce((acc, s) => acc + s.amount, 0);
+
+      return { 
+        date: date.toLocaleDateString('en-US', { weekday: 'short' }), 
+        sales: dayOrdersTotal + dayAdjustmentsTotal 
+      };
+    });
+  }, [orders, salesAdjustments, todayData.totalSales, dateMatcher]);
+
   React.useEffect(() => {
     console.log('DashboardModule mounted');
   }, []);
@@ -231,7 +277,7 @@ const DashboardModule: React.FC<DashboardModuleProps> = ({ items, orders = [], s
               </div>
             ) : (
               topItems.map((item, index) => (
-                <div key={item.id} className="flex items-center gap-4 p-4 hover:bg-stone-50 transition-colors border-b border-stone-100 last:border-0">
+                <div key={`${item.id}-${index}`} className="flex items-center gap-4 p-4 hover:bg-stone-50 transition-colors border-b border-stone-100 last:border-0">
                   <div className={`w-8 h-8 rounded-full flex items-center justify-center font-black text-sm ${index === 0 ? 'bg-yellow-100 text-yellow-700' :
                     index === 1 ? 'bg-stone-200 text-stone-600' :
                       index === 2 ? 'bg-orange-100 text-orange-700' :
@@ -242,6 +288,8 @@ const DashboardModule: React.FC<DashboardModuleProps> = ({ items, orders = [], s
                   <img
                     src={getSafeImage(item.image)}
                     alt={item.name}
+                    loading="lazy"
+                    decoding="async"
                     className="w-12 h-12 rounded-lg object-cover bg-stone-200"
                     onError={(e) => {
                       (e.target as HTMLImageElement).src = getSafeImage();

@@ -68,15 +68,25 @@ export const useOfflineSync = () => {
         const syncedOrders: Order[] = [];
 
         try {
-            // Process sequentially to avoid overwhelming execution
-            for (const order of pendingOrders) {
-                try {
-                    await insertOrderToSupabase(order);
-                    syncedOrders.push(order);
-                } catch (error) {
-                    console.error("Failed to sync order:", order.id, error);
-                    // If specific error, maybe keep it. For now, we try all.
-                }
+            // Process in batches to avoid overwhelming the server
+            const BATCH_SIZE = 5;
+            
+            for (let i = 0; i < pendingOrders.length; i += BATCH_SIZE) {
+                const batch = pendingOrders.slice(i, i + BATCH_SIZE);
+                
+                // Process batch concurrently for better performance
+                const results = await Promise.allSettled(
+                    batch.map(order => insertOrderToSupabase(order))
+                );
+                
+                // Collect successfully synced orders
+                results.forEach((result, index) => {
+                    if (result.status === 'fulfilled') {
+                        syncedOrders.push(batch[index]);
+                    } else {
+                        console.error("Failed to sync order:", batch[index].id, result.reason);
+                    }
+                });
             }
         } finally {
             // Update pending orders - remove the ones that were synced

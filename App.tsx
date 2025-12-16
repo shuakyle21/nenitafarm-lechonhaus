@@ -47,9 +47,9 @@ const App: React.FC = () => {
       fetchStaff();
       fetchFinancialData();
     }
-  }, [isAuthenticated]);
+  }, [isAuthenticated, fetchMenuItems, fetchOrders, fetchStaff, fetchFinancialData]);
 
-  const fetchMenuItems = async () => {
+  const fetchMenuItems = useCallback(async () => {
     try {
       const { data, error } = await supabase
         .from('menu_items')
@@ -74,9 +74,9 @@ const App: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
-  const fetchOrders = async () => {
+  const fetchOrders = useCallback(async () => {
     try {
       const { data, error } = await supabase
         .from('orders')
@@ -123,9 +123,9 @@ const App: React.FC = () => {
     } catch (error) {
       console.error('Error fetching orders:', error);
     }
-  };
+  }, []);
 
-  const fetchStaff = async () => {
+  const fetchStaff = useCallback(async () => {
     try {
       const { data, error } = await supabase
         .from('staff')
@@ -137,9 +137,9 @@ const App: React.FC = () => {
     } catch (error) {
       console.error('Error fetching staff:', error);
     }
-  };
+  }, []);
 
-  const fetchFinancialData = async () => {
+  const fetchFinancialData = useCallback(async () => {
     try {
       const expensesPromise = supabase
         .from('expenses')
@@ -161,10 +161,10 @@ const App: React.FC = () => {
     } catch (error) {
       console.error('Error fetching financial data:', error);
     }
-  };
+  }, []);
 
-  // Menu Management Handlers
-  const handleAddItem = async (item: MenuItem) => {
+  // Menu Management Handlers - Memoized with useCallback
+  const handleAddItem = useCallback(async (item: MenuItem) => {
     try {
       const { data, error } = await supabase
         .from('menu_items')
@@ -189,9 +189,9 @@ const App: React.FC = () => {
       console.error('Error adding item:', error);
       alert('Failed to add item');
     }
-  };
+  }, []);
 
-  const handleUpdateItem = async (updatedItem: MenuItem) => {
+  const handleUpdateItem = useCallback(async (updatedItem: MenuItem) => {
     try {
       const { error } = await supabase
         .from('menu_items')
@@ -212,9 +212,9 @@ const App: React.FC = () => {
       console.error('Error updating item:', error);
       alert('Failed to update item');
     }
-  };
+  }, []);
 
-  const handleDeleteItem = async (id: string) => {
+  const handleDeleteItem = useCallback(async (id: string) => {
     try {
       const { error } = await supabase
         .from('menu_items')
@@ -228,13 +228,13 @@ const App: React.FC = () => {
       console.error('Error deleting item:', error);
       alert('Failed to delete item');
     }
-  };
+  }, []);
 
   // Offline Sync Hook
   const { isOnline, saveOrderWithOfflineSupport, pendingOrdersCount } = useOfflineSync();
 
-  // Order Handler
-  const handleSaveOrder = async (order: Order) => {
+  // Order Handler - Memoized
+  const handleSaveOrder = useCallback(async (order: Order) => {
     try {
       const result = await saveOrderWithOfflineSupport(order);
 
@@ -251,22 +251,22 @@ const App: React.FC = () => {
       console.error('Error saving order:', error);
       alert('Failed to save order');
     }
-  };
+  }, [saveOrderWithOfflineSupport]);
 
-  const handleLogin = (user: { username: string; role: 'ADMIN' | 'CASHIER' }) => {
+  const handleLogin = useCallback((user: { username: string; role: 'ADMIN' | 'CASHIER' }) => {
     setIsAuthenticated(true);
     setUserRole(user.role);
     // Default to POS for Cashier, Dashboard for Admin
     setActiveModule(user.role === 'CASHIER' ? 'POS' : 'DASHBOARD');
-  };
+  }, []);
 
-  const handleLogout = () => {
+  const handleLogout = useCallback(() => {
     setIsAuthenticated(false);
     setUserRole(null);
     setOrders([]);
     setMenuItems([]);
     setStaffList([]);
-  };
+  }, []);
 
   if (!isAuthenticated) {
     return <LoginModule onLogin={handleLogin} />;
