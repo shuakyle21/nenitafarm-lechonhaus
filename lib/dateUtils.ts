@@ -47,7 +47,8 @@ export const isThisWeek = (dateString: string): boolean => {
   const date = new Date(dateString);
   const today = new Date();
   const diffTime = today.getTime() - date.getTime();
-  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+  // For negative differences (future dates), diffDays will be negative
+  const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
   return diffDays >= 0 && diffDays <= 7;
 };
 
@@ -58,6 +59,7 @@ export const isThisMonth = (dateString: string): boolean => {
   const date = new Date(dateString);
   const today = new Date();
   const diffTime = today.getTime() - date.getTime();
-  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+  // For negative differences (future dates), diffDays will be negative
+  const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
   return diffDays >= 0 && diffDays <= 30;
 };

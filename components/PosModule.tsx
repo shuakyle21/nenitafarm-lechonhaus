@@ -138,7 +138,7 @@ const PosModule: React.FC<PosModuleProps> = ({
   }, [orderType]);
 
   useEffect(() => {
-    localStorage.setItem('pos_table_number', tableNumber);
+    setLocalStorageDebounced('pos_table_number', tableNumber);
   }, [tableNumber]);
 
   useEffect(() => {

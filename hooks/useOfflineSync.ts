@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { Order } from '../types';
 import { supabase } from '../lib/supabase';
 import { getLocalStorage } from '../lib/storageUtils';
