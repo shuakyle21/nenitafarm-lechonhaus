@@ -66,12 +66,25 @@ const PosModule: React.FC<PosModuleProps> = ({
   const [isMenuManagerOpen, setIsMenuManagerOpen] = useState(false);
 
   // Saved Orders State
-  const [savedOrders, setSavedOrders] = useState<SavedOrder[]>(() => 
-    getLocalStorage('pos_saved_orders', []).map((o: any) => ({
-      ...o,
-      timestamp: new Date(o.timestamp)
-    }))
-  );
+  const [savedOrders, setSavedOrders] = useState<SavedOrder[]>(() => {
+    const stored = getLocalStorage('pos_saved_orders', []);
+    // Revive Date objects with error handling
+    return stored.map((o: any) => {
+      try {
+        return {
+          ...o,
+          timestamp: new Date(o.timestamp)
+        };
+      } catch (error) {
+        console.error('Failed to parse saved order timestamp:', error);
+        // Return with current date as fallback
+        return {
+          ...o,
+          timestamp: new Date()
+        };
+      }
+    });
+  });
   const [isSavedOrdersModalOpen, setIsSavedOrdersModalOpen] = useState(false);
 
   // Opening Fund State
