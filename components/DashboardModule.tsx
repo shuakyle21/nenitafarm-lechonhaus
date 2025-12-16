@@ -24,7 +24,7 @@ const DashboardModule: React.FC<DashboardModuleProps> = ({ items, orders = [], s
   const dateMatcher = useMemo(() => createDateMatcher(), []);
 
   // --- Top Items Algorithm (Memoized) ---
-  const getTopItems = useMemo(() => {
+  const topItems = useMemo(() => {
     // 1. Filter orders based on time
     const filteredOrders = orders.filter(order => {
       if (timeFilter === 'TODAY') return dateMatcher.isToday(order.date);
@@ -291,12 +291,12 @@ const DashboardModule: React.FC<DashboardModuleProps> = ({ items, orders = [], s
             </button>
           </div>
           <div className="flex-1 overflow-y-auto p-6 space-y-6">
-            {todayOrders.length === 0 ? (
+            {todayData.todayOrders.length === 0 ? (
               <div className="text-center text-stone-400 mt-10">
                 <p>No transactions yet today.</p>
               </div>
             ) : (
-              todayOrders.slice(0, 10).map((order, i) => (
+              todayData.todayOrders.slice(0, 10).map((order, i) => (
                 <div key={order.id} className="flex gap-4 animate-in slide-in-from-right-4 duration-300" style={{ animationDelay: `${i * 50}ms` }}>
                   <div className="flex flex-col items-center">
                     <div className="w-2 h-2 rounded-full bg-green-500 mb-1"></div>
