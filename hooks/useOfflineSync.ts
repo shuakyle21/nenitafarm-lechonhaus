@@ -111,8 +111,22 @@ export const useOfflineSync = () => {
             try {
                 const data = await insertOrderToSupabase(order);
                 return { success: true, mode: 'ONLINE', data: { ...order, id: data.id, orderNumber: data.order_number } };
-            } catch (error) {
-                console.error("Online save failed, switching to offline backup:", error);
+            } catch (error: any) {
+                console.error("Online save failed:", error);
+                
+                // Only fall back to offline if it's a network error
+                const isNetworkError = 
+                    !navigator.onLine || 
+                    (error instanceof TypeError && error.message === 'Failed to fetch') ||
+                    (error?.message?.includes('Network request failed'));
+
+                if (!isNetworkError) {
+                    // It's a real error (e.g. RLS policy violation, invalid data), so THROW it.
+                    // Doing this prevents "False Offline Mode" where a bug is masked as an offline save.
+                    throw error;
+                }
+                
+                console.warn("Falling back to offline mode due to network error.");
                 // Fallthrough to offline backup
             }
         }
