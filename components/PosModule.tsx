@@ -1,6 +1,6 @@
 
 import * as React from 'react';
-import { useState } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import { CATEGORIES } from '../constants';
 import { Category, MenuItem, CartItem, DiscountDetails, Order, Variant, Staff, OrderType, SavedOrder } from '../types';
 import SidebarCart from './SidebarCart';
@@ -13,6 +13,7 @@ import { VariantSelector } from './VariantSelector';
 import { Search, Settings } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import OpeningFundModal from './OpeningFundModal';
+import { debounce } from '../lib/performanceUtils';
 
 interface PosModuleProps {
   items: MenuItem[];
@@ -151,34 +152,77 @@ const PosModule: React.FC<PosModuleProps> = ({
   // Variant State
   const [selectedVariantItem, setSelectedVariantItem] = useState<MenuItem | null>(null);
 
-  // --- Persistence Effects ---
+  // --- Debounced localStorage persistence (performance optimization) ---
+  const debouncedSaveCart = useCallback(
+    debounce((cartData: CartItem[]) => {
+      localStorage.setItem('pos_cart', JSON.stringify(cartData));
+    }, 500),
+    []
+  );
+
+  const debouncedSaveSavedOrders = useCallback(
+    debounce((orders: SavedOrder[]) => {
+      localStorage.setItem('pos_saved_orders', JSON.stringify(orders));
+    }, 500),
+    []
+  );
+
+  const debouncedSaveOrderType = useCallback(
+    debounce((type: OrderType) => {
+      localStorage.setItem('pos_order_type', JSON.stringify(type));
+    }, 300),
+    []
+  );
+
+  const debouncedSaveTableNumber = useCallback(
+    debounce((table: string) => {
+      localStorage.setItem('pos_table_number', table);
+    }, 300),
+    []
+  );
+
+  const debouncedSaveDeliveryDetails = useCallback(
+    debounce((details: typeof deliveryDetails) => {
+      localStorage.setItem('pos_delivery_details', JSON.stringify(details));
+    }, 500),
+    []
+  );
+
+  const debouncedSaveSelectedServer = useCallback(
+    debounce((server: Staff | null) => {
+      if (server) {
+        localStorage.setItem('pos_selected_server', JSON.stringify(server));
+      } else {
+        localStorage.removeItem('pos_selected_server');
+      }
+    }, 300),
+    []
+  );
+
+  // --- Persistence Effects (now debounced) ---
   React.useEffect(() => {
-    localStorage.setItem('pos_cart', JSON.stringify(cart));
-  }, [cart]);
+    debouncedSaveCart(cart);
+  }, [cart, debouncedSaveCart]);
 
   React.useEffect(() => {
-    localStorage.setItem('pos_saved_orders', JSON.stringify(savedOrders));
-  }, [savedOrders]);
+    debouncedSaveSavedOrders(savedOrders);
+  }, [savedOrders, debouncedSaveSavedOrders]);
 
   React.useEffect(() => {
-    localStorage.setItem('pos_order_type', JSON.stringify(orderType));
-  }, [orderType]);
+    debouncedSaveOrderType(orderType);
+  }, [orderType, debouncedSaveOrderType]);
 
   React.useEffect(() => {
-    localStorage.setItem('pos_table_number', tableNumber);
-  }, [tableNumber]);
+    debouncedSaveTableNumber(tableNumber);
+  }, [tableNumber, debouncedSaveTableNumber]);
 
   React.useEffect(() => {
-    localStorage.setItem('pos_delivery_details', JSON.stringify(deliveryDetails));
-  }, [deliveryDetails]);
+    debouncedSaveDeliveryDetails(deliveryDetails);
+  }, [deliveryDetails, debouncedSaveDeliveryDetails]);
 
   React.useEffect(() => {
-    if (selectedServer) {
-      localStorage.setItem('pos_selected_server', JSON.stringify(selectedServer));
-    } else {
-      localStorage.removeItem('pos_selected_server');
-    }
-  }, [selectedServer]);
+    debouncedSaveSelectedServer(selectedServer);
+  }, [selectedServer, debouncedSaveSelectedServer]);
 
   // --- Cart Logic ---
   const addToCart = (item: MenuItem) => {
@@ -349,13 +393,15 @@ const PosModule: React.FC<PosModuleProps> = ({
 
   const total = subtotal - discountAmount;
 
-  // --- Filtering ---
-  const filteredItems = items.filter(item => {
-    if (searchQuery) {
-      return item.name.toLowerCase().includes(searchQuery.toLowerCase());
-    }
-    return item.category === activeCategory;
-  });
+  // --- Filtering (Memoized for performance) ---
+  const filteredItems = useMemo(() => {
+    return items.filter(item => {
+      if (searchQuery) {
+        return item.name.toLowerCase().includes(searchQuery.toLowerCase());
+      }
+      return item.category === activeCategory;
+    });
+  }, [items, searchQuery, activeCategory]);
 
   // Auto-switch category on search
   React.useEffect(() => {

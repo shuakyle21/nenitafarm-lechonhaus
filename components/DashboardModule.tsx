@@ -1,10 +1,11 @@
 
 import * as React from 'react';
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { TrendingUp, Users, ShoppingBag, DollarSign, Calendar, Clock, ArrowUpRight, List } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { MenuItem, Order, SalesAdjustment, Expense } from '../types';
 import OrderHistoryModal from './OrderHistoryModal';
+import { isToday as isTodayUtil, isWithinDays, dateMatches } from '../lib/dateUtils';
 
 interface DashboardModuleProps {
   items: MenuItem[];
@@ -18,33 +19,34 @@ const DashboardModule: React.FC<DashboardModuleProps> = ({ items, orders = [], s
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
   const [timeFilter, setTimeFilter] = useState<'TODAY' | 'WEEK' | 'MONTH'>('TODAY');
 
-  // --- Date Helpers ---
-  const isToday = (dateString: string) => {
-    const date = new Date(dateString);
-    const today = new Date();
-    return date.getDate() === today.getDate() &&
-      date.getMonth() === today.getMonth() &&
-      date.getFullYear() === today.getFullYear();
-  };
+  // Cache today's date reference to avoid recreating it repeatedly
+  const todayRef = useMemo(() => new Date(), []);
 
-  const isThisWeek = (dateString: string) => {
-    const date = new Date(dateString);
-    const today = new Date();
-    const diffTime = Math.abs(today.getTime() - date.getTime());
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    return diffDays <= 7;
-  };
+  // --- Date Helpers (optimized with cached reference) ---
+  const isToday = (dateString: string) => isTodayUtil(dateString, todayRef);
 
-  const isThisMonth = (dateString: string) => {
-    const date = new Date(dateString);
-    const today = new Date();
-    const diffTime = Math.abs(today.getTime() - date.getTime());
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    return diffDays <= 30;
-  };
+  const isThisWeek = (dateString: string) => isWithinDays(dateString, 7, todayRef);
 
-  // --- Top Items Algorithm ---
-  const getTopItems = () => {
+  const isThisMonth = (dateString: string) => isWithinDays(dateString, 30, todayRef);
+
+  // Memoize filtered data for today (most common case)
+  const todayOrders = useMemo(() => 
+    orders.filter(order => isToday(order.date)), 
+    [orders]
+  );
+  
+  const todayAdjustments = useMemo(() => 
+    salesAdjustments.filter(adj => isToday(adj.date)), 
+    [salesAdjustments]
+  );
+  
+  const todayExpenses = useMemo(() => 
+    expenses.filter(exp => isToday(exp.date)), 
+    [expenses]
+  );
+
+  // --- Top Items Algorithm (Memoized) ---
+  const topItems = useMemo(() => {
     // 1. Filter orders based on time
     const filteredOrders = orders.filter(order => {
       if (timeFilter === 'TODAY') return isToday(order.date);
@@ -65,10 +67,7 @@ const DashboardModule: React.FC<DashboardModuleProps> = ({ items, orders = [], s
 
     filteredOrders.forEach(order => {
       order.items.forEach(item => {
-        // Use item name as key to group variants together, or ID if strict
-        // Using ID for now to be precise
         const key = item.id;
-
         const existing = itemMap.get(key);
         if (existing) {
           existing.count += item.quantity;
@@ -89,14 +88,7 @@ const DashboardModule: React.FC<DashboardModuleProps> = ({ items, orders = [], s
     // 3. Convert to array and sort
     return Array.from(itemMap.values())
       .sort((a, b) => b.count - a.count);
-  };
-
-  const topItems = getTopItems();
-
-  // Calculate stats from real orders (Today Only)
-  const todayOrders = orders.filter(order => isToday(order.date));
-  const todayAdjustments = salesAdjustments.filter(adj => isToday(adj.date));
-  const todayExpenses = expenses.filter(exp => isToday(exp.date));
+  }, [orders, timeFilter]);
 
   const ordersTotal = todayOrders.reduce((acc, order) => acc + (order.total || 0), 0);
   const adjustmentsTotal = todayAdjustments.reduce((acc, adj) => acc + adj.amount, 0);
@@ -115,6 +107,36 @@ const DashboardModule: React.FC<DashboardModuleProps> = ({ items, orders = [], s
     { title: 'Customers Served', value: customers.toString(), icon: Users, color: 'text-yellow-600', bg: 'bg-yellow-50', change: 'Current Session' },
     { title: 'Avg Order Value', value: `₱${avgOrder.toLocaleString('en-PH', { minimumFractionDigits: 2 })}`, icon: TrendingUp, color: 'text-purple-600', bg: 'bg-purple-50', change: 'Current Session' },
   ];
+
+  // Memoize chart data generation (expensive operation)
+  const chartData = useMemo(() => {
+    const last7Days = [...Array(7)].map((_, i) => {
+      const d = new Date(todayRef);
+      d.setDate(d.getDate() - i);
+      d.setHours(0, 0, 0, 0);
+      return d;
+    }).reverse();
+
+    return last7Days.map(date => {
+      const isDateToday = dateMatches(todayRef.toISOString(), date);
+
+      if (isDateToday) {
+        return { date: date.toLocaleDateString('en-US', { weekday: 'short' }), sales: totalSales };
+      }
+
+      // Filter orders for this specific date (more efficient with cached date)
+      const dayOrders = orders.filter(o => dateMatches(o.date, date));
+      const dayAdjustments = salesAdjustments.filter(s => dateMatches(s.date, date));
+
+      const dayOrdersTotal = dayOrders.reduce((acc, o) => acc + (o.total || 0), 0);
+      const dayAdjustmentsTotal = dayAdjustments.reduce((acc, s) => acc + s.amount, 0);
+
+      return { 
+        date: date.toLocaleDateString('en-US', { weekday: 'short' }), 
+        sales: dayOrdersTotal + dayAdjustmentsTotal 
+      };
+    });
+  }, [orders, salesAdjustments, todayRef, totalSales]);
 
   // --- Image Helper ---
   const getSafeImage = (url?: string) => {
@@ -170,42 +192,7 @@ const DashboardModule: React.FC<DashboardModuleProps> = ({ items, orders = [], s
         </div>
         <div className="h-64 w-full">
           <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={(() => {
-              const last7Days = [...Array(7)].map((_, i) => {
-                const d = new Date();
-                d.setDate(d.getDate() - i);
-                return d;
-              }).reverse();
-
-              return last7Days.map(date => {
-                const isDateToday = date.getDate() === new Date().getDate() &&
-                  date.getMonth() === new Date().getMonth() &&
-                  date.getFullYear() === new Date().getFullYear();
-
-                if (isDateToday) {
-                  return { date: date.toLocaleDateString('en-US', { weekday: 'short' }), sales: totalSales };
-                }
-
-                const dayOrders = orders.filter(o => {
-                  const orderDate = new Date(o.date);
-                  return orderDate.getDate() === date.getDate() &&
-                    orderDate.getMonth() === date.getMonth() &&
-                    orderDate.getFullYear() === date.getFullYear();
-                });
-
-                const dayAdjustments = salesAdjustments.filter(s => {
-                  const adjDate = new Date(s.date);
-                  return adjDate.getDate() === date.getDate() &&
-                    adjDate.getMonth() === date.getMonth() &&
-                    adjDate.getFullYear() === date.getFullYear();
-                });
-
-                const dayOrdersTotal = dayOrders.reduce((acc, o) => acc + (o.total || 0), 0);
-                const dayAdjustmentsTotal = dayAdjustments.reduce((acc, s) => acc + s.amount, 0);
-
-                return { date: new Date(date).toLocaleDateString('en-US', { weekday: 'short' }), sales: dayOrdersTotal + dayAdjustmentsTotal };
-              });
-            })()}>
+            <LineChart data={chartData}>
               <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e5e7eb" />
               <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fill: '#6b7280', fontSize: 12 }} dy={10} />
               <YAxis axisLine={false} tickLine={false} tick={{ fill: '#6b7280', fontSize: 12 }} tickFormatter={(value) => `₱${value / 1000}k`} />

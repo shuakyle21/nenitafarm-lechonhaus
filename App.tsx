@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import MainSidebar from './components/MainSidebar';
 import PosModule from './components/PosModule';
 import DashboardModule from './components/DashboardModule';
@@ -11,6 +11,7 @@ import FinancialModule from './components/FinancialModule';
 import BookingModule from './components/BookingModule';
 import LoginModule from './components/LoginModule';
 import { useOfflineSync } from './hooks/useOfflineSync';
+import { isToday as isTodayUtil } from './lib/dateUtils';
 
 const App: React.FC = () => {
   // Auth State
@@ -33,16 +34,16 @@ const App: React.FC = () => {
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [salesAdjustments, setSalesAdjustments] = useState<SalesAdjustment[]>([]);
 
-  // Helper for daily count
-  const isToday = (dateString: string) => {
-    const date = new Date(dateString);
-    const today = new Date();
-    return date.getDate() === today.getDate() &&
-      date.getMonth() === today.getMonth() &&
-      date.getFullYear() === today.getFullYear();
-  };
+  // Cache today's date for performance
+  const todayRef = useMemo(() => new Date(), []);
 
-  const todayOrderCount = orders.filter(o => isToday(o.date)).length;
+  // Optimized helper using cached date reference
+  const isToday = (dateString: string) => isTodayUtil(dateString, todayRef);
+
+  const todayOrderCount = useMemo(() => 
+    orders.filter(o => isToday(o.date)).length,
+    [orders]
+  );
 
   // Fetch Menu Items on Mount
   useEffect(() => {

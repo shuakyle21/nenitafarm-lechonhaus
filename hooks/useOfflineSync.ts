@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { Order } from '../types';
 import { supabase } from '../lib/supabase';
+import { batchProcess } from '../lib/performanceUtils';
 
 export const useOfflineSync = () => {
     const [isOnline, setIsOnline] = useState(navigator.onLine);
@@ -69,22 +70,28 @@ export const useOfflineSync = () => {
         isSyncingRef.current = true;
         setIsSyncing(true);
         
-        const syncedOrders: Order[] = [];
-
         try {
-            // Process sequentially to avoid overwhelming execution
-            for (const order of pendingOrders) {
-                try {
-                    await insertOrderToSupabase(order);
-                    syncedOrders.push(order);
-                } catch (error) {
-                    console.error("Failed to sync order:", order.id, error);
-                    // If specific error, maybe keep it. For now, we try all.
-                }
+            // Use batch processing for better performance
+            const { successful, failed } = await batchProcess(
+                pendingOrders,
+                async (order) => {
+                    const result = await insertOrderToSupabase(order);
+                    return { order, result };
+                },
+                3 // Process 3 orders at a time to avoid overwhelming the database
+            );
+
+            // Log failed orders for debugging
+            if (failed.length > 0) {
+                console.error('Failed to sync some orders:', failed);
             }
+
+            // Remove successfully synced orders from pending list
+            const successfulOrderIds = successful.map(s => s.order.id);
+            setPendingOrders(prev => prev.filter(o => !successfulOrderIds.includes(o.id)));
+        } catch (error) {
+            console.error('Error during batch sync:', error);
         } finally {
-            // Update pending orders - remove the ones that were synced
-            setPendingOrders(prev => prev.filter(o => !syncedOrders.find(so => so.id === o.id)));
             isSyncingRef.current = false;
             setIsSyncing(false);
         }
