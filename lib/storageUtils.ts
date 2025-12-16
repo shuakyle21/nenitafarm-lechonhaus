@@ -3,6 +3,7 @@
  */
 
 const debounceTimers: Map<string, NodeJS.Timeout> = new Map();
+const pendingWrites: Map<string, any> = new Map();
 
 /**
  * Debounced localStorage.setItem to reduce write frequency
@@ -21,11 +22,15 @@ export const setLocalStorageDebounced = <T>(
     clearTimeout(existingTimer);
   }
 
+  // Store the pending value
+  pendingWrites.set(key, value);
+
   // Set new timer
   const timer = setTimeout(() => {
     try {
       localStorage.setItem(key, JSON.stringify(value));
       debounceTimers.delete(key);
+      pendingWrites.delete(key);
     } catch (error) {
       console.error(`Failed to save to localStorage (${key}):`, error);
     }
@@ -48,20 +53,44 @@ export const getLocalStorage = <T>(key: string, defaultValue: T): T => {
 };
 
 /**
- * Immediately flush all pending debounced writes for a key
+ * Immediately write a pending debounced value to localStorage
+ * Cancels the timer and writes the data immediately
  */
 export const flushLocalStorage = (key: string): void => {
   const timer = debounceTimers.get(key);
+  const value = pendingWrites.get(key);
+  
   if (timer) {
     clearTimeout(timer);
     debounceTimers.delete(key);
   }
+  
+  if (value !== undefined) {
+    try {
+      localStorage.setItem(key, JSON.stringify(value));
+      pendingWrites.delete(key);
+    } catch (error) {
+      console.error(`Failed to flush to localStorage (${key}):`, error);
+    }
+  }
 };
 
 /**
- * Flush all pending debounced writes
+ * Flush all pending debounced writes to localStorage
+ * Writes all pending data immediately and clears all timers
  */
 export const flushAllLocalStorage = (): void => {
+  // Write all pending values
+  pendingWrites.forEach((value, key) => {
+    try {
+      localStorage.setItem(key, JSON.stringify(value));
+    } catch (error) {
+      console.error(`Failed to flush to localStorage (${key}):`, error);
+    }
+  });
+  
+  // Clear all timers and pending writes
   debounceTimers.forEach((timer) => clearTimeout(timer));
   debounceTimers.clear();
+  pendingWrites.clear();
 };

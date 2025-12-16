@@ -41,23 +41,23 @@ export const isYesterday = (dateString: string): boolean => {
 };
 
 /**
- * Check if a date string is within the last 7 days
+ * Check if a date string is within the last 7 days (not including future dates)
  */
 export const isThisWeek = (dateString: string): boolean => {
   const date = new Date(dateString);
   const today = new Date();
-  const diffTime = Math.abs(today.getTime() - date.getTime());
+  const diffTime = today.getTime() - date.getTime();
   const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-  return diffDays <= 7;
+  return diffDays >= 0 && diffDays <= 7;
 };
 
 /**
- * Check if a date string is within the last 30 days
+ * Check if a date string is within the last 30 days (not including future dates)
  */
 export const isThisMonth = (dateString: string): boolean => {
   const date = new Date(dateString);
   const today = new Date();
-  const diffTime = Math.abs(today.getTime() - date.getTime());
+  const diffTime = today.getTime() - date.getTime();
   const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-  return diffDays <= 30;
+  return diffDays >= 0 && diffDays <= 30;
 };
