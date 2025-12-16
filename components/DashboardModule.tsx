@@ -1,10 +1,11 @@
 
 import * as React from 'react';
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { TrendingUp, Users, ShoppingBag, DollarSign, Calendar, Clock, ArrowUpRight, List } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { MenuItem, Order, SalesAdjustment, Expense } from '../types';
 import OrderHistoryModal from './OrderHistoryModal';
+import { isToday, isThisWeek, isThisMonth } from '../lib/dateUtils';
 
 interface DashboardModuleProps {
   items: MenuItem[];
@@ -18,33 +19,8 @@ const DashboardModule: React.FC<DashboardModuleProps> = ({ items, orders = [], s
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
   const [timeFilter, setTimeFilter] = useState<'TODAY' | 'WEEK' | 'MONTH'>('TODAY');
 
-  // --- Date Helpers ---
-  const isToday = (dateString: string) => {
-    const date = new Date(dateString);
-    const today = new Date();
-    return date.getDate() === today.getDate() &&
-      date.getMonth() === today.getMonth() &&
-      date.getFullYear() === today.getFullYear();
-  };
-
-  const isThisWeek = (dateString: string) => {
-    const date = new Date(dateString);
-    const today = new Date();
-    const diffTime = Math.abs(today.getTime() - date.getTime());
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    return diffDays <= 7;
-  };
-
-  const isThisMonth = (dateString: string) => {
-    const date = new Date(dateString);
-    const today = new Date();
-    const diffTime = Math.abs(today.getTime() - date.getTime());
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    return diffDays <= 30;
-  };
-
-  // --- Top Items Algorithm ---
-  const getTopItems = () => {
+  // --- Top Items Algorithm (Memoized) ---
+  const topItems = useMemo(() => {
     // 1. Filter orders based on time
     const filteredOrders = orders.filter(order => {
       if (timeFilter === 'TODAY') return isToday(order.date);
@@ -65,10 +41,7 @@ const DashboardModule: React.FC<DashboardModuleProps> = ({ items, orders = [], s
 
     filteredOrders.forEach(order => {
       order.items.forEach(item => {
-        // Use item name as key to group variants together, or ID if strict
-        // Using ID for now to be precise
         const key = item.id;
-
         const existing = itemMap.get(key);
         if (existing) {
           existing.count += item.quantity;
@@ -89,32 +62,78 @@ const DashboardModule: React.FC<DashboardModuleProps> = ({ items, orders = [], s
     // 3. Convert to array and sort
     return Array.from(itemMap.values())
       .sort((a, b) => b.count - a.count);
-  };
+  }, [orders, timeFilter]);
 
-  const topItems = getTopItems();
+  // Calculate stats from real orders (Today Only) - Memoized
+  const todayStats = useMemo(() => {
+    const todayOrders = orders.filter(order => isToday(order.date));
+    const todayAdjustments = salesAdjustments.filter(adj => isToday(adj.date));
+    const todayExpenses = expenses.filter(exp => isToday(exp.date));
 
-  // Calculate stats from real orders (Today Only)
-  const todayOrders = orders.filter(order => isToday(order.date));
-  const todayAdjustments = salesAdjustments.filter(adj => isToday(adj.date));
-  const todayExpenses = expenses.filter(exp => isToday(exp.date));
+    const ordersTotal = todayOrders.reduce((acc, order) => acc + (order.total || 0), 0);
+    const adjustmentsTotal = todayAdjustments.reduce((acc, adj) => acc + adj.amount, 0);
+    const expensesTotal = todayExpenses.reduce((acc, exp) => acc + exp.amount, 0);
 
-  const ordersTotal = todayOrders.reduce((acc, order) => acc + (order.total || 0), 0);
-  const adjustmentsTotal = todayAdjustments.reduce((acc, adj) => acc + adj.amount, 0);
-  const expensesTotal = todayExpenses.reduce((acc, exp) => acc + exp.amount, 0);
+    const totalSales = ordersTotal + adjustmentsTotal;
+    const netCash = totalSales - expensesTotal;
+    const totalOrders = todayOrders.length;
+    const customers = todayOrders.reduce((acc, order) => acc + (order.discount ? order.discount.totalPax : 1), 0);
+    const avgOrder = totalOrders > 0 ? totalSales / totalOrders : 0;
 
-  const totalSales = ordersTotal + adjustmentsTotal;
-  const netCash = totalSales - expensesTotal;
-
-  const totalOrders = todayOrders.length;
-  const customers = todayOrders.reduce((acc, order) => acc + (order.discount ? order.discount.totalPax : 1), 0);
-  const avgOrder = totalOrders > 0 ? totalSales / totalOrders : 0;
+    return {
+      netCash,
+      totalOrders,
+      customers,
+      avgOrder,
+      totalSales,
+      todayOrders
+    };
+  }, [orders, salesAdjustments, expenses]);
 
   const stats = [
-    { title: 'Net Cash on Hand', value: `₱${netCash.toLocaleString('en-PH', { minimumFractionDigits: 2 })}`, icon: DollarSign, color: 'text-stone-800', bg: 'bg-stone-200', change: 'Current Session' },
-    { title: 'Total Orders', value: totalOrders.toString(), icon: ShoppingBag, color: 'text-blue-600', bg: 'bg-blue-50', change: 'Current Session' },
-    { title: 'Customers Served', value: customers.toString(), icon: Users, color: 'text-yellow-600', bg: 'bg-yellow-50', change: 'Current Session' },
-    { title: 'Avg Order Value', value: `₱${avgOrder.toLocaleString('en-PH', { minimumFractionDigits: 2 })}`, icon: TrendingUp, color: 'text-purple-600', bg: 'bg-purple-50', change: 'Current Session' },
+    { title: 'Net Cash on Hand', value: `₱${todayStats.netCash.toLocaleString('en-PH', { minimumFractionDigits: 2 })}`, icon: DollarSign, color: 'text-stone-800', bg: 'bg-stone-200', change: 'Current Session' },
+    { title: 'Total Orders', value: todayStats.totalOrders.toString(), icon: ShoppingBag, color: 'text-blue-600', bg: 'bg-blue-50', change: 'Current Session' },
+    { title: 'Customers Served', value: todayStats.customers.toString(), icon: Users, color: 'text-yellow-600', bg: 'bg-yellow-50', change: 'Current Session' },
+    { title: 'Avg Order Value', value: `₱${todayStats.avgOrder.toLocaleString('en-PH', { minimumFractionDigits: 2 })}`, icon: TrendingUp, color: 'text-purple-600', bg: 'bg-purple-50', change: 'Current Session' },
   ];
+
+  // Memoize chart data to avoid recalculation on every render
+  const chartData = useMemo(() => {
+    const last7Days = [...Array(7)].map((_, i) => {
+      const d = new Date();
+      d.setDate(d.getDate() - i);
+      return d;
+    }).reverse();
+
+    return last7Days.map(date => {
+      const isDateToday = date.getDate() === new Date().getDate() &&
+        date.getMonth() === new Date().getMonth() &&
+        date.getFullYear() === new Date().getFullYear();
+
+      if (isDateToday) {
+        return { date: date.toLocaleDateString('en-US', { weekday: 'short' }), sales: todayStats.totalSales };
+      }
+
+      const dayOrders = orders.filter(o => {
+        const orderDate = new Date(o.date);
+        return orderDate.getDate() === date.getDate() &&
+          orderDate.getMonth() === date.getMonth() &&
+          orderDate.getFullYear() === date.getFullYear();
+      });
+
+      const dayAdjustments = salesAdjustments.filter(s => {
+        const adjDate = new Date(s.date);
+        return adjDate.getDate() === date.getDate() &&
+          adjDate.getMonth() === date.getMonth() &&
+          adjDate.getFullYear() === date.getFullYear();
+      });
+
+      const dayOrdersTotal = dayOrders.reduce((acc, o) => acc + (o.total || 0), 0);
+      const dayAdjustmentsTotal = dayAdjustments.reduce((acc, s) => acc + s.amount, 0);
+
+      return { date: new Date(date).toLocaleDateString('en-US', { weekday: 'short' }), sales: dayOrdersTotal + dayAdjustmentsTotal };
+    });
+  }, [orders, salesAdjustments, todayStats.totalSales]);
 
   // --- Image Helper ---
   const getSafeImage = (url?: string) => {
@@ -170,42 +189,7 @@ const DashboardModule: React.FC<DashboardModuleProps> = ({ items, orders = [], s
         </div>
         <div className="h-64 w-full">
           <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={(() => {
-              const last7Days = [...Array(7)].map((_, i) => {
-                const d = new Date();
-                d.setDate(d.getDate() - i);
-                return d;
-              }).reverse();
-
-              return last7Days.map(date => {
-                const isDateToday = date.getDate() === new Date().getDate() &&
-                  date.getMonth() === new Date().getMonth() &&
-                  date.getFullYear() === new Date().getFullYear();
-
-                if (isDateToday) {
-                  return { date: date.toLocaleDateString('en-US', { weekday: 'short' }), sales: totalSales };
-                }
-
-                const dayOrders = orders.filter(o => {
-                  const orderDate = new Date(o.date);
-                  return orderDate.getDate() === date.getDate() &&
-                    orderDate.getMonth() === date.getMonth() &&
-                    orderDate.getFullYear() === date.getFullYear();
-                });
-
-                const dayAdjustments = salesAdjustments.filter(s => {
-                  const adjDate = new Date(s.date);
-                  return adjDate.getDate() === date.getDate() &&
-                    adjDate.getMonth() === date.getMonth() &&
-                    adjDate.getFullYear() === date.getFullYear();
-                });
-
-                const dayOrdersTotal = dayOrders.reduce((acc, o) => acc + (o.total || 0), 0);
-                const dayAdjustmentsTotal = dayAdjustments.reduce((acc, s) => acc + s.amount, 0);
-
-                return { date: new Date(date).toLocaleDateString('en-US', { weekday: 'short' }), sales: dayOrdersTotal + dayAdjustmentsTotal };
-              });
-            })()}>
+            <LineChart data={chartData}>
               <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e5e7eb" />
               <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fill: '#6b7280', fontSize: 12 }} dy={10} />
               <YAxis axisLine={false} tickLine={false} tick={{ fill: '#6b7280', fontSize: 12 }} tickFormatter={(value) => `₱${value / 1000}k`} />
@@ -289,12 +273,12 @@ const DashboardModule: React.FC<DashboardModuleProps> = ({ items, orders = [], s
             </button>
           </div>
           <div className="flex-1 overflow-y-auto p-6 space-y-6">
-            {todayOrders.length === 0 ? (
+            {todayStats.todayOrders.length === 0 ? (
               <div className="text-center text-stone-400 mt-10">
                 <p>No transactions yet today.</p>
               </div>
             ) : (
-              todayOrders.slice(0, 10).map((order, i) => (
+              todayStats.todayOrders.slice(0, 10).map((order, i) => (
                 <div key={order.id} className="flex gap-4 animate-in slide-in-from-right-4 duration-300" style={{ animationDelay: `${i * 50}ms` }}>
                   <div className="flex flex-col items-center">
                     <div className="w-2 h-2 rounded-full bg-green-500 mb-1"></div>

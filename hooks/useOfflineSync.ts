@@ -1,17 +1,13 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { Order } from '../types';
 import { supabase } from '../lib/supabase';
+import { getLocalStorage } from '../lib/storageUtils';
 
 export const useOfflineSync = () => {
     const [isOnline, setIsOnline] = useState(navigator.onLine);
-    const [pendingOrders, setPendingOrders] = useState<Order[]>(() => {
-        try {
-            const stored = localStorage.getItem('pending_orders');
-            return stored ? JSON.parse(stored) : [];
-        } catch {
-            return [];
-        }
-    });
+    const [pendingOrders, setPendingOrders] = useState<Order[]>(() => 
+        getLocalStorage('pending_orders', [])
+    );
     const [isSyncing, setIsSyncing] = useState(false);
     const isSyncingRef = useRef(false);
 
@@ -19,8 +15,8 @@ export const useOfflineSync = () => {
         localStorage.setItem('pending_orders', JSON.stringify(pendingOrders));
     }, [pendingOrders]);
 
-    // Function to actually insert the order into Supabase
-    const insertOrderToSupabase = async (order: Order) => {
+    // Function to actually insert the order into Supabase (memoized for stable reference)
+    const insertOrderToSupabase = useCallback(async (order: Order) => {
         // 1. Insert into orders table
         const { data: orderData, error: orderError } = await supabase
             .from('orders')
@@ -61,7 +57,7 @@ export const useOfflineSync = () => {
         if (itemsError) throw itemsError;
 
         return orderData;
-    };
+    }, []);
 
     const syncOfflineOrders = useCallback(async () => {
         if (pendingOrders.length === 0 || isSyncingRef.current) return;
@@ -88,15 +84,19 @@ export const useOfflineSync = () => {
             isSyncingRef.current = false;
             setIsSyncing(false);
         }
-    }, [pendingOrders]);
+    }, [pendingOrders, insertOrderToSupabase]);
+
+    // Memoize the online/offline handlers to prevent recreating on every render
+    const handleOnline = useCallback(() => {
+        setIsOnline(true);
+        syncOfflineOrders();
+    }, [syncOfflineOrders]);
+
+    const handleOffline = useCallback(() => {
+        setIsOnline(false);
+    }, []);
 
     useEffect(() => {
-        const handleOnline = () => {
-            setIsOnline(true);
-            syncOfflineOrders();
-        };
-        const handleOffline = () => setIsOnline(false);
-
         window.addEventListener('online', handleOnline);
         window.addEventListener('offline', handleOffline);
 
@@ -104,7 +104,7 @@ export const useOfflineSync = () => {
             window.removeEventListener('online', handleOnline);
             window.removeEventListener('offline', handleOffline);
         };
-    }, [syncOfflineOrders]); // correct dependency: syncOfflineOrders (which depends on pendingOrders)
+    }, [handleOnline, handleOffline]);
 
     const saveOrderWithOfflineSupport = async (order: Order): Promise<{ success: boolean; mode: 'ONLINE' | 'OFFLINE'; data?: any }> => {
         if (isOnline) {

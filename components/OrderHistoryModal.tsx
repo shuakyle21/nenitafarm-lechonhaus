@@ -1,9 +1,10 @@
 
 import * as React from 'react';
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Order, CartItem } from '../types';
 import { X, Search, FileText, Calendar, Clock, Utensils, ShoppingBag, Printer } from 'lucide-react';
 import ReceiptModal from './ReceiptModal';
+import { isToday, isYesterday, isThisWeek, isThisMonth } from '../lib/dateUtils';
 
 interface OrderHistoryModalProps {
     isOpen: boolean;
@@ -17,55 +18,29 @@ const OrderHistoryModal: React.FC<OrderHistoryModalProps> = ({ isOpen, onClose, 
     const [timeFilter, setTimeFilter] = useState<'TODAY' | 'YESTERDAY' | 'WEEK' | 'MONTH' | 'ALL'>('TODAY');
     const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
 
+    // Memoize filtered orders to avoid recalculation on every render
+    const filteredOrders = useMemo(() => {
+        return orders.filter(order => {
+            const matchesSearch = (order.orderNumber?.toString() || order.id).toLowerCase().includes(searchQuery.toLowerCase()) ||
+                order.date.toLowerCase().includes(searchQuery.toLowerCase());
+
+            let matchesTime = true;
+            if (timeFilter === 'TODAY') matchesTime = isToday(order.date);
+            else if (timeFilter === 'YESTERDAY') matchesTime = isYesterday(order.date);
+            else if (timeFilter === 'WEEK') matchesTime = isThisWeek(order.date);
+            else if (timeFilter === 'MONTH') matchesTime = isThisMonth(order.date);
+            else if (timeFilter === 'ALL') matchesTime = true;
+
+            return matchesSearch && matchesTime;
+        });
+    }, [orders, searchQuery, timeFilter]);
+
+    // Memoize total revenue calculation
+    const totalRevenue = useMemo(() => {
+        return filteredOrders.reduce((acc, o) => acc + o.total, 0);
+    }, [filteredOrders]);
+
     if (!isOpen) return null;
-
-    // --- Date Helpers ---
-    const isToday = (dateString: string) => {
-        const date = new Date(dateString);
-        const today = new Date();
-        return date.getDate() === today.getDate() &&
-            date.getMonth() === today.getMonth() &&
-            date.getFullYear() === today.getFullYear();
-    };
-
-    const isYesterday = (dateString: string) => {
-        const date = new Date(dateString);
-        const yesterday = new Date();
-        yesterday.setDate(yesterday.getDate() - 1);
-        return date.getDate() === yesterday.getDate() &&
-            date.getMonth() === yesterday.getMonth() &&
-            date.getFullYear() === yesterday.getFullYear();
-    };
-
-    const isThisWeek = (dateString: string) => {
-        const date = new Date(dateString);
-        const today = new Date();
-        const diffTime = Math.abs(today.getTime() - date.getTime());
-        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-        return diffDays <= 7;
-    };
-
-    const isThisMonth = (dateString: string) => {
-        const date = new Date(dateString);
-        const today = new Date();
-        const diffTime = Math.abs(today.getTime() - date.getTime());
-        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-        return diffDays <= 30;
-    };
-
-    const filteredOrders = orders.filter(order => {
-        const matchesSearch = (order.orderNumber?.toString() || order.id).toLowerCase().includes(searchQuery.toLowerCase()) ||
-            order.date.toLowerCase().includes(searchQuery.toLowerCase());
-
-        let matchesTime = true;
-        if (timeFilter === 'TODAY') matchesTime = isToday(order.date);
-        else if (timeFilter === 'YESTERDAY') matchesTime = isYesterday(order.date);
-        else if (timeFilter === 'WEEK') matchesTime = isThisWeek(order.date);
-        else if (timeFilter === 'MONTH') matchesTime = isThisMonth(order.date);
-        else if (timeFilter === 'ALL') matchesTime = true;
-
-        return matchesSearch && matchesTime;
-    });
 
     const formatCurrency = (amount: number) => {
         return `₱${amount.toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
@@ -141,7 +116,7 @@ const OrderHistoryModal: React.FC<OrderHistoryModalProps> = ({ isOpen, onClose, 
                         <div className="text-right">
                             <div className="text-xs font-bold text-stone-500 uppercase tracking-wider">Total Revenue</div>
                             <div className="text-2xl font-brand font-black text-green-700">
-                                {formatCurrency(filteredOrders.reduce((acc, o) => acc + o.total, 0))}
+                                {formatCurrency(totalRevenue)}
                             </div>
                         </div>
                     </div>
