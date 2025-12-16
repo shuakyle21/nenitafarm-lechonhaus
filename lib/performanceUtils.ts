@@ -69,11 +69,12 @@ export async function batchProcess<T, R>(
       )
     );
     
-    results.forEach((result) => {
+    results.forEach((result, idx) => {
       if (result.status === 'fulfilled') {
         successful.push(result.value.result);
       } else {
-        failed.push({ item: (result as any).item, error: result.reason });
+        // Use the correct item from the batch
+        failed.push({ item: batch[idx], error: result.reason });
       }
     });
   }
