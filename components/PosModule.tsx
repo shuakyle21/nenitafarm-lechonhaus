@@ -53,9 +53,9 @@ const PosModule: React.FC<PosModuleProps> = ({
     getLocalStorage('pos_delivery_details', { address: '', time: '', contact: '' })
   );
 
-  const [tableNumber, setTableNumber] = useState(() => {
-    return localStorage.getItem('pos_table_number') || '';
-  });
+  const [tableNumber, setTableNumber] = useState(() => 
+    getLocalStorage('pos_table_number', '')
+  );
 
   // Modals & Discount State
   const [isLechonModalOpen, setIsLechonModalOpen] = useState(false);

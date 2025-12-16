@@ -2,7 +2,7 @@
  * Debounced localStorage utilities to reduce write operations
  */
 
-const debounceTimers: Map<string, NodeJS.Timeout> = new Map();
+const debounceTimers: Map<string, ReturnType<typeof setTimeout>> = new Map();
 const pendingWrites: Map<string, any> = new Map();
 
 /**

@@ -17,6 +17,10 @@ export const getLocalDateString = (date: Date) => {
  * Optimized date comparison functions to avoid duplication across components
  */
 
+// Constants for date range filters
+const DAYS_IN_WEEK = 7;
+const DAYS_IN_MONTH = 30;
+
 /**
  * Check if a date string represents today
  */
@@ -49,7 +53,7 @@ export const isThisWeek = (dateString: string): boolean => {
   const diffTime = today.getTime() - date.getTime();
   // For negative differences (future dates), diffDays will be negative
   const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-  return diffDays >= 0 && diffDays <= 7;
+  return diffDays >= 0 && diffDays <= DAYS_IN_WEEK;
 };
 
 /**
@@ -61,5 +65,5 @@ export const isThisMonth = (dateString: string): boolean => {
   const diffTime = today.getTime() - date.getTime();
   // For negative differences (future dates), diffDays will be negative
   const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-  return diffDays >= 0 && diffDays <= 30;
+  return diffDays >= 0 && diffDays <= DAYS_IN_MONTH;
 };
