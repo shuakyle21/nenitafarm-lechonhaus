@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ArrowDownCircle, CheckCircle, User } from 'lucide-react';
+import { ArrowDownCircle, User } from 'lucide-react';
 
 interface CashDropModalProps {
   isOpen: boolean;

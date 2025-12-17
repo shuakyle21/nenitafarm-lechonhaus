@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { useState } from 'react';
 import { supabase } from '../lib/supabase';
-import { Lock, User, LogIn, ChevronRight, MapPin } from 'lucide-react';
+import { Lock, User, ChevronRight, MapPin } from 'lucide-react';
 
 interface LoginModuleProps {
   onLogin: (user: { username: string; role: 'ADMIN' | 'CASHIER' }) => void;

@@ -13,14 +13,11 @@ import {
   PieChart,
   Pie,
   Cell,
-  BarChart,
-  Bar,
 } from 'recharts';
 import {
   Wallet,
   TrendingUp,
   TrendingDown,
-  DollarSign,
   Plus,
   History,
   PieChart as PieChartIcon,
@@ -29,9 +26,6 @@ import {
   ArrowUpCircle,
   ArrowDownCircle,
   Trash2,
-  Printer,
-  Filter,
-  Calendar as CalendarIcon,
   CreditCard,
   Banknote,
 } from 'lucide-react';
@@ -41,8 +35,6 @@ import FinancialReportPDF from './FinancialReportPDF';
 import SalesAdjustmentModal from './SalesAdjustmentModal';
 import ExpenseModal from './ExpenseModal';
 import CashDropModal from './CashDropModal';
-import { jsPDF } from 'jspdf';
-import autoTable from 'jspdf-autotable';
 import { checkDateMatch, getLocalDateString } from '../utils/dateUtils';
 import { exportToCSV } from '../utils/exportUtils';
 
@@ -78,7 +70,6 @@ const FinancialModule: React.FC<FinancialModuleProps> = ({
   // Date Range State
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
-  const [selectedDate, setSelectedDate] = useState(''); // Legacy single date picker support if needed
 
   // Fetch Cash Transactions (Internal)
   useEffect(() => {
