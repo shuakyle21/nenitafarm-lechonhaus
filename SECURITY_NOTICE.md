@@ -6,12 +6,14 @@
 
 **Issue**: The `.env` file with real Supabase credentials was committed to the repository (commit 273b488).
 
-**Impact**: 
+**Impact**:
+
 - Supabase URL and anonymous key are publicly visible in the Git history
 - Anyone with repository access can view these credentials
 - Database could be compromised
 
 **Required Actions**:
+
 1. **IMMEDIATELY** rotate your Supabase credentials:
    - Go to your Supabase project settings
    - Generate new API keys
@@ -27,10 +29,12 @@
 ### 2. ⚠️ Weak Default Passwords
 
 **Issue**: Default user accounts have weak, predictable passwords in `supabase_schema_auth.sql`:
+
 - Admin: `admin123`
 - Cashier: `cashier123`
 
 **Required Actions**:
+
 1. Change these passwords immediately after deployment
 2. Implement password complexity requirements:
    - Minimum 12 characters
@@ -49,6 +53,7 @@
 ## Setup Instructions
 
 1. Copy `.env.example` to `.env`:
+
    ```bash
    cp .env.example .env
    ```
@@ -66,7 +71,6 @@
    - UI-based authorization can be bypassed by making direct API calls
    - Anyone can access admin functions by calling Supabase directly
    - Implement RLS policies to enforce access control at the database level
-   
 2. Implement rate limiting on authentication endpoints
 3. Add session management and timeout
 4. Implement audit logging for sensitive operations
