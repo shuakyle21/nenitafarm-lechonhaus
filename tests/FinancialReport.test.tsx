@@ -29,12 +29,6 @@ describe('Date Utils', () => {
     // Adjusting expectation to be robust or clarifying assumption.
     // If we strictly want to test "it matches the local date string", we can generate the date string dynamically.
 
-    const d = new Date();
-    const year = d.getFullYear();
-    const month = String(d.getMonth() + 1).padStart(2, '0');
-    const day = String(d.getDate()).padStart(2, '0');
-    const targetDate = `${year}-${month}-${day}`; // Today in local time
-
     // Now construct specific UTC times that fall into "Today" or "Tomorrow" locally
     // But to be safe and deterministic without making assumptions about the runner's TZ,
     // we can just test that the function behaves CONSISTENTLY with `new Date()`.
@@ -67,7 +61,6 @@ describe('Date Utils', () => {
   });
 
   it('getLocalDateString returns correct YYYY-MM-DD format', () => {
-    const date = new Date('2025-12-06T10:00:00'); // Local time assumption mostly works or explicit construction
     // Better: construct specific date
     const d = new Date(2025, 11, 6); // Month is 0-indexed: 11 = Dec
     expect(getLocalDateString(d)).toBe('2025-12-06');

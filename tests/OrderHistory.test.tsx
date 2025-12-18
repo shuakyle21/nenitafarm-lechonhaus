@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import OrderHistoryModal from '@/components/OrderHistoryModal';
-import { Order, CartItem } from '@/types';
+import { Order } from '@/types';
 
 // Mock Lucide React icons
 vi.mock('lucide-react', () => ({

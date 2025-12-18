@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import PosModule from '@/components/PosModule';
 import { useMenu } from '@/hooks/useMenu';
 import { useOrders } from '@/hooks/useOrders';
