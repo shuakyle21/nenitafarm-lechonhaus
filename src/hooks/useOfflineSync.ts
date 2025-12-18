@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { Order } from '../types';
-import { supabase } from '../lib/supabase';
+import { MenuItem, Order } from '@/types';
+import { supabase } from '@/lib/supabase';
 
 export const useOfflineSync = () => {
   const [isOnline, setIsOnline] = useState(navigator.onLine);
@@ -72,19 +72,31 @@ export const useOfflineSync = () => {
     const syncedOrders: Order[] = [];
 
     try {
-      // Process sequentially to avoid overwhelming execution
-      for (const order of pendingOrders) {
-        try {
-          await insertOrderToSupabase(order);
-          syncedOrders.push(order);
-        } catch (error) {
-          console.error('Failed to sync order:', order.id, error);
-          // If specific error, maybe keep it. For now, we try all.
-        }
+      // Process in batches to avoid overwhelming the server
+      const BATCH_SIZE = 5;
+
+      for (let i = 0; i < pendingOrders.length; i += BATCH_SIZE) {
+        const batch = pendingOrders.slice(i, i + BATCH_SIZE);
+
+        // Process batch concurrently for better performance
+        const results = await Promise.allSettled(
+          batch.map((order) => insertOrderToSupabase(order))
+        );
+
+        // Collect successfully synced orders
+        results.forEach((result, index) => {
+          if (result.status === 'fulfilled') {
+            syncedOrders.push(batch[index]);
+          } else {
+            console.error('Failed to sync order:', batch[index].id, result.reason);
+          }
+        });
       }
     } finally {
       // Update pending orders - remove the ones that were synced
-      setPendingOrders((prev) => prev.filter((o) => !syncedOrders.find((so) => so.id === o.id)));
+      setPendingOrders((prev) =>
+        prev.filter((o) => !syncedOrders.find((so) => so.id === o.id))
+      );
       isSyncingRef.current = false;
       setIsSyncing(false);
     }
@@ -118,7 +130,7 @@ export const useOfflineSync = () => {
           data: { ...order, id: data.id, orderNumber: data.order_number },
         };
       } catch (error: any) {
-        console.error('Online save failed:', error);
+        console.error('Online save failed, checking error type:', error);
 
         // Only fall back to offline if it's a network error
         const isNetworkError =
@@ -132,8 +144,7 @@ export const useOfflineSync = () => {
           throw error;
         }
 
-        console.warn('Falling back to offline mode due to network error.');
-        // Fallthrough to offline backup
+        console.log('Network error detected, falling back to offline backup...');
       }
     }
 

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { supabase } from '../lib/supabase';
 import { Order, Expense, SalesAdjustment, CashTransaction } from '../types';
 import {
@@ -18,6 +18,7 @@ import {
   Wallet,
   TrendingUp,
   TrendingDown,
+  DollarSign,
   Plus,
   History,
   PieChart as PieChartIcon,
@@ -26,6 +27,7 @@ import {
   ArrowUpCircle,
   ArrowDownCircle,
   Trash2,
+  Calendar as CalendarIcon,
   CreditCard,
   Banknote,
 } from 'lucide-react';
@@ -35,7 +37,7 @@ import FinancialReportPDF from './FinancialReportPDF';
 import SalesAdjustmentModal from './SalesAdjustmentModal';
 import ExpenseModal from './ExpenseModal';
 import CashDropModal from './CashDropModal';
-import { checkDateMatch, getLocalDateString } from '../utils/dateUtils';
+import { checkDateMatch, getLocalDateString, createDateMatcher } from '../utils/dateUtils';
 import { exportToCSV } from '../utils/exportUtils';
 
 interface FinancialModuleProps {
@@ -130,144 +132,177 @@ const FinancialModule: React.FC<FinancialModuleProps> = ({
     setLoading(false);
   };
 
-  const handleDeleteTransaction = async (id: string, type: 'EXPENSE' | 'SALES' | 'CASH_DROP') => {
-    if (!confirm('Are you sure you want to delete this transaction? This action cannot be undone.'))
-      return;
+  const handleDeleteTransaction = useCallback(
+    async (id: string, type: 'EXPENSE' | 'SALES' | 'CASH_DROP') => {
+      if (
+        !confirm(
+          'Are you sure you want to delete this transaction? This action cannot be undone.'
+        )
+      )
+        return;
 
-    let table: string;
-    if (type === 'EXPENSE') {
-      table = 'expenses';
-    } else if (type === 'SALES') {
-      table = 'sales_adjustments';
-    } else {
-      // CASH_DROP
-      table = 'cash_transactions';
-    }
+      let table: string;
+      if (type === 'EXPENSE') {
+        table = 'expenses';
+      } else if (type === 'SALES') {
+        table = 'sales_adjustments';
+      } else {
+        // CASH_DROP
+        table = 'cash_transactions';
+      }
 
-    const { error } = await supabase.from(table).delete().eq('id', id);
+      const { error } = await supabase.from(table).delete().eq('id', id);
 
-    if (error) {
-      console.error('Error deleting transaction:', error);
-      alert('Failed to delete transaction');
-    } else {
-      onRefresh();
-    }
-  };
+      if (error) {
+        console.error('Error deleting transaction:', error);
+        alert('Failed to delete transaction');
+      } else {
+        onRefresh();
+      }
+    },
+    [onRefresh]
+  );
 
-  const handleAddCashDrop = async (amount: number, reason: string, performedBy: string) => {
-    setLoading(true);
-    try {
-      const { error } = await supabase.from('cash_transactions').insert([
-        {
-          amount,
-          type: 'CASH_DROP',
-          description: reason,
-          performed_by: performedBy,
-        },
-      ]);
+  const handleAddCashDrop = useCallback(
+    async (amount: number, reason: string, performedBy: string) => {
+      setLoading(true);
+      try {
+        const { error } = await supabase.from('cash_transactions').insert([
+          {
+            amount,
+            type: 'CASH_DROP',
+            description: reason,
+            performed_by: performedBy,
+          },
+        ]);
 
-      if (error) throw error;
-      onRefresh(); // Refresh parent (though simple refresh might not catch specific query if dependent?)
-      // Wait, onRefresh refreshes orders/expenses.
-      // It does NOT refresh cashTransactions because that is internal useEffect.
-      // But useEffect depends on [onRefresh].
-      // So if onRefresh changes (it is a function, likely stable or new ref on render), it triggers.
-      // Actually, usually onRefresh from App is stable.
-      // We should manually trigger fetchCashTransactions or add dependency.
-      // The useEffect has [onRefresh] so calling onRefresh() in App likely triggers re-render,
-      // but does onRefresh function identity change?
-      // To be safe, we can manually call fetching here, but since useEffect is there, let's trust it or improve.
-      // I'll leave it for now, assuming onRefresh triggers parent update -> prop update -> re-render.
-      setIsCashDropModalOpen(false);
-    } catch (err) {
-      console.error('Error adding cash drop:', err);
-      alert('Failed to add cash drop');
-    } finally {
-      setLoading(false);
-    }
-  };
+        if (error) throw error;
+        onRefresh();
+        setIsCashDropModalOpen(false);
+      } catch (err) {
+        console.error('Error adding cash drop:', err);
+        alert('Failed to add cash drop');
+      } finally {
+        setLoading(false);
+      }
+    },
+    [onRefresh]
+  );
 
-  // --- Analytics Calculations ---
-  const isToday = (dateString: string) => {
-    const date = new Date(dateString);
-    const today = new Date();
-    return (
-      date.getDate() === today.getDate() &&
-      date.getMonth() === today.getMonth() &&
-      date.getFullYear() === today.getFullYear()
+  // --- Analytics Calculations with Memoization ---
+  // Create date matcher once
+  const dateMatcher = useMemo(() => createDateMatcher(), []);
+
+  // Combine all today filters into one memoized object
+  const todayData = useMemo(() => {
+    const todayOrders = orders.filter((o) => dateMatcher.isToday(o.date));
+    const todayExpenses = expenses.filter((e) => dateMatcher.isToday(e.date));
+    const todaySalesAdjustments = salesAdjustments.filter((s) =>
+      dateMatcher.isToday(s.date)
     );
-  };
+    const todayCashTransactions = cashTransactions.filter((ct) =>
+      dateMatcher.isToday(ct.created_at)
+    );
 
-  const todayOrders = React.useMemo(() => orders.filter((o) => isToday(o.date)), [orders]);
-  const todayExpenses = React.useMemo(() => expenses.filter((e) => isToday(e.date)), [expenses]);
-  const todaySalesAdjustments = React.useMemo(
-    () => salesAdjustments.filter((s) => isToday(s.date)),
-    [salesAdjustments]
-  );
-  const todayCashTransactions = React.useMemo(
-    () => cashTransactions.filter((ct) => isToday(ct.created_at)),
-    [cashTransactions]
-  );
+    return {
+      orders: todayOrders,
+      expenses: todayExpenses,
+      salesAdjustments: todaySalesAdjustments,
+      cashTransactions: todayCashTransactions,
+    };
+  }, [orders, expenses, salesAdjustments, cashTransactions, dateMatcher]);
 
   // Format Currency
-  const formatCurrency = (value: number) => {
+  const formatCurrency = useCallback((value: number) => {
     return `₱${value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-  };
+  }, []);
 
-  // 1. Sales Breakdown (Today)
-  const cashSales = todayOrders
-    .filter((o) => !o.paymentMethod || o.paymentMethod === 'CASH')
-    .reduce((sum, order) => sum + order.total, 0);
+  // Sales and financial calculations - Memoized
+  const financialMetrics = useMemo(() => {
+    // Single-pass calculation for sales breakdown
+    const salesBreakdown = todayData.orders.reduce(
+      (acc, order) => {
+        if (!order.paymentMethod || order.paymentMethod === 'CASH') {
+          acc.cash += order.total;
+        } else {
+          acc.digital += order.total;
+        }
+        return acc;
+      },
+      { cash: 0, digital: 0 }
+    );
 
-  const digitalSales = todayOrders
-    .filter((o) => o.paymentMethod && o.paymentMethod !== 'CASH')
-    .reduce((sum, order) => sum + order.total, 0);
+    // Adjustments & Expenses
+    const adjustmentsTotal = todayData.salesAdjustments.reduce(
+      (sum, adj) => sum + adj.amount,
+      0
+    );
+    const expensesTotal = todayData.expenses.reduce((sum, exp) => sum + exp.amount, 0);
 
-  const totalSales = cashSales + digitalSales;
+    // Cash Flow - Single pass for transactions
+    const cashFlow = todayData.cashTransactions.reduce(
+      (acc, t) => {
+        if (t.type === 'OPENING_FUND') {
+          acc.opening += t.amount;
+        } else if (t.type === 'CASH_DROP') {
+          acc.drops += t.amount;
+        }
+        return acc;
+      },
+      { opening: 0, drops: 0 }
+    );
 
-  // 2. Adjustments & Expenses (Today)
-  const adjustmentsTotal = todaySalesAdjustments.reduce((sum, adj) => sum + adj.amount, 0);
-  const expensesTotal = todayExpenses.reduce((sum, exp) => sum + exp.amount, 0);
+    const totalSales = salesBreakdown.cash + salesBreakdown.digital;
+    const totalRevenue = totalSales + adjustmentsTotal;
+    const netCash =
+      cashFlow.opening +
+      salesBreakdown.cash +
+      adjustmentsTotal -
+      expensesTotal -
+      cashFlow.drops;
 
-  // 3. Cash Flow (Today)
-  const openingFund = todayCashTransactions
-    .filter((t) => t.type === 'OPENING_FUND')
-    .reduce((sum, t) => sum + t.amount, 0);
+    return {
+      cashSales: salesBreakdown.cash,
+      digitalSales: salesBreakdown.digital,
+      totalSales,
+      adjustmentsTotal,
+      expensesTotal,
+      openingFund: cashFlow.opening,
+      cashDrops: cashFlow.drops,
+      totalRevenue,
+      netCash,
+    };
+  }, [todayData]);
 
-  const cashDrops = todayCashTransactions
-    .filter((t) => t.type === 'CASH_DROP')
-    .reduce((sum, t) => sum + t.amount, 0);
-
-  const totalRevenue = totalSales + adjustmentsTotal;
-  // const netProfit = totalRevenue - expensesTotal; // Not used in display currently?
-
-  // Net Cash Calculation
-  // Net Cash = Opening + Cash Sales + Adjustments - Expenses - Drops
-  const netCash = openingFund + cashSales + adjustmentsTotal - expensesTotal - cashDrops;
-
-  // Sales Trend Data (Last 7 Days)
-  const salesTrendData = React.useMemo(() => {
+  // Sales Trend Data (Last 7 Days) - Optimized
+  const salesTrendData = useMemo(() => {
     const data = [];
     const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
     for (let i = 6; i >= 0; i--) {
       const d = new Date(today);
       d.setDate(today.getDate() - i);
+      const dateTime = d.getTime();
       const dateStr = d.toLocaleDateString();
 
-      // Filter orders for this day
       const dailySales = orders
-        .filter((o) => new Date(o.date).toLocaleDateString() === dateStr)
-        .reduce((sum, o) => sum + o.total, 0);
+        .filter((o) => {
+          const orderDate = new Date(o.date);
+          orderDate.setHours(0, 0, 0, 0);
+          return orderDate.getTime() === dateTime;
+        })
+        .reduce((sum, o) => sum + (o.total || 0), 0);
 
       data.push({ date: dateStr, sales: dailySales });
     }
     return data;
   }, [orders]);
 
-  // Category Data
-  const getCategoryData = () => {
+  // Category Data - Memoized
+  const categoryData = useMemo(() => {
     const categoryMap: Record<string, number> = {};
-    todayOrders.forEach((order) => {
+    todayData.orders.forEach((order) => {
       order.items.forEach((item) => {
         const cat = item.category || 'Others';
         categoryMap[cat] = (categoryMap[cat] || 0) + item.finalPrice;
@@ -275,9 +310,7 @@ const FinancialModule: React.FC<FinancialModuleProps> = ({
     });
 
     return Object.entries(categoryMap).map(([name, value]) => ({ name, value }));
-  };
-
-  const categoryData = getCategoryData();
+  }, [todayData.orders]);
 
   // Report Logic
   const isSunday = () => new Date().getDay() === 0;
@@ -341,7 +374,8 @@ const FinancialModule: React.FC<FinancialModuleProps> = ({
   };
 
   const generateReport = async (type: 'TODAY' | 'WEEK' | 'MONTH' | 'CUSTOM') => {
-    const { filteredOrders, filteredExpenses, filteredAdjustments, title } = getFilteredData(type);
+    const { filteredOrders, filteredExpenses, filteredAdjustments, title } =
+      getFilteredData(type);
 
     if (type === 'CUSTOM' && !startDate && !endDate) {
       alert('Please select a date range.');
@@ -417,9 +451,17 @@ const FinancialModule: React.FC<FinancialModuleProps> = ({
   // Recent Transactions List (Combined)
   const recentTransactions = React.useMemo(() => {
     const combined = [
-      ...todayExpenses.map((e) => ({ ...e, type: 'EXPENSE' as const, person: e.requested_by })),
-      ...todaySalesAdjustments.map((s) => ({ ...s, type: 'SALES' as const, person: s.added_by })),
-      ...todayCashTransactions
+      ...todayData.expenses.map((e) => ({
+        ...e,
+        type: 'EXPENSE' as const,
+        person: e.requested_by,
+      })),
+      ...todayData.salesAdjustments.map((s) => ({
+        ...s,
+        type: 'SALES' as const,
+        person: s.added_by,
+      })),
+      ...todayData.cashTransactions
         .filter((t) => t.type === 'CASH_DROP')
         .map((t) => ({
           id: t.id,
@@ -431,7 +473,7 @@ const FinancialModule: React.FC<FinancialModuleProps> = ({
         })),
     ];
     return combined.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-  }, [todayExpenses, todaySalesAdjustments, todayCashTransactions]);
+  }, [todayData]);
 
   return (
     <div className="h-full w-full bg-stone-100 overflow-y-auto p-6 font-roboto animate-in fade-in duration-300">
@@ -562,7 +604,7 @@ const FinancialModule: React.FC<FinancialModuleProps> = ({
               <Wallet className="text-green-600" size={24} />
             </div>
             <span
-              className={`text-xs font-bold px-2 py-1 rounded-full ${netCash >= 0 ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}
+              className={`text-xs font-bold px-2 py-1 rounded-full ${financialMetrics.netCash >= 0 ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}
             >
               Actual Cash
             </span>
@@ -570,20 +612,24 @@ const FinancialModule: React.FC<FinancialModuleProps> = ({
           <p className="text-stone-500 text-xs font-bold uppercase tracking-wider">
             Net Cash on Hand
           </p>
-          <h3 className="text-2xl font-black text-stone-900 mt-1">{formatCurrency(netCash)}</h3>
+          <h3 className="text-2xl font-black text-stone-900 mt-1">
+            {formatCurrency(financialMetrics.netCash)}
+          </h3>
           {/* Breakdown */}
           <div className="mt-2 pt-2 border-t border-stone-100 text-[10px] text-stone-400 space-y-1">
             <div className="flex justify-between">
               <span>Opening:</span>
-              <span>{formatCurrency(openingFund)}</span>
+              <span>{formatCurrency(financialMetrics.openingFund)}</span>
             </div>
             <div className="flex justify-between">
               <span>Cash Sales:</span>
-              <span>{formatCurrency(cashSales)}</span>
+              <span>{formatCurrency(financialMetrics.cashSales)}</span>
             </div>
             <div className="flex justify-between text-red-400">
               <span>Drops/Exp:</span>
-              <span>-{formatCurrency(cashDrops + expensesTotal)}</span>
+              <span>
+                -{formatCurrency(financialMetrics.cashDrops + financialMetrics.expensesTotal)}
+              </span>
             </div>
           </div>
         </div>
@@ -595,18 +641,20 @@ const FinancialModule: React.FC<FinancialModuleProps> = ({
               <CreditCard className="text-blue-600" size={24} />
             </div>
           </div>
-          <p className="text-stone-500 text-xs font-bold uppercase tracking-wider">Total Revenue</p>
+          <p className="text-stone-500 text-xs font-bold uppercase tracking-wider">
+            Total Revenue
+          </p>
           <h3 className="text-2xl font-black text-stone-900 mt-1">
-            {formatCurrency(totalRevenue)}
+            {formatCurrency(financialMetrics.totalRevenue)}
           </h3>
           <div className="mt-2 pt-2 border-t border-stone-100 text-[10px] text-stone-400 space-y-1">
             <div className="flex justify-between">
               <span>Digital:</span>
-              <span>{formatCurrency(digitalSales)}</span>
+              <span>{formatCurrency(financialMetrics.digitalSales)}</span>
             </div>
             <div className="flex justify-between">
               <span>Cash:</span>
-              <span>{formatCurrency(cashSales)}</span>
+              <span>{formatCurrency(financialMetrics.cashSales)}</span>
             </div>
           </div>
         </div>
@@ -621,10 +669,12 @@ const FinancialModule: React.FC<FinancialModuleProps> = ({
           <p className="text-stone-500 text-xs font-bold uppercase tracking-wider">
             Total Expenses
           </p>
-          <h3 className="text-2xl font-black text-red-600 mt-1">{formatCurrency(expensesTotal)}</h3>
+          <h3 className="text-2xl font-black text-red-600 mt-1">
+            {formatCurrency(financialMetrics.expensesTotal)}
+          </h3>
         </div>
 
-        {/* Adjustments Card (Optional 4th card) */}
+        {/* Adjustments Card */}
         <div className="bg-white p-6 rounded-2xl shadow-sm border border-stone-200">
           <div className="flex justify-between items-start mb-4">
             <div className="bg-yellow-50 p-3 rounded-xl">
@@ -635,7 +685,7 @@ const FinancialModule: React.FC<FinancialModuleProps> = ({
             Total Adjustments
           </p>
           <h3 className="text-2xl font-black text-stone-800 mt-1">
-            {formatCurrency(adjustmentsTotal)}
+            {formatCurrency(financialMetrics.adjustmentsTotal)}
           </h3>
         </div>
       </div>
@@ -741,14 +791,12 @@ const FinancialModule: React.FC<FinancialModuleProps> = ({
 
         {/* Right Column: Cash Management (1/3 width) */}
         <div className="space-y-6">
-          {/* Transaction Form & Actions */}
           <div className="bg-white p-6 rounded-2xl shadow-sm border border-stone-200">
             <h3 className="font-bold text-stone-800 text-lg mb-4 flex items-center gap-2">
               <Plus className="text-stone-600" size={20} />
               Quick Actions
             </h3>
 
-            {/* Action Buttons */}
             <div className="grid grid-cols-2 gap-3 mb-4">
               <button
                 onClick={() => {
@@ -788,7 +836,6 @@ const FinancialModule: React.FC<FinancialModuleProps> = ({
             </div>
           </div>
 
-          {/* Recent Transactions List */}
           <div className="bg-white rounded-2xl shadow-sm border border-stone-200 flex-1 overflow-hidden flex flex-col h-[500px]">
             <div className="p-6 border-b border-stone-100 flex justify-between items-center bg-white sticky top-0 z-10">
               <h3 className="font-bold text-stone-800 text-lg flex items-center gap-2">
@@ -825,11 +872,12 @@ const FinancialModule: React.FC<FinancialModuleProps> = ({
                           )}
                         </div>
                         <div>
-                          <p className="font-bold text-stone-800 text-sm mb-0.5">{trans.reason}</p>
+                          <p className="font-bold text-stone-800 text-sm mb-0.5">
+                            {trans.reason}
+                          </p>
                           <div className="flex items-center gap-2 text-xs text-stone-500">
                             <span className="font-medium">{trans.person}</span>
                             <span>•</span>
-                            {/* Show type label if cash drop */}
                             {trans.type === 'CASH_DROP' && (
                               <span className="bg-stone-200 px-1 rounded text-[10px] font-bold text-stone-600">
                                 DROP
@@ -891,7 +939,7 @@ const FinancialModule: React.FC<FinancialModuleProps> = ({
       <CashDropModal
         isOpen={isCashDropModalOpen}
         onClose={() => setIsCashDropModalOpen(false)}
-        onSubmit={handleAddCashDrop}
+        onConfirm={handleAddCashDrop}
         isLoading={loading}
       />
     </div>

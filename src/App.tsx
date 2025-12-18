@@ -12,9 +12,9 @@ import FinancePage from '@/pages/FinancePage';
 import BookingPage from '@/pages/BookingPage';
 
 const App: React.FC = () => {
-  // Auth State
-  const [isAuthenticated, setIsAuthenticated] = useState(true);
-  const [userRole, setUserRole] = useState<'ADMIN' | 'CASHIER' | null>('ADMIN');
+  // Auth State - Default to false for security (requires login)
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [userRole, setUserRole] = useState<'ADMIN' | 'CASHIER' | null>(null);
 
   const [activeModule, setActiveModule] = useState<
     'DASHBOARD' | 'POS' | 'STAFF' | 'FINANCE' | 'BOOKING'

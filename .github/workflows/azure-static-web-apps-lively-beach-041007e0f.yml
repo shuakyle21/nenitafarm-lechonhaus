@@ -20,6 +20,9 @@ jobs:
           submodules: true
           lfs: false
 
+      - name: Fix git permissions
+        run: sudo chown -R $USER:$USER .git
+
       - name: Set Environment Variables
         run: |
           if [[ "${{ github.event_name }}" == "pull_request" ]]; then
