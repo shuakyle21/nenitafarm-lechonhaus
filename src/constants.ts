@@ -278,7 +278,7 @@ export const MENU_ITEMS: MenuItem[] = [
     image: 'https://via.placeholder.com/150?text=Coke',
     variants: [
       { name: 'Mismo', price: 25 },
-      { name: '1.25L', price: 65 },
+      { name: '1.25L', price: 85 },
       { name: '1.5L', price: 85 },
       { name: '1.75L', price: 100 },
     ],
