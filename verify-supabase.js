@@ -33,7 +33,7 @@ const supabase = createClient(supabaseUrl, supabaseKey);
 
 async function testConnection() {
   try {
-    const { data, error } = await supabase
+    const { error } = await supabase
       .from('menu_items')
       .select('count', { count: 'exact', head: true });
 

@@ -97,7 +97,6 @@ describe('BookingModule', () => {
     expect(priceInput).toBeInTheDocument();
 
     // Add Item
-    const addButton = screen.getByRole('button', { name: '' }); // The Plus icon button might not have text
     // Finding the button containing the Plus icon
     const plusIcon = screen.getByTestId('icon-plus');
     fireEvent.click(plusIcon.closest('button')!);

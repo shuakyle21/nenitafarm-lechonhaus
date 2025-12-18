@@ -2,14 +2,13 @@ import * as React from 'react';
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { Staff, Attendance } from '../types';
-import { Users, Clock, Plus, Save, X, UserCheck, UserX, FileText } from 'lucide-react';
+import { Plus, Save, X, UserCheck, UserX, FileText } from 'lucide-react';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
 const StaffModule: React.FC = () => {
   const [staffList, setStaffList] = useState<Staff[]>([]);
   const [attendanceList, setAttendanceList] = useState<Attendance[]>([]);
-  const [loading, setLoading] = useState(true);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
 
   // Absent Modal State
@@ -37,8 +36,6 @@ const StaffModule: React.FC = () => {
       if (data) setStaffList(data);
     } catch (error) {
       console.error('Error fetching staff:', error);
-    } finally {
-      setLoading(false);
     }
   };
 
