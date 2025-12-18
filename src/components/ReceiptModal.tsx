@@ -159,8 +159,8 @@ const ReceiptModal: React.FC<ReceiptModalProps> = ({
   const dateTime = formatDate(date);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 print:p-0 print:bg-white print:static print:h-auto print:block">
-      <div className="h-full flex flex-col items-center justify-center py-10 print:h-auto print:max-h-none print:block print:py-0">
+    <div className="fixed inset-0 z-50 overflow-y-auto bg-black/80 backdrop-blur-sm p-4 print:p-0 print:bg-white print:static print:h-auto print:block">
+      <div className="min-h-full flex flex-col items-center justify-center py-10 print:h-auto print:max-h-none print:block print:py-0">
         {/* Receipt Paper */}
         <div
           ref={receiptRef}

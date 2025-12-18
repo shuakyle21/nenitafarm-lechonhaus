@@ -32,12 +32,14 @@ const LoginModule: React.FC<LoginModuleProps> = ({ onLogin }) => {
       } else {
         setError('Invalid username or password');
       }
+
     } catch (err) {
       console.error('Login error:', err);
       setError('An error occurred during login');
     } finally {
       setLoading(false);
     }
+    
   };
 
   return (
