@@ -144,3 +144,47 @@ export interface SalesAdjustment {
   added_by: string;
   date: string;
 }
+
+export type InventoryTransactionType = 'PURCHASE' | 'USAGE' | 'SPOILAGE' | 'ADJUSTMENT';
+
+export interface InventoryItem {
+  id: string;
+  name: string;
+  unit: string;
+  current_stock: number;
+  reorder_level: number;
+  category?: string;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface InventoryTransaction {
+  id: string;
+  item_id: string;
+  transaction_type: InventoryTransactionType;
+  quantity: number;
+  unit_cost?: number;
+  supplier_id?: string;
+  performed_by?: string;
+  notes?: string;
+  transaction_date: string;
+  created_at?: string;
+}
+
+export interface Recipe {
+  id: string;
+  menu_item_id: string;
+  inventory_item_id: string;
+  quantity_required: number;
+  created_at?: string;
+}
+
+export interface Supplier {
+  id: string;
+  name: string;
+  contact_person?: string;
+  phone?: string;
+  email?: string;
+  address?: string;
+  created_at?: string;
+}
