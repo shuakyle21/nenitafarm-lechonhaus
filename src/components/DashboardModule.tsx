@@ -9,6 +9,8 @@ import {
   Clock,
   ArrowUpRight,
   List,
+  AlertTriangle,
+  Package,
 } from 'lucide-react';
 import {
   LineChart,
@@ -19,7 +21,7 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from 'recharts';
-import { MenuItem, Order, SalesAdjustment, Expense } from '../types';
+import { MenuItem, Order, SalesAdjustment, Expense, InventoryItem } from '../types';
 import OrderHistoryModal from './OrderHistoryModal';
 import { createDateMatcher } from '../utils/dateUtils';
 
@@ -28,6 +30,7 @@ interface DashboardModuleProps {
   orders?: Order[];
   salesAdjustments?: SalesAdjustment[];
   expenses?: Expense[];
+  inventoryItems?: InventoryItem[];
   onDeleteOrder?: (id: string) => Promise<void>;
 }
 
@@ -36,6 +39,7 @@ const DashboardModule: React.FC<DashboardModuleProps> = ({
   orders = [],
   salesAdjustments = [],
   expenses = [],
+  inventoryItems = [],
   onDeleteOrder,
 }) => {
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
@@ -120,6 +124,10 @@ const DashboardModule: React.FC<DashboardModuleProps> = ({
       avgOrder,
     };
   }, [orders, salesAdjustments, expenses, dateMatcher]);
+  
+  const lowStockItems = useMemo(() => {
+    return inventoryItems.filter(item => item.current_stock <= item.reorder_level);
+  }, [inventoryItems]);
 
   const stats = useMemo(
     () => [
@@ -304,6 +312,34 @@ const DashboardModule: React.FC<DashboardModuleProps> = ({
           </ResponsiveContainer>
         </div>
       </div>
+
+      {lowStockItems.length > 0 && (
+        <div className="bg-orange-50 border border-orange-200 p-6 rounded-2xl mb-8 flex items-center justify-between animate-bounce-subtle">
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 bg-orange-100 text-orange-600 rounded-xl flex items-center justify-center">
+              <AlertTriangle size={24} />
+            </div>
+            <div>
+              <h3 className="font-bold text-orange-900">Inventory Alert</h3>
+              <p className="text-sm text-orange-700">
+                {lowStockItems.length} items are running low. Please check the stock list.
+              </p>
+            </div>
+          </div>
+          <div className="flex -space-x-2">
+            {lowStockItems.slice(0, 3).map((item, i) => (
+              <div key={i} className="w-8 h-8 rounded-full bg-white border-2 border-orange-50 flex items-center justify-center text-[10px] font-bold text-orange-600 shadow-sm uppercase">
+                {item.name.substring(0, 2)}
+              </div>
+            ))}
+            {lowStockItems.length > 3 && (
+              <div className="w-8 h-8 rounded-full bg-stone-100 flex items-center justify-center text-[10px] font-bold text-stone-500 border-2 border-orange-50">
+                +{lowStockItems.length - 3}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Popular Items */}
