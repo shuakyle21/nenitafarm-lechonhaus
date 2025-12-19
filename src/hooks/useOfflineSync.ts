@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { MenuItem, Order } from '@/types';
 import { supabase } from '@/lib/supabase';
+import { inventoryService } from '@/services/inventoryService';
 
 export const useOfflineSync = () => {
   const [isOnline, setIsOnline] = useState(navigator.onLine);
@@ -59,6 +60,11 @@ export const useOfflineSync = () => {
     const { error: itemsError } = await supabase.from('order_items').insert(orderItems);
 
     if (itemsError) throw itemsError;
+
+    // 3. Deduct stock from inventory
+    await inventoryService.deductStockFromOrder(
+      order.items.map((item) => ({ id: item.id, quantity: item.quantity }))
+    );
 
     return orderData;
   };
