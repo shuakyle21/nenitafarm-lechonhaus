@@ -13,8 +13,8 @@ import {
 } from 'lucide-react';
 
 interface MainSidebarProps {
-  activeModule: 'DASHBOARD' | 'POS' | 'STAFF' | 'FINANCE' | 'BOOKING';
-  onModuleChange: (module: 'DASHBOARD' | 'POS' | 'STAFF' | 'FINANCE' | 'BOOKING') => void;
+  activeModule: 'DASHBOARD' | 'POS' | 'STAFF' | 'FINANCE' | 'BOOKING' | 'INVENTORY';
+  onModuleChange: (module: 'DASHBOARD' | 'POS' | 'STAFF' | 'FINANCE' | 'BOOKING' | 'INVENTORY') => void;
   userRole: 'ADMIN' | 'CASHIER' | null;
   onLogout: () => void;
   isOnline?: boolean;
@@ -144,11 +144,22 @@ const MainSidebar: React.FC<MainSidebarProps> = ({
         )}
 
         <button
-          className="w-full aspect-square rounded-2xl flex flex-col items-center justify-center gap-1.5 transition-all opacity-30 cursor-not-allowed grayscale"
-          title="Inventory (Coming Soon)"
+          onClick={() => onModuleChange('INVENTORY')}
+          className={`w-full aspect-square rounded-2xl flex flex-col items-center justify-center gap-1.5 transition-all duration-300 group relative overflow-hidden ${
+            activeModule === 'INVENTORY'
+              ? 'bg-gradient-to-br from-indigo-600 to-indigo-700 text-white shadow-lg shadow-indigo-900/40 scale-105 ring-2 ring-indigo-500/50'
+              : 'hover:bg-stone-900 hover:text-stone-200 hover:scale-105'
+          }`}
+          title="Inventory Management"
         >
-          <Package size={22} />
-          <span className="text-[10px] font-bold tracking-wide">Items</span>
+          <Package
+            size={22}
+            className={`transition-transform duration-300 ${activeModule === 'INVENTORY' ? 'scale-110' : 'group-hover:scale-110'}`}
+          />
+          <span className="text-[10px] font-bold tracking-wide">Stock</span>
+          {activeModule === 'INVENTORY' && (
+            <div className="absolute inset-0 bg-white/10 animate-pulse"></div>
+          )}
         </button>
       </div>
 
