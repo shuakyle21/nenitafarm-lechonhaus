@@ -4,10 +4,12 @@ on:
   push:
     branches:
       - main
+      - test-staging
   pull_request:
     types: [opened, synchronize, reopened, closed]
     branches:
       - main
+      - test-staging
 
 jobs:
   build_and_deploy_job:
@@ -25,12 +27,12 @@ jobs:
 
       - name: Set Environment Variables
         run: |
-          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+          if [[ "${{ github.ref_name }}" == "test-staging" ]] || [[ "${{ github.event_name }}" == "pull_request" ]]; then
             echo "Setting Staging Environment Variables"
             echo "VITE_SUPABASE_URL=${{ secrets.STAGING_VITE_SUPABASE_URL }}" >> $GITHUB_ENV
             echo "VITE_SUPABASE_ANON_KEY=${{ secrets.STAGING_VITE_SUPABASE_ANON_KEY }}" >> $GITHUB_ENV
           else
-            echo "Setting Production Environment Variables"
+            echo "Setting Production Environment Variables (on main branch)"
             echo "VITE_SUPABASE_URL=${{ secrets.VITE_SUPABASE_URL }}" >> $GITHUB_ENV
             echo "VITE_SUPABASE_ANON_KEY=${{ secrets.VITE_SUPABASE_ANON_KEY }}" >> $GITHUB_ENV
           fi
