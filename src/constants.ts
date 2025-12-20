@@ -299,4 +299,48 @@ export const MENU_ITEMS: MenuItem[] = [
     category: "Today's Menu",
     image: 'https://via.placeholder.com/150?text=Paksiw',
   },
+  {
+    id: 'tm3',
+    name: 'Sari',
+    price: 80,
+    category: "Today's Menu",
+    image: 'https://via.placeholder.com/150?text=Sari',
+    variants: [
+      { name: 'Large', price: 80 },
+      { name: 'Medium', price: 70 },
+    ],
+  },
+  {
+    id: 'tm4',
+    name: 'Humba',
+    price: 100,
+    category: "Today's Menu",
+    image: 'https://via.placeholder.com/150?text=Humba',
+    variants: [
+      { name: 'Large', price: 100 },
+      { name: 'Medium', price: 80 },
+    ],
+  },
+  {
+    id: 'tm5',
+    name: 'Dinuguan',
+    price: 80,
+    category: "Today's Menu",
+    image: 'https://via.placeholder.com/150?text=Dinuguan',
+    variants: [
+      { name: 'Large', price: 80 },
+      { name: 'Medium', price: 60 },
+    ],
+  },
+  {
+    id: 'tm6',
+    name: 'Ginataang Tilapia',
+    price: 50,
+    category: "Today's Menu",
+    image: 'https://via.placeholder.com/150?text=Tilapia',
+    variants: [
+      { name: 'Large', price: 50 },
+      { name: 'Medium', price: 50 },
+    ],
+  },
 ];
