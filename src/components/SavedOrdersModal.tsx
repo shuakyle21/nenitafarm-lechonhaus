@@ -72,6 +72,18 @@ const SavedOrdersModal: React.FC<SavedOrdersModalProps> = ({
                           {order.items.reduce((acc, item) => acc + item.quantity, 0)} items
                         </span>
                       </div>
+                      <div className="flex flex-wrap gap-2 mt-2">
+                        {order.tableNumber && (
+                          <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wider bg-red-100 text-red-800 border border-red-200">
+                            Table {order.tableNumber}
+                          </span>
+                        )}
+                        {order.serverName && (
+                          <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wider bg-stone-100 text-stone-600 border border-stone-200">
+                            Server: {order.serverName}
+                          </span>
+                        )}
+                      </div>
                     </div>
                     <div className="text-right">
                       <div className="font-bold text-red-700 text-lg">

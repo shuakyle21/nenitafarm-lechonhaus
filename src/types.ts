@@ -86,6 +86,9 @@ export interface SavedOrder {
   items: CartItem[];
   discount: DiscountDetails | null;
   orderType: OrderType;
+  tableNumber?: string;
+  serverName?: string;
+  server?: Staff | null;
   deliveryDetails?: {
     address: string;
     time: string;

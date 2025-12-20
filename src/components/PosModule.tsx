@@ -325,6 +325,9 @@ const PosModule: React.FC<PosModuleProps> = ({
       items: [...cart],
       discount: discountDetails,
       orderType: orderType,
+      tableNumber: tableNumber,
+      serverName: selectedServer?.name,
+      server: selectedServer,
       deliveryDetails: orderType === 'DELIVERY' ? { ...deliveryDetails } : undefined,
     };
 
@@ -343,6 +346,17 @@ const PosModule: React.FC<PosModuleProps> = ({
     setCart(order.items);
     setDiscountDetails(order.discount);
     setOrderType(order.orderType);
+    if (order.tableNumber) {
+      setTableNumber(order.tableNumber);
+    }
+    if (order.server) {
+      setSelectedServer(order.server);
+    } else if (order.serverName) {
+      // Fallback: try to find server by name in staffList if full object is missing
+      const found = staffList.find((s) => s.name === order.serverName);
+      if (found) setSelectedServer(found);
+    }
+
     if (order.deliveryDetails) {
       setDeliveryDetails(order.deliveryDetails);
     }
@@ -615,6 +629,7 @@ const PosModule: React.FC<PosModuleProps> = ({
         orderCount={orderCount}
         onSaveOrder={handleOrderConfirmed}
         tableNumber={tableNumber}
+        server={selectedServer}
       />
 
       <MenuManagementModal

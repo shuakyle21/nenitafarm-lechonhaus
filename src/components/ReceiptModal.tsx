@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { useRef, useState, useEffect } from 'react';
-import { CartItem, DiscountDetails, Order } from '../types';
+import { CartItem, DiscountDetails, Order, Staff } from '../types';
 import { Printer, X, Download, Loader2, Banknote, CheckCircle } from 'lucide-react';
 import { toPng } from 'html-to-image';
 
@@ -14,6 +14,7 @@ interface ReceiptModalProps {
   onSaveOrder?: (order: Order) => void;
   existingOrder?: Order | null;
   tableNumber?: string;
+  server?: Staff | null;
 }
 
 const ReceiptModal: React.FC<ReceiptModalProps> = ({
@@ -26,6 +27,7 @@ const ReceiptModal: React.FC<ReceiptModalProps> = ({
   onSaveOrder = () => {},
   existingOrder,
   tableNumber,
+  server,
 }) => {
   const receiptRef = useRef<HTMLDivElement>(null);
   const [isDownloading, setIsDownloading] = useState(false);
@@ -213,7 +215,7 @@ const ReceiptModal: React.FC<ReceiptModalProps> = ({
               <div className="text-right space-y-1">
                 <p>{dateTime.date}</p>
                 <p>{dateTime.time}</p>
-                <p>Server: Maria C.</p>
+                <p>Server: {server?.name || 'N/A'}</p>
               </div>
             </div>
 
