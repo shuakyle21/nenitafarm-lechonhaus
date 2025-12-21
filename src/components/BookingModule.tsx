@@ -23,6 +23,7 @@ import {
 } from 'lucide-react';
 import { pdf } from '@react-pdf/renderer';
 import BookingReceiptPDF from './BookingReceiptPDF';
+import BookingItemSelector from './BookingItemSelector';
 
 interface BookingModuleProps {
   items: MenuItem[];
@@ -62,9 +63,7 @@ const BookingModule: React.FC<BookingModuleProps> = ({ items }) => {
   });
 
   // Item Selection State
-  const [selectedItemId, setSelectedItemId] = useState<string>('');
-  const [selectedItemQty, setSelectedItemQty] = useState<number>(1);
-  const [selectedItemPrice, setSelectedItemPrice] = useState<number>(0);
+  const [isItemSelectorOpen, setIsItemSelectorOpen] = useState(false);
 
   const selectedDate = date instanceof Date ? date : new Date();
 
@@ -166,8 +165,7 @@ const BookingModule: React.FC<BookingModuleProps> = ({ items }) => {
       payment_method: 'CASH',
       total_amount: 0,
     });
-    setSelectedItemId('');
-    setSelectedItemQty(1);
+    setIsItemSelectorOpen(false);
   };
 
   const handlePrintReceipt = async (booking: Booking) => {
@@ -182,28 +180,12 @@ const BookingModule: React.FC<BookingModuleProps> = ({ items }) => {
   };
 
   // Item Management
-  const handleAddItem = () => {
-    if (!selectedItemId) return;
-    const menuItem = items.find((i) => i.id === selectedItemId);
-    if (!menuItem) return;
-
-    const newItem: CartItem = {
-      ...menuItem,
-      price: selectedItemPrice, // Use custom price
-      cartId: Math.random().toString(36).substr(2, 9),
-      quantity: selectedItemQty,
-      finalPrice: selectedItemPrice * selectedItemQty,
-    };
-
+  const handleAddItemsFromSelector = (selectedCartItems: CartItem[]) => {
     setFormData((prev) => {
-      const newItems = [...(prev.items || []), newItem];
+      const newItems = [...(prev.items || []), ...selectedCartItems];
       const newTotal = newItems.reduce((sum, item) => sum + item.finalPrice, 0);
       return { ...prev, items: newItems, total_amount: newTotal };
     });
-
-    setSelectedItemId('');
-    setSelectedItemQty(1);
-    setSelectedItemPrice(0);
   };
 
   const handleRemoveItem = (cartId: string) => {
@@ -552,54 +534,14 @@ const BookingModule: React.FC<BookingModuleProps> = ({ items }) => {
                 </h4>
 
                 {/* Item Selector */}
-                <div className="flex gap-2 items-end">
-                  <div className="flex-1">
-                    <label className="text-xs font-bold text-stone-500 mb-1 block">Item</label>
-                    <select
-                      value={selectedItemId}
-                      onChange={(e) => {
-                        const id = e.target.value;
-                        setSelectedItemId(id);
-                        const item = items.find((i) => i.id === id);
-                        if (item) setSelectedItemPrice(item.price);
-                      }}
-                      className="w-full p-2 text-sm border border-orange-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
-                      data-testid="item-select"
-                    >
-                      <option value="">Select Item...</option>
-                      {items.map((item) => (
-                        <option key={item.id} value={item.id}>
-                          {item.name}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  <div className="w-24">
-                    <label className="text-xs font-bold text-stone-500 mb-1 block">Price</label>
-                    <input
-                      type="number"
-                      min="0"
-                      value={selectedItemPrice}
-                      onChange={(e) => setSelectedItemPrice(Number(e.target.value))}
-                      className="w-full p-2 text-sm border border-orange-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
-                    />
-                  </div>
-                  <div className="w-20">
-                    <label className="text-xs font-bold text-stone-500 mb-1 block">Qty</label>
-                    <input
-                      type="number"
-                      min="1"
-                      value={selectedItemQty}
-                      onChange={(e) => setSelectedItemQty(Number(e.target.value))}
-                      className="w-full p-2 text-sm border border-orange-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
-                    />
-                  </div>
+                <div className="flex justify-center">
                   <button
                     type="button"
-                    onClick={handleAddItem}
-                    className="bg-orange-600 text-white p-2 rounded-lg hover:bg-orange-700 transition-colors mb-[1px]"
+                    onClick={() => setIsItemSelectorOpen(true)}
+                    className="w-full py-4 border-2 border-dashed border-orange-300 rounded-2xl text-orange-600 font-black uppercase tracking-widest hover:bg-orange-100/50 hover:border-orange-400 transition-all flex items-center justify-center gap-2 group"
                   >
-                    <Plus size={20} />
+                    <Plus size={20} className="group-hover:rotate-90 transition-transform" />
+                    Add Items to Order
                   </button>
                 </div>
 
@@ -713,6 +655,13 @@ const BookingModule: React.FC<BookingModuleProps> = ({ items }) => {
           </form>
         </div>
       </div>
+
+      <BookingItemSelector
+        isOpen={isItemSelectorOpen}
+        onClose={() => setIsItemSelectorOpen(false)}
+        items={items}
+        onAddSelectedItems={handleAddItemsFromSelector}
+      />
     </div>
   );
 };
