@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { useState } from 'react';
+import { useState, useCallback, useMemo, useEffect } from 'react';
 import { CATEGORIES } from '../constants';
 import {
   Category,
@@ -121,7 +121,7 @@ const PosModule: React.FC<PosModuleProps> = ({
   const [openingFundLoading, setOpeningFundLoading] = useState(false);
 
   // Check Opening Fund Status
-  React.useEffect(() => {
+  useEffect(() => {
     const checkOpeningFund = async () => {
       const today = new Date();
       today.setHours(0, 0, 0, 0);
@@ -141,7 +141,7 @@ const PosModule: React.FC<PosModuleProps> = ({
     checkOpeningFund();
   }, []);
 
-  const handleOpeningFundSubmit = async (amount: number, performedBy: string) => {
+  const handleOpeningFundSubmit = useCallback(async (amount: number, performedBy: string) => {
     setOpeningFundLoading(true);
     try {
       const { error } = await supabase.from('cash_transactions').insert([
@@ -161,42 +161,61 @@ const PosModule: React.FC<PosModuleProps> = ({
     } finally {
       setOpeningFundLoading(false);
     }
-  };
+  }, []);
 
   // Variant State
   const [selectedVariantItem, setSelectedVariantItem] = useState<MenuItem | null>(null);
 
-  // --- Persistence Effects ---
-  React.useEffect(() => {
-    localStorage.setItem('pos_cart', JSON.stringify(cart));
+  // --- Debounced Persistence Effects for Performance ---
+  // Debounce localStorage writes to avoid blocking main thread on every state change
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      localStorage.setItem('pos_cart', JSON.stringify(cart));
+    }, 300);
+    return () => clearTimeout(timeoutId);
   }, [cart]);
 
-  React.useEffect(() => {
-    localStorage.setItem('pos_saved_orders', JSON.stringify(savedOrders));
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      localStorage.setItem('pos_saved_orders', JSON.stringify(savedOrders));
+    }, 300);
+    return () => clearTimeout(timeoutId);
   }, [savedOrders]);
 
-  React.useEffect(() => {
-    localStorage.setItem('pos_order_type', JSON.stringify(orderType));
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      localStorage.setItem('pos_order_type', JSON.stringify(orderType));
+    }, 300);
+    return () => clearTimeout(timeoutId);
   }, [orderType]);
 
-  React.useEffect(() => {
-    localStorage.setItem('pos_table_number', tableNumber);
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      localStorage.setItem('pos_table_number', tableNumber);
+    }, 300);
+    return () => clearTimeout(timeoutId);
   }, [tableNumber]);
 
-  React.useEffect(() => {
-    localStorage.setItem('pos_delivery_details', JSON.stringify(deliveryDetails));
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      localStorage.setItem('pos_delivery_details', JSON.stringify(deliveryDetails));
+    }, 300);
+    return () => clearTimeout(timeoutId);
   }, [deliveryDetails]);
 
-  React.useEffect(() => {
-    if (selectedServer) {
-      localStorage.setItem('pos_selected_server', JSON.stringify(selectedServer));
-    } else {
-      localStorage.removeItem('pos_selected_server');
-    }
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      if (selectedServer) {
+        localStorage.setItem('pos_selected_server', JSON.stringify(selectedServer));
+      } else {
+        localStorage.removeItem('pos_selected_server');
+      }
+    }, 300);
+    return () => clearTimeout(timeoutId);
   }, [selectedServer]);
 
-  // --- Cart Logic ---
-  const addToCart = (item: MenuItem) => {
+  // --- Cart Logic (Wrapped with useCallback for performance) ---
+  const addToCart = useCallback((item: MenuItem) => {
     if (item.isWeighted) {
       setSelectedLechonItem(item);
       setIsLechonModalOpen(true);
@@ -227,9 +246,9 @@ const PosModule: React.FC<PosModuleProps> = ({
         },
       ];
     });
-  };
+  }, []);
 
-  const addVariantItemToCart = (variant: Variant) => {
+  const addVariantItemToCart = useCallback((variant: Variant) => {
     if (!selectedVariantItem) return;
 
     setCart((prev) => {
@@ -258,9 +277,9 @@ const PosModule: React.FC<PosModuleProps> = ({
       ];
     });
     setSelectedVariantItem(null);
-  };
+  }, [selectedVariantItem]);
 
-  const addWeightedItemToCart = (weight: number, price: number) => {
+  const addWeightedItemToCart = useCallback((weight: number, price: number) => {
     if (!selectedLechonItem) return;
 
     setCart((prev) => [
@@ -273,13 +292,13 @@ const PosModule: React.FC<PosModuleProps> = ({
         finalPrice: price,
       },
     ]);
-  };
+  }, [selectedLechonItem]);
 
-  const removeFromCart = (cartId: string) => {
+  const removeFromCart = useCallback((cartId: string) => {
     setCart((prev) => prev.filter((i) => i.cartId !== cartId));
-  };
+  }, []);
 
-  const updateQuantity = (cartId: string, delta: number) => {
+  const updateQuantity = useCallback((cartId: string, delta: number) => {
     setCart((prev) =>
       prev.map((item) => {
         if (item.cartId !== cartId) return item;
@@ -291,15 +310,15 @@ const PosModule: React.FC<PosModuleProps> = ({
         };
       })
     );
-  };
+  }, []);
 
-  const clearCart = () => {
+  const clearCart = useCallback(() => {
     setCart([]);
     setDiscountDetails(null);
     setDeliveryDetails({ address: '', time: '', contact: '' });
-  };
+  }, []);
 
-  const handleOrderConfirmed = (order: Order) => {
+  const handleOrderConfirmed = useCallback((order: Order) => {
     // Inject orderType and delivery details into the order object before saving
     const finalOrder = {
       ...order,
@@ -312,10 +331,10 @@ const PosModule: React.FC<PosModuleProps> = ({
     onSaveOrder(finalOrder);
     clearCart();
     setIsReceiptModalOpen(false);
-  };
+  }, [orderType, deliveryDetails, tableNumber, onSaveOrder, clearCart]);
 
-  // --- Saved Orders Logic ---
-  const handleSaveForLater = () => {
+  // --- Saved Orders Logic (Wrapped with useCallback for performance) ---
+  const handleSaveForLater = useCallback(() => {
     if (cart.length === 0) return;
 
     const newSavedOrder: SavedOrder = {
@@ -333,9 +352,9 @@ const PosModule: React.FC<PosModuleProps> = ({
 
     setSavedOrders((prev) => [newSavedOrder, ...prev]);
     clearCart();
-  };
+  }, [cart, orderCount, discountDetails, orderType, tableNumber, selectedServer, deliveryDetails, clearCart]);
 
-  const handleRestoreSavedOrder = (order: SavedOrder) => {
+  const handleRestoreSavedOrder = useCallback((order: SavedOrder) => {
     // Check if current cart has items
     if (cart.length > 0) {
       if (!window.confirm('Current cart is not empty. Overwrite with saved order?')) {
@@ -364,13 +383,13 @@ const PosModule: React.FC<PosModuleProps> = ({
     // Remove from saved list after restoring
     setSavedOrders((prev) => prev.filter((o) => o.id !== order.id));
     setIsSavedOrdersModalOpen(false);
-  };
+  }, [cart, staffList]);
 
-  const handleDeleteSavedOrder = (id: string) => {
+  const handleDeleteSavedOrder = useCallback((id: string) => {
     if (window.confirm('Are you sure you want to delete this saved order?')) {
       setSavedOrders((prev) => prev.filter((o) => o.id !== id));
     }
-  };
+  }, []);
 
   // --- Totals Calculation for passing to Receipt ---
   const subtotal = cart.reduce((acc, item) => acc + item.finalPrice, 0);
@@ -385,16 +404,18 @@ const PosModule: React.FC<PosModuleProps> = ({
 
   const total = subtotal - discountAmount;
 
-  // --- Filtering ---
-  const filteredItems = items.filter((item) => {
-    if (searchQuery) {
-      return item.name.toLowerCase().includes(searchQuery.toLowerCase());
-    }
-    return item.category === activeCategory;
-  });
+  // --- Filtering (Memoized for performance) ---
+  const filteredItems = useMemo(() => {
+    return items.filter((item) => {
+      if (searchQuery) {
+        return item.name.toLowerCase().includes(searchQuery.toLowerCase());
+      }
+      return item.category === activeCategory;
+    });
+  }, [items, searchQuery, activeCategory]);
 
   // Auto-switch category on search
-  React.useEffect(() => {
+  useEffect(() => {
     if (searchQuery && filteredItems.length > 0) {
       const topCategory = filteredItems[0].category;
       if (activeCategory !== topCategory) {
