@@ -87,7 +87,7 @@ const FinancialModule: React.FC<FinancialModuleProps> = ({
     fetchCashTransactions();
   }, [onRefresh]); // Refetch when parent refreshes
 
-  const handleTransaction = async (e: React.FormEvent) => {
+  const handleTransaction = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
     if (!amount || !reason || !person) return;
 
@@ -130,7 +130,7 @@ const FinancialModule: React.FC<FinancialModuleProps> = ({
     setPerson('');
     onRefresh();
     setLoading(false);
-  };
+  }, [amount, reason, person, transactionType, onRefresh]);
 
   const handleDeleteTransaction = useCallback(
     async (id: string, type: 'EXPENSE' | 'SALES' | 'CASH_DROP') => {
@@ -946,4 +946,4 @@ const FinancialModule: React.FC<FinancialModuleProps> = ({
   );
 };
 
-export default FinancialModule;
+export default React.memo(FinancialModule);

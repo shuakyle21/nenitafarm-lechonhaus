@@ -376,4 +376,4 @@ const SidebarCart: React.FC<SidebarCartProps> = ({
   );
 };
 
-export default SidebarCart;
+export default React.memo(SidebarCart);

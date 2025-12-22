@@ -479,4 +479,4 @@ const DashboardModule: React.FC<DashboardModuleProps> = ({
   );
 };
 
-export default DashboardModule;
+export default React.memo(DashboardModule);
