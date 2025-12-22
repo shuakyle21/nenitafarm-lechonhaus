@@ -62,13 +62,7 @@ const PosModule: React.FC<PosModuleProps> = ({
     getItem('pos_delivery_details', { address: '', time: '', contact: '' })
   );
 
-  const [tableNumber, setTableNumber] = useState(() => {
-    try {
-      return localStorage.getItem('pos_table_number') || '';
-    } catch {
-      return '';
-    }
-  });
+  const [tableNumber, setTableNumber] = useState(() => getItem('pos_table_number', ''));
 
   // Modals & Discount State
   const [isLechonModalOpen, setIsLechonModalOpen] = useState(false);
@@ -78,23 +72,14 @@ const PosModule: React.FC<PosModuleProps> = ({
   const [isReceiptModalOpen, setIsReceiptModalOpen] = useState(false);
   const [isMenuManagerOpen, setIsMenuManagerOpen] = useState(false);
 
-  // Saved Orders State
+  // Saved Orders State - requires custom Date revival logic
   const [savedOrders, setSavedOrders] = useState<SavedOrder[]>(() => {
-    try {
-      const stored = localStorage.getItem('pos_saved_orders');
-      if (stored) {
-        const parsed = JSON.parse(stored);
-        // Revive Date objects
-        return parsed.map((o: any) => ({
-          ...o,
-          timestamp: new Date(o.timestamp),
-        }));
-      }
-      return [];
-    } catch (e) {
-      console.error('Failed to load saved orders', e);
-      return [];
-    }
+    const stored = getItem<SavedOrder[]>('pos_saved_orders', []);
+    // Revive Date objects that were serialized to strings
+    return stored.map((o: any) => ({
+      ...o,
+      timestamp: new Date(o.timestamp),
+    }));
   });
   const [isSavedOrdersModalOpen, setIsSavedOrdersModalOpen] = useState(false);
 
