@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { CATEGORIES } from '../constants';
 import {
   Category,
@@ -22,6 +22,7 @@ import { VariantSelector } from './VariantSelector';
 import { Search, Settings } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import OpeningFundModal from './OpeningFundModal';
+import { debouncedSetItem, getItem, removeItem } from '../utils/storageUtils';
 
 interface PosModuleProps {
   items: MenuItem[];
@@ -44,48 +45,29 @@ const PosModule: React.FC<PosModuleProps> = ({
 }) => {
   const [activeCategory, setActiveCategory] = useState<Category>('Lechon & Grills');
 
-  // Persistence: Load initial state from localStorage
-  const [cart, setCart] = useState<CartItem[]>(() => {
-    try {
-      const stored = localStorage.getItem('pos_cart');
-      return stored ? JSON.parse(stored) : [];
-    } catch (e) {
-      console.error('Failed to load cart', e);
-      return [];
-    }
-  });
+  // Persistence: Load initial state from localStorage using storage utility
+  const [cart, setCart] = useState<CartItem[]>(() => getItem('pos_cart', []));
 
   const [searchQuery, setSearchQuery] = useState('');
 
-  const [selectedServer, setSelectedServer] = useState<Staff | null>(() => {
-    try {
-      const stored = localStorage.getItem('pos_selected_server');
-      return stored ? JSON.parse(stored) : null;
-    } catch {
-      return null;
-    }
-  });
+  const [selectedServer, setSelectedServer] = useState<Staff | null>(() =>
+    getItem('pos_selected_server', null)
+  );
 
-  const [orderType, setOrderType] = useState<OrderType>(() => {
-    try {
-      const stored = localStorage.getItem('pos_order_type');
-      return stored ? JSON.parse(stored) : 'DINE_IN';
-    } catch {
-      return 'DINE_IN';
-    }
-  });
+  const [orderType, setOrderType] = useState<OrderType>(() =>
+    getItem('pos_order_type', 'DINE_IN')
+  );
 
-  const [deliveryDetails, setDeliveryDetails] = useState(() => {
-    try {
-      const stored = localStorage.getItem('pos_delivery_details');
-      return stored ? JSON.parse(stored) : { address: '', time: '', contact: '' };
-    } catch {
-      return { address: '', time: '', contact: '' };
-    }
-  });
+  const [deliveryDetails, setDeliveryDetails] = useState(() =>
+    getItem('pos_delivery_details', { address: '', time: '', contact: '' })
+  );
 
   const [tableNumber, setTableNumber] = useState(() => {
-    return localStorage.getItem('pos_table_number') || '';
+    try {
+      return localStorage.getItem('pos_table_number') || '';
+    } catch {
+      return '';
+    }
   });
 
   // Modals & Discount State
@@ -166,32 +148,33 @@ const PosModule: React.FC<PosModuleProps> = ({
   // Variant State
   const [selectedVariantItem, setSelectedVariantItem] = useState<MenuItem | null>(null);
 
-  // --- Persistence Effects ---
-  React.useEffect(() => {
-    localStorage.setItem('pos_cart', JSON.stringify(cart));
+  // --- Optimized Persistence Effects with Debouncing ---
+  // Debounced writes reduce blocking I/O operations by batching multiple state changes
+  useEffect(() => {
+    debouncedSetItem('pos_cart', cart);
   }, [cart]);
 
-  React.useEffect(() => {
-    localStorage.setItem('pos_saved_orders', JSON.stringify(savedOrders));
+  useEffect(() => {
+    debouncedSetItem('pos_saved_orders', savedOrders);
   }, [savedOrders]);
 
-  React.useEffect(() => {
-    localStorage.setItem('pos_order_type', JSON.stringify(orderType));
+  useEffect(() => {
+    debouncedSetItem('pos_order_type', orderType);
   }, [orderType]);
 
-  React.useEffect(() => {
-    localStorage.setItem('pos_table_number', tableNumber);
+  useEffect(() => {
+    debouncedSetItem('pos_table_number', tableNumber);
   }, [tableNumber]);
 
-  React.useEffect(() => {
-    localStorage.setItem('pos_delivery_details', JSON.stringify(deliveryDetails));
+  useEffect(() => {
+    debouncedSetItem('pos_delivery_details', deliveryDetails);
   }, [deliveryDetails]);
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (selectedServer) {
-      localStorage.setItem('pos_selected_server', JSON.stringify(selectedServer));
+      debouncedSetItem('pos_selected_server', selectedServer);
     } else {
-      localStorage.removeItem('pos_selected_server');
+      removeItem('pos_selected_server');
     }
   }, [selectedServer]);
 
