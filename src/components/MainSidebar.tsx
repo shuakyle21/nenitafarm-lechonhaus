@@ -199,4 +199,4 @@ const MainSidebar: React.FC<MainSidebarProps> = ({
   );
 };
 
-export default MainSidebar;
+export default React.memo(MainSidebar);

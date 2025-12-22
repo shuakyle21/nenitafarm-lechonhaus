@@ -1,6 +1,7 @@
 import * as React from 'react';
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import MainSidebar from '@/components/MainSidebar';
+import ErrorBoundary from '@/components/ErrorBoundary';
 import { useOfflineSync } from '@/hooks/useOfflineSync';
 
 // Pages
@@ -24,17 +25,17 @@ const App: React.FC = () => {
   // Offline Sync Hook - Kept at App level to persist sync state across page changes
   const { isOnline, saveOrderWithOfflineSupport, pendingOrdersCount } = useOfflineSync();
 
-  const handleLogin = (user: { username: string; role: 'ADMIN' | 'CASHIER' }) => {
+  const handleLogin = useCallback((user: { username: string; role: 'ADMIN' | 'CASHIER' }) => {
     setIsAuthenticated(true);
     setUserRole(user.role);
     // Default to POS for Cashier, Dashboard for Admin
     setActiveModule(user.role === 'CASHIER' ? 'POS' : 'DASHBOARD');
-  };
+  }, []);
 
-  const handleLogout = () => {
+  const handleLogout = useCallback(() => {
     setIsAuthenticated(false);
     setUserRole(null);
-  };
+  }, []);
 
   if (!isAuthenticated) {
     return <LoginPage onLogin={handleLogin} />;
@@ -54,12 +55,14 @@ const App: React.FC = () => {
 
       {/* Main Content Area */}
       <div className="flex-1 h-full overflow-hidden flex flex-col">
-        {activeModule === 'POS' && <PosPage onSaveOrder={saveOrderWithOfflineSupport} />}
-        {activeModule === 'DASHBOARD' && userRole === 'ADMIN' && <DashboardPage />}
-        {activeModule === 'STAFF' && <StaffPage />}
-        {activeModule === 'FINANCE' && userRole === 'ADMIN' && <FinancePage />}
-        {activeModule === 'BOOKING' && <BookingPage />}
-        {activeModule === 'INVENTORY' && userRole === 'ADMIN' && <InventoryPage />}
+        <ErrorBoundary>
+          {activeModule === 'POS' && <PosPage onSaveOrder={saveOrderWithOfflineSupport} />}
+          {activeModule === 'DASHBOARD' && userRole === 'ADMIN' && <DashboardPage />}
+          {activeModule === 'STAFF' && <StaffPage />}
+          {activeModule === 'FINANCE' && userRole === 'ADMIN' && <FinancePage />}
+          {activeModule === 'BOOKING' && <BookingPage />}
+          {activeModule === 'INVENTORY' && userRole === 'ADMIN' && <InventoryPage />}
+        </ErrorBoundary>
       </div>
     </div>
   );
