@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { MenuItem } from '@/types';
 import { menuService } from '@/services/menuService';
+import { MENU_ITEMS } from '@/constants';
 
 export function useMenu(isAuthenticated: boolean) {
   const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
@@ -10,8 +11,19 @@ export function useMenu(isAuthenticated: boolean) {
   const fetchMenuItems = useCallback(async () => {
     try {
       setLoading(true);
-      const items = await menuService.getMenuItems();
-      setMenuItems(items);
+      const remoteItems = await menuService.getMenuItems();
+      
+      // Merge local constants with remote items (avoid duplicates)
+      const mergedMap = new Map<string, MenuItem>();
+      
+      // 1. Add local items first
+      MENU_ITEMS.forEach(item => mergedMap.set(item.id, item));
+      
+      // 2. Overwrite/add with remote items (database is source of truth for existing IDs)
+      remoteItems.forEach(item => mergedMap.set(item.id, item));
+      
+      const allItems = Array.from(mergedMap.values());
+      setMenuItems(allItems);
     } catch (err) {
       console.error(err);
       setError(err);
