@@ -68,6 +68,7 @@ graph TD
 - **Expense Tracking:** Record and categorize daily operational expenses.
 - **Sales Adjustments:** Manual entry for non-POS revenue or corrections.
 - **Reports:** Generate professional PDF reports for Daily Sales and Net Income.
+- **Paper POS Import:** Import sales data recorded on paper during offline periods. See [Paper POS Import Guide](docs/PAPER_POS_IMPORT.md).
 
 ### 👥 Staff & Operations
 
