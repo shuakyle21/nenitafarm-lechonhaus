@@ -108,9 +108,12 @@ export const paperPosImportService = {
         const quantity = parseFloat(qty);
         const unitPrice = parseFloat(price);
 
+        // Generate unique ID with timestamp and random component
+        const uniqueId = `paper-import-${Date.now()}-${Math.random().toString(36).substring(2, 9)}-${index}`;
+
         items.push({
-          id: `paper-import-${Date.now()}-${index}`,
-          cartId: `cart-${Date.now()}-${index}`,
+          id: uniqueId,
+          cartId: `cart-${uniqueId}`,
           name: name.trim(),
           price: unitPrice,
           quantity,
@@ -176,13 +179,15 @@ export const paperPosImportService = {
       menu_item_id: item.id.startsWith('paper-import') ? null : item.id, // Use null for paper imports
       quantity: item.quantity,
       price_at_time: item.price,
-      weight: item.weight || null, // Use null if weight is not defined
+      weight: item.weight ?? null, // Use null if weight is undefined
     }));
 
     const { error: itemsError } = await supabase.from('order_items').insert(orderItems);
 
     if (itemsError) {
-      // Rollback order if items insert fails
+      // Manual rollback: Delete the order if items insert fails
+      // Note: This is not atomic. In production, consider using database transactions
+      // or stored procedures for better consistency guarantees.
       await supabase.from('orders').delete().eq('id', orderId);
       throw itemsError;
     }
