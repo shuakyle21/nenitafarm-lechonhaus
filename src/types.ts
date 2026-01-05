@@ -191,3 +191,27 @@ export interface Supplier {
   address?: string;
   created_at?: string;
 }
+
+export interface PaperPosRecord {
+  id?: string;
+  date: string; // Date of the paper transaction
+  items: string; // JSON string or comma-separated items
+  total_amount: number;
+  payment_method?: string;
+  order_type?: OrderType;
+  notes?: string;
+  imported_at?: string;
+  imported_by?: string;
+  synced?: boolean;
+  synced_order_id?: string;
+}
+
+export interface PaperPosImport {
+  id: string;
+  records: PaperPosRecord[];
+  imported_at: string;
+  imported_by: string;
+  total_records: number;
+  synced_records: number;
+  status: 'PENDING' | 'SYNCING' | 'COMPLETED' | 'FAILED';
+}

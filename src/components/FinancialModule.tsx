@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { supabase } from '../lib/supabase';
-import { Order, Expense, SalesAdjustment, CashTransaction } from '../types';
+import { Order, Expense, SalesAdjustment, CashTransaction, PaperPosRecord } from '../types';
 import {
   LineChart,
   Line,
@@ -30,6 +30,7 @@ import {
   Calendar as CalendarIcon,
   CreditCard,
   Banknote,
+  Upload,
 } from 'lucide-react';
 import { pdf } from '@react-pdf/renderer';
 import { saveAs } from 'file-saver';
@@ -37,6 +38,8 @@ import FinancialReportPDF from './FinancialReportPDF';
 import SalesAdjustmentModal from './SalesAdjustmentModal';
 import ExpenseModal from './ExpenseModal';
 import CashDropModal from './CashDropModal';
+import PaperPosImportModal from './PaperPosImportModal';
+import PaperPosRecordsList from './PaperPosRecordsList';
 import { checkDateMatch, getLocalDateString, createDateMatcher } from '../utils/dateUtils';
 import { exportToCSV } from '../utils/exportUtils';
 
@@ -45,6 +48,20 @@ interface FinancialModuleProps {
   expenses: Expense[];
   salesAdjustments: SalesAdjustment[];
   onRefresh: () => void;
+  paperPosImport?: {
+    records: PaperPosRecord[];
+    unsyncedRecords: PaperPosRecord[];
+    loading: boolean;
+    syncing: boolean;
+    importRecord: (record: Omit<PaperPosRecord, 'id' | 'imported_at'>) => Promise<PaperPosRecord>;
+    importRecords: (
+      records: Omit<PaperPosRecord, 'id' | 'imported_at'>[]
+    ) => Promise<PaperPosRecord[]>;
+    syncRecord: (recordId: string) => Promise<void>;
+    syncAllRecords: () => Promise<any>;
+    deleteRecord: (id: string) => Promise<void>;
+    refreshRecords: () => Promise<void>;
+  };
 }
 
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8', '#82ca9d'];
@@ -54,6 +71,7 @@ const FinancialModule: React.FC<FinancialModuleProps> = ({
   expenses,
   salesAdjustments,
   onRefresh,
+  paperPosImport,
 }) => {
   const [transactionType, setTransactionType] = useState<'EXPENSE' | 'SALES'>('EXPENSE');
 
@@ -68,6 +86,8 @@ const FinancialModule: React.FC<FinancialModuleProps> = ({
   const [isExpenseModalOpen, setIsExpenseModalOpen] = useState(false);
   const [isAdjustmentModalOpen, setIsAdjustmentModalOpen] = useState(false);
   const [isCashDropModalOpen, setIsCashDropModalOpen] = useState(false);
+  const [isPaperPosImportModalOpen, setIsPaperPosImportModalOpen] = useState(false);
+  const [showPaperPosRecords, setShowPaperPosRecords] = useState(false);
 
   // Date Range State
   const [startDate, setStartDate] = useState('');
@@ -833,6 +853,29 @@ const FinancialModule: React.FC<FinancialModuleProps> = ({
                 <Banknote size={24} />
                 <span className="text-sm font-bold uppercase">Record Cash Drop</span>
               </button>
+
+              {paperPosImport && (
+                <button
+                  onClick={() => setIsPaperPosImportModalOpen(true)}
+                  className="col-span-2 flex items-center justify-center gap-2 p-4 bg-blue-50 hover:bg-blue-100 text-blue-600 rounded-xl transition-colors"
+                >
+                  <Upload size={24} />
+                  <span className="text-sm font-bold uppercase">Import Paper POS</span>
+                </button>
+              )}
+
+              {paperPosImport && paperPosImport.records.length > 0 && (
+                <button
+                  onClick={() => setShowPaperPosRecords(!showPaperPosRecords)}
+                  className="col-span-2 flex items-center justify-center gap-2 p-4 bg-orange-50 hover:bg-orange-100 text-orange-600 rounded-xl transition-colors"
+                >
+                  <FileText size={24} />
+                  <span className="text-sm font-bold uppercase">
+                    {showPaperPosRecords ? 'Hide' : 'View'} Paper Records (
+                    {paperPosImport.records.length})
+                  </span>
+                </button>
+              )}
             </div>
           </div>
 
@@ -942,6 +985,56 @@ const FinancialModule: React.FC<FinancialModuleProps> = ({
         onConfirm={handleAddCashDrop}
         isLoading={loading}
       />
+
+      {paperPosImport && (
+        <>
+          <PaperPosImportModal
+            isOpen={isPaperPosImportModalOpen}
+            onClose={() => setIsPaperPosImportModalOpen(false)}
+            onImport={async (records) => {
+              await paperPosImport.importRecords(records);
+              setIsPaperPosImportModalOpen(false);
+              onRefresh();
+            }}
+            importedBy="Admin" // TODO: Get from auth context
+          />
+
+          {showPaperPosRecords && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+              <div className="w-full max-w-5xl bg-white rounded-lg shadow-2xl max-h-[90vh] flex flex-col">
+                <div className="flex items-center justify-between p-6 border-b border-stone-200">
+                  <h2 className="text-2xl font-bold text-stone-800">Paper POS Records</h2>
+                  <button
+                    onClick={() => setShowPaperPosRecords(false)}
+                    className="p-2 rounded-lg hover:bg-stone-100 transition-colors"
+                  >
+                    <FileText className="w-6 h-6 text-stone-600" />
+                  </button>
+                </div>
+                <div className="flex-1 overflow-y-auto p-6">
+                  <PaperPosRecordsList
+                    records={paperPosImport.records}
+                    unsyncedCount={paperPosImport.unsyncedRecords.length}
+                    syncing={paperPosImport.syncing}
+                    onSyncRecord={async (recordId) => {
+                      await paperPosImport.syncRecord(recordId);
+                      onRefresh();
+                    }}
+                    onSyncAll={async () => {
+                      const results = await paperPosImport.syncAllRecords();
+                      onRefresh();
+                      alert(
+                        `Sync complete!\nSuccess: ${results.success}\nFailed: ${results.failed}`
+                      );
+                    }}
+                    onDeleteRecord={paperPosImport.deleteRecord}
+                  />
+                </div>
+              </div>
+            </div>
+          )}
+        </>
+      )}
     </div>
   );
 };
