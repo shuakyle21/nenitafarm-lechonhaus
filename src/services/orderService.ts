@@ -64,6 +64,10 @@ export const orderService = {
       orderType: order.order_type as OrderType,
       // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
       orderNumber: order.order_number,
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
+      paymentMethod: order.payment_method,
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
+      paymentReference: order.payment_reference,
     }));
     return mappedOrders;
   },
