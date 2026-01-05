@@ -48,6 +48,7 @@ interface FinancialModuleProps {
   expenses: Expense[];
   salesAdjustments: SalesAdjustment[];
   onRefresh: () => void;
+  username?: string;
   paperPosImport?: {
     records: PaperPosRecord[];
     unsyncedRecords: PaperPosRecord[];
@@ -72,6 +73,7 @@ const FinancialModule: React.FC<FinancialModuleProps> = ({
   salesAdjustments,
   onRefresh,
   paperPosImport,
+  username = 'Unknown',
 }) => {
   const [transactionType, setTransactionType] = useState<'EXPENSE' | 'SALES'>('EXPENSE');
 
@@ -996,7 +998,7 @@ const FinancialModule: React.FC<FinancialModuleProps> = ({
               setIsPaperPosImportModalOpen(false);
               onRefresh();
             }}
-            importedBy="Admin" // TODO: Get from auth context
+            importedBy={username}
           />
 
           {showPaperPosRecords && (
