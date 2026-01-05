@@ -18,6 +18,9 @@ CREATE TABLE IF NOT EXISTS paper_pos_imports (
 ALTER TABLE paper_pos_imports ENABLE ROW LEVEL SECURITY;
 
 -- Create policies for paper_pos_imports
+-- NOTE: These policies allow unrestricted access for demo purposes.
+-- In production, you should restrict access based on authenticated users and roles.
+-- Example: USING (auth.uid() IS NOT NULL AND auth.role() = 'admin')
 CREATE POLICY "Paper POS imports are viewable by everyone" 
 ON paper_pos_imports FOR SELECT USING (true);
 
