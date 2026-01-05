@@ -4,7 +4,11 @@ import { useFinancials } from '@/hooks/useFinancials';
 import { useOrders } from '@/hooks/useOrders';
 import { usePaperPosImport } from '@/hooks/usePaperPosImport';
 
-const FinancePage: React.FC = () => {
+interface FinancePageProps {
+  username?: string;
+}
+
+const FinancePage: React.FC<FinancePageProps> = ({ username = 'Unknown' }) => {
   const { expenses, salesAdjustments, refreshFinancials } = useFinancials(true);
   const { orders, refreshOrders } = useOrders(true);
   const paperPosImport = usePaperPosImport(true);
@@ -21,6 +25,7 @@ const FinancePage: React.FC = () => {
       salesAdjustments={salesAdjustments}
       onRefresh={handleRefresh}
       paperPosImport={paperPosImport}
+      username={username}
     />
   );
 };

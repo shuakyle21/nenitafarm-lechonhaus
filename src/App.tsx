@@ -16,6 +16,7 @@ const App: React.FC = () => {
   // Auth State - Default to false for security (requires login)
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [userRole, setUserRole] = useState<'ADMIN' | 'CASHIER' | null>(null);
+  const [username, setUsername] = useState<string>('');
 
   const [activeModule, setActiveModule] = useState<
     'DASHBOARD' | 'POS' | 'STAFF' | 'FINANCE' | 'BOOKING' | 'INVENTORY'
@@ -27,6 +28,7 @@ const App: React.FC = () => {
   const handleLogin = (user: { username: string; role: 'ADMIN' | 'CASHIER' }) => {
     setIsAuthenticated(true);
     setUserRole(user.role);
+    setUsername(user.username);
     // Default to POS for Cashier, Dashboard for Admin
     setActiveModule(user.role === 'CASHIER' ? 'POS' : 'DASHBOARD');
   };
@@ -34,6 +36,7 @@ const App: React.FC = () => {
   const handleLogout = () => {
     setIsAuthenticated(false);
     setUserRole(null);
+    setUsername('');
   };
 
   if (!isAuthenticated) {
@@ -57,7 +60,7 @@ const App: React.FC = () => {
         {activeModule === 'POS' && <PosPage onSaveOrder={saveOrderWithOfflineSupport} />}
         {activeModule === 'DASHBOARD' && userRole === 'ADMIN' && <DashboardPage />}
         {activeModule === 'STAFF' && <StaffPage />}
-        {activeModule === 'FINANCE' && userRole === 'ADMIN' && <FinancePage />}
+        {activeModule === 'FINANCE' && userRole === 'ADMIN' && <FinancePage username={username} />}
         {activeModule === 'BOOKING' && <BookingPage />}
         {activeModule === 'INVENTORY' && userRole === 'ADMIN' && <InventoryPage />}
       </div>

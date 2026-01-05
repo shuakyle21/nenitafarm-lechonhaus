@@ -176,7 +176,7 @@ export const paperPosImportService = {
       menu_item_id: item.id.startsWith('paper-import') ? null : item.id, // Use null for paper imports
       quantity: item.quantity,
       price_at_time: item.price,
-      weight: item.weight,
+      weight: item.weight || null, // Use null if weight is not defined
     }));
 
     const { error: itemsError } = await supabase.from('order_items').insert(orderItems);
