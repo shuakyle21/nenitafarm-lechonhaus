@@ -58,7 +58,7 @@ const App: React.FC = () => {
       {/* Main Content Area */}
       <div className="flex-1 h-full overflow-hidden flex flex-col">
         {activeModule === 'POS' && <PosPage onSaveOrder={saveOrderWithOfflineSupport} />}
-        {activeModule === 'DASHBOARD' && userRole === 'ADMIN' && <DashboardPage />}
+        {activeModule === 'DASHBOARD' && userRole === 'ADMIN' && <DashboardPage username={username} />}
         {activeModule === 'STAFF' && <StaffPage />}
         {activeModule === 'FINANCE' && userRole === 'ADMIN' && <FinancePage username={username} />}
         {activeModule === 'BOOKING' && <BookingPage />}

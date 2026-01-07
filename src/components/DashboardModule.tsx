@@ -10,7 +10,7 @@ import {
   ArrowUpRight,
   List,
   AlertTriangle,
-  Package,
+  Package, Upload,
 } from 'lucide-react';
 import {
   LineChart,
@@ -21,8 +21,9 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from 'recharts';
-import { MenuItem, Order, SalesAdjustment, Expense, InventoryItem } from '../types';
+import { MenuItem, Order, SalesAdjustment, Expense, InventoryItem, PaperPosRecord } from '../types';
 import OrderHistoryModal from './OrderHistoryModal';
+import PaperPosImportModal from './PaperPosImportModal';
 import { createDateMatcher } from '../utils/dateUtils';
 
 interface DashboardModuleProps {
@@ -32,6 +33,11 @@ interface DashboardModuleProps {
   expenses?: Expense[];
   inventoryItems?: InventoryItem[];
   onDeleteOrder?: (id: string) => Promise<void>;
+  username?: string;
+  paperPosImport?: {
+    importRecords: (records: any[]) => Promise<any>;
+  };
+  onRefresh?: () => void;
 }
 
 const DashboardModule: React.FC<DashboardModuleProps> = ({
@@ -41,8 +47,12 @@ const DashboardModule: React.FC<DashboardModuleProps> = ({
   expenses = [],
   inventoryItems = [],
   onDeleteOrder,
+  username = 'Unknown',
+  paperPosImport,
+  onRefresh,
 }) => {
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
+  const [isPaperPosModalOpen, setIsPaperPosModalOpen] = useState(false);
   const [timeFilter, setTimeFilter] = useState<'TODAY' | 'WEEK' | 'MONTH'>('TODAY');
 
   // --- Optimized Date Helpers with Memoization ---
@@ -230,16 +240,27 @@ const DashboardModule: React.FC<DashboardModuleProps> = ({
           <h1 className="text-3xl font-brand font-black text-stone-800">Dashboard</h1>
           <p className="text-stone-500 mt-1">Welcome back, Manager Nenita</p>
         </div>
-        <div className="flex items-center gap-3 bg-white px-4 py-2 rounded-lg shadow-sm border border-stone-200 text-stone-600 text-sm font-medium">
-          <Calendar size={16} />
-          <span>
-            {new Date().toLocaleDateString('en-US', {
-              weekday: 'long',
-              year: 'numeric',
-              month: 'long',
-              day: 'numeric',
-            })}
-          </span>
+        <div className="flex items-center gap-3">
+          {paperPosImport && (
+            <button
+              onClick={() => setIsPaperPosModalOpen(true)}
+              className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg shadow-sm transition-colors text-sm font-bold"
+            >
+              <Upload size={16} />
+              <span>Import Paper POS</span>
+            </button>
+          )}
+          <div className="flex items-center gap-3 bg-white px-4 py-2 rounded-lg shadow-sm border border-stone-200 text-stone-600 text-sm font-medium">
+            <Calendar size={16} />
+            <span>
+              {new Date().toLocaleDateString('en-US', {
+                weekday: 'long',
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric',
+              })}
+            </span>
+          </div>
         </div>
       </div>
 
@@ -475,6 +496,19 @@ const DashboardModule: React.FC<DashboardModuleProps> = ({
         orders={orders}
         onDeleteOrder={onDeleteOrder}
       />
+
+      {paperPosImport && (
+        <PaperPosImportModal
+          isOpen={isPaperPosModalOpen}
+          onClose={() => setIsPaperPosModalOpen(false)}
+          onImport={async (records) => {
+            await paperPosImport.importRecords(records);
+            setIsPaperPosModalOpen(false);
+            if (onRefresh) onRefresh();
+          }}
+          importedBy={username}
+        />
+      )}
     </div>
   );
 };
