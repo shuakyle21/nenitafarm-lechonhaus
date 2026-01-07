@@ -29,7 +29,7 @@ interface PosModuleProps {
   onAddItem: (item: MenuItem) => void;
   onUpdateItem: (item: MenuItem) => void;
   onDeleteItem: (id: string) => Promise<void>;
-  onSaveOrder: (order: Order) => Promise<void>;
+  onSaveOrder: (order: Order) => Promise<boolean>;
   staffList: Staff[];
 }
 
@@ -318,7 +318,7 @@ const PosModule: React.FC<PosModuleProps> = ({
     setDeliveryDetails({ address: '', time: '', contact: '' });
   }, []);
 
-  const handleOrderConfirmed = useCallback((order: Order) => {
+  const handleOrderConfirmed = useCallback(async (order: Order) => {
     // Inject orderType and delivery details into the order object before saving
     const finalOrder = {
       ...order,
@@ -328,9 +328,12 @@ const PosModule: React.FC<PosModuleProps> = ({
       contactNumber: orderType === 'DELIVERY' ? deliveryDetails.contact : undefined,
       tableNumber: tableNumber,
     };
-    onSaveOrder(finalOrder);
-    clearCart();
-    setIsReceiptModalOpen(false);
+    
+    const success = await onSaveOrder(finalOrder);
+    if (success) {
+      clearCart();
+      setIsReceiptModalOpen(false);
+    }
   }, [orderType, deliveryDetails, tableNumber, onSaveOrder, clearCart]);
 
   // --- Saved Orders Logic (Wrapped with useCallback for performance) ---

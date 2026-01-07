@@ -41,10 +41,13 @@ const PosPage: React.FC<PosPageProps> = ({ onSaveOrder }) => {
         } else {
           alert('Offline: Order saved to local backup. Will sync when online.');
         }
+        return true;
       }
+      return false;
     } catch (error) {
       console.error('Error saving order:', error);
       alert('Failed to save order');
+      return false;
     }
   };
 

@@ -17,7 +17,7 @@ export const CATEGORIES: Category[] = [
 export const MENU_ITEMS: MenuItem[] = [
   // Lechon & Grills
   {
-    id: 'l1',
+    id: '86d40980-8770-4011-9371-ced75b5cfe0f',
     name: 'Lechon',
     price: 700,
     category: 'Lechon & Grills',

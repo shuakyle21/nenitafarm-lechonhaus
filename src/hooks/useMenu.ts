@@ -17,10 +17,10 @@ export function useMenu(isAuthenticated: boolean) {
       const mergedMap = new Map<string, MenuItem>();
       
       // 1. Add local items first
-      MENU_ITEMS.forEach(item => mergedMap.set(item.id, item));
+      MENU_ITEMS.forEach(item => mergedMap.set(item.name.toLowerCase(), item));
       
-      // 2. Overwrite/add with remote items (database is source of truth for existing IDs)
-      remoteItems.forEach(item => mergedMap.set(item.id, item));
+      // 2. Overwrite/add with remote items (database is source of truth)
+      remoteItems.forEach(item => mergedMap.set(item.name.toLowerCase(), item));
       
       const allItems = Array.from(mergedMap.values());
       setMenuItems(allItems);

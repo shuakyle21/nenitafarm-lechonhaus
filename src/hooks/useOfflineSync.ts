@@ -58,8 +58,12 @@ export const useOfflineSync = () => {
     }));
 
     const { error: itemsError } = await supabase.from('order_items').insert(orderItems);
-
-    if (itemsError) throw itemsError;
+    
+    if (itemsError) {
+      // Rollback: Delete the header if items fail to insert
+      await supabase.from('orders').delete().eq('id', orderId);
+      throw itemsError;
+    }
 
     // 3. Deduct stock from inventory
     await inventoryService.deductStockFromOrder(
