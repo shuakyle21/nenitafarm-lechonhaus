@@ -4,7 +4,7 @@ import { supabase } from '../lib/supabase';
 import { Lock, User, ChevronRight, MapPin } from 'lucide-react';
 
 interface LoginModuleProps {
-  onLogin: (user: { username: string; role: 'ADMIN' | 'CASHIER' }) => void;
+  onLogin: (user: { id: string; username: string; role: 'ADMIN' | 'CASHIER' }) => void;
 }
 
 const LoginModule: React.FC<LoginModuleProps> = ({ onLogin }) => {
@@ -28,7 +28,7 @@ const LoginModule: React.FC<LoginModuleProps> = ({ onLogin }) => {
 
       if (data && data.length > 0) {
         const user = data[0];
-        onLogin({ username: user.username, role: user.role as 'ADMIN' | 'CASHIER' });
+        onLogin({ id: user.id, username: user.username, role: user.role as 'ADMIN' | 'CASHIER' });
       } else {
         setError('Invalid username or password');
       }

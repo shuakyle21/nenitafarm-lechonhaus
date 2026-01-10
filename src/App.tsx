@@ -11,24 +11,27 @@ import StaffPage from '@/pages/StaffPage';
 import FinancePage from '@/pages/FinancePage';
 import BookingPage from '@/pages/BookingPage';
 import InventoryPage from '@/pages/InventoryPage';
+import AuditPage from '@/pages/AuditPage';
 
 const App: React.FC = () => {
   // Auth State - Default to false for security (requires login)
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [userRole, setUserRole] = useState<'ADMIN' | 'CASHIER' | null>(null);
   const [username, setUsername] = useState<string>('');
+  const [userId, setUserId] = useState<string | null>(null);
 
   const [activeModule, setActiveModule] = useState<
-    'DASHBOARD' | 'POS' | 'STAFF' | 'FINANCE' | 'BOOKING' | 'INVENTORY'
+    'DASHBOARD' | 'POS' | 'STAFF' | 'FINANCE' | 'BOOKING' | 'INVENTORY' | 'AUDIT'
   >('POS');
 
   // Offline Sync Hook - Kept at App level to persist sync state across page changes
-  const { isOnline, saveOrderWithOfflineSupport, pendingOrdersCount } = useOfflineSync();
+  const { isOnline, saveOrderWithOfflineSupport, pendingOrdersCount } = useOfflineSync(userId);
 
-  const handleLogin = (user: { username: string; role: 'ADMIN' | 'CASHIER' }) => {
+  const handleLogin = (user: { id: string; username: string; role: 'ADMIN' | 'CASHIER' }) => {
     setIsAuthenticated(true);
     setUserRole(user.role);
     setUsername(user.username);
+    setUserId(user.id);
     // Default to POS for Cashier, Dashboard for Admin
     setActiveModule(user.role === 'CASHIER' ? 'POS' : 'DASHBOARD');
   };
@@ -37,6 +40,7 @@ const App: React.FC = () => {
     setIsAuthenticated(false);
     setUserRole(null);
     setUsername('');
+    setUserId(null);
   };
 
   if (!isAuthenticated) {
@@ -60,9 +64,10 @@ const App: React.FC = () => {
         {activeModule === 'POS' && <PosPage onSaveOrder={saveOrderWithOfflineSupport} />}
         {activeModule === 'DASHBOARD' && userRole === 'ADMIN' && <DashboardPage username={username} />}
         {activeModule === 'STAFF' && <StaffPage />}
-        {activeModule === 'FINANCE' && userRole === 'ADMIN' && <FinancePage username={username} />}
+        {activeModule === 'FINANCE' && userRole === 'ADMIN' && <FinancePage username={username} userId={userId} />}
         {activeModule === 'BOOKING' && <BookingPage />}
-        {activeModule === 'INVENTORY' && userRole === 'ADMIN' && <InventoryPage />}
+        {activeModule === 'INVENTORY' && userRole === 'ADMIN' && <InventoryPage userId={userId} />}
+        {activeModule === 'AUDIT' && userRole === 'ADMIN' && <AuditPage />}
       </div>
     </div>
   );
