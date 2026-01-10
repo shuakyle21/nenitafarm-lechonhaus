@@ -10,11 +10,12 @@ import {
   Calendar,
   Wifi,
   WifiOff,
+  ClipboardList
 } from 'lucide-react';
 
 interface MainSidebarProps {
-  activeModule: 'DASHBOARD' | 'POS' | 'STAFF' | 'FINANCE' | 'BOOKING' | 'INVENTORY';
-  onModuleChange: (module: 'DASHBOARD' | 'POS' | 'STAFF' | 'FINANCE' | 'BOOKING' | 'INVENTORY') => void;
+  activeModule: 'DASHBOARD' | 'POS' | 'STAFF' | 'FINANCE' | 'BOOKING' | 'INVENTORY' | 'AUDIT';
+  onModuleChange: (module: 'DASHBOARD' | 'POS' | 'STAFF' | 'FINANCE' | 'BOOKING' | 'INVENTORY' | 'AUDIT') => void;
   userRole: 'ADMIN' | 'CASHIER' | null;
   onLogout: () => void;
   isOnline?: boolean;
@@ -138,6 +139,27 @@ const MainSidebar: React.FC<MainSidebarProps> = ({
             />
             <span className="text-[10px] font-bold tracking-wide">Finance</span>
             {activeModule === 'FINANCE' && (
+              <div className="absolute inset-0 bg-white/10 animate-pulse"></div>
+            )}
+          </button>
+        )}
+
+        {userRole === 'ADMIN' && (
+          <button
+            onClick={() => onModuleChange('AUDIT')}
+            className={`w-full aspect-square rounded-2xl flex flex-col items-center justify-center gap-1.5 transition-all duration-300 group relative overflow-hidden ${
+              activeModule === 'AUDIT'
+                ? 'bg-gradient-to-br from-amber-600 to-amber-700 text-white shadow-lg shadow-amber-900/40 scale-105 ring-2 ring-amber-500/50'
+                : 'hover:bg-stone-900 hover:text-stone-200 hover:scale-105'
+            }`}
+            title="System Audit"
+          >
+            <ClipboardList
+              size={22}
+              className={`transition-transform duration-300 ${activeModule === 'AUDIT' ? 'scale-110' : 'group-hover:scale-110'}`}
+            />
+            <span className="text-[10px] font-bold tracking-wide">Audit</span>
+            {activeModule === 'AUDIT' && (
               <div className="absolute inset-0 bg-white/10 animate-pulse"></div>
             )}
           </button>

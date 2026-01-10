@@ -16,8 +16,12 @@ import {
 } from 'lucide-react';
 import { InventoryItem, InventoryTransactionType } from '@/types';
 
-const InventoryModule: React.FC = () => {
-  const { items, loading, error, lowStockItems, addTransaction, addItem } = useInventory();
+interface InventoryModuleProps {
+  userId: string | null;
+}
+
+const InventoryModule: React.FC<InventoryModuleProps> = ({ userId }) => {
+  const { items, loading, error, lowStockItems, addTransaction, addItem } = useInventory(userId);
   const { menuItems } = useMenu(true);
   
   const [searchTerm, setSearchTerm] = useState('');

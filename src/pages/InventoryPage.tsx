@@ -1,10 +1,14 @@
 import React from 'react';
 import InventoryModule from '@/components/InventoryModule';
 
-const InventoryPage: React.FC = () => {
+interface InventoryPageProps {
+  userId: string | null;
+}
+
+const InventoryPage: React.FC<InventoryPageProps> = ({ userId }) => {
   return (
     <div className="p-4 md:p-8 max-w-7xl mx-auto">
-      <InventoryModule />
+      <InventoryModule userId={userId} />
     </div>
   );
 };

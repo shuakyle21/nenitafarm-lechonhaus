@@ -6,9 +6,10 @@ import { usePaperPosImport } from '@/hooks/usePaperPosImport';
 
 interface FinancePageProps {
   username?: string;
+  userId: string | null;
 }
 
-const FinancePage: React.FC<FinancePageProps> = ({ username = 'Unknown' }) => {
+const FinancePage: React.FC<FinancePageProps> = ({ username = 'Unknown', userId }) => {
   const { expenses, salesAdjustments, refreshFinancials } = useFinancials(true);
   const { orders, refreshOrders } = useOrders(true);
   const paperPosImport = usePaperPosImport(true);
@@ -26,6 +27,7 @@ const FinancePage: React.FC<FinancePageProps> = ({ username = 'Unknown' }) => {
       onRefresh={handleRefresh}
       paperPosImport={paperPosImport}
       username={username}
+      userId={userId}
     />
   );
 };

@@ -63,6 +63,7 @@ interface FinancialModuleProps {
     deleteRecord: (id: string) => Promise<void>;
     refreshRecords: () => Promise<void>;
   };
+  userId: string | null;
 }
 
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8', '#82ca9d'];
@@ -74,6 +75,7 @@ const FinancialModule: React.FC<FinancialModuleProps> = ({
   onRefresh,
   paperPosImport,
   username = 'Unknown',
+  userId = null,
 }) => {
   const [transactionType, setTransactionType] = useState<'EXPENSE' | 'SALES'>('EXPENSE');
 
@@ -121,6 +123,7 @@ const FinancialModule: React.FC<FinancialModuleProps> = ({
           amount: parseFloat(amount),
           reason,
           requested_by: person,
+          created_by: userId,
         },
       ]);
 
@@ -136,6 +139,7 @@ const FinancialModule: React.FC<FinancialModuleProps> = ({
           amount: parseFloat(amount),
           reason,
           added_by: person,
+          created_by: userId,
         },
       ]);
 
@@ -195,6 +199,7 @@ const FinancialModule: React.FC<FinancialModuleProps> = ({
             type: 'CASH_DROP',
             description: reason,
             performed_by: performedBy,
+            created_by: userId,
           },
         ]);
 
@@ -984,7 +989,7 @@ const FinancialModule: React.FC<FinancialModuleProps> = ({
       <CashDropModal
         isOpen={isCashDropModalOpen}
         onClose={() => setIsCashDropModalOpen(false)}
-        onConfirm={handleAddCashDrop}
+        onSubmit={handleAddCashDrop}
         isLoading={loading}
       />
 
