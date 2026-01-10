@@ -3,7 +3,7 @@ import { MenuItem, Order } from '@/types';
 import { supabase } from '@/lib/supabase';
 import { inventoryService } from '@/services/inventoryService';
 
-export const useOfflineSync = () => {
+export const useOfflineSync = (userId: string | null) => {
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [pendingOrders, setPendingOrders] = useState<Order[]>(() => {
     try {
@@ -39,6 +39,8 @@ export const useOfflineSync = () => {
           delivery_time: order.deliveryTime,
           contact_number: order.contactNumber,
           created_at: order.date, // Preserve the original creation date
+          created_by: userId,
+          updated_by: userId,
         },
       ])
       .select()
@@ -67,7 +69,8 @@ export const useOfflineSync = () => {
 
     // 3. Deduct stock from inventory
     await inventoryService.deductStockFromOrder(
-      order.items.map((item) => ({ id: item.id, quantity: item.quantity }))
+      order.items.map((item) => ({ id: item.id, quantity: item.quantity })),
+      userId
     );
 
     return orderData;

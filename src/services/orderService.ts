@@ -18,6 +18,7 @@ export const orderService = {
           )
         `
       )
+      .is('deleted_at', null)
       .order('created_at', { ascending: false });
 
     if (error) throw error;
@@ -73,7 +74,10 @@ export const orderService = {
   },
 
   async deleteOrder(id: string): Promise<void> {
-    const { error } = await supabase.from('orders').delete().eq('id', id);
+    const { error } = await supabase
+      .from('orders')
+      .update({ deleted_at: new Date().toISOString() })
+      .eq('id', id);
     if (error) throw error;
   },
 };

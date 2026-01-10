@@ -1,5 +1,5 @@
 import { supabase } from '@/lib/supabase';
-import { Expense, SalesAdjustment } from '@/types';
+import { Expense, SalesAdjustment, CashTransaction } from '@/types';
 
 export const financeService = {
   async getExpenses(): Promise<Expense[]> {
@@ -18,5 +18,14 @@ export const financeService = {
       .order('date', { ascending: false });
     if (error) throw error;
     return (data || []) as SalesAdjustment[];
+  },
+
+  async getCashTransactions(): Promise<CashTransaction[]> {
+    const { data, error } = await supabase
+      .from('cash_transactions')
+      .select('*')
+      .order('created_at', { ascending: false });
+    if (error) throw error;
+    return (data || []) as CashTransaction[];
   },
 };

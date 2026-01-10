@@ -13,10 +13,13 @@ export const inventoryService = {
     return data || [];
   },
 
-  async addInventoryItem(item: Omit<InventoryItem, 'id'>): Promise<InventoryItem> {
+  async addInventoryItem(item: Omit<InventoryItem, 'id'>, userId?: string | null): Promise<InventoryItem> {
     const { data, error } = await supabase
       .from('inventory_items')
-      .insert([item])
+      .insert([{
+        ...item,
+        updated_by: userId
+      }])
       .select()
       .single();
 
@@ -24,10 +27,13 @@ export const inventoryService = {
     return data;
   },
 
-  async updateInventoryStock(itemId: string, newStock: number): Promise<void> {
+  async updateInventoryStock(itemId: string, newStock: number, userId?: string | null): Promise<void> {
     const { error } = await supabase
       .from('inventory_items')
-      .update({ current_stock: newStock })
+      .update({ 
+        current_stock: newStock,
+        updated_by: userId 
+      })
       .eq('id', itemId);
 
     if (error) throw error;
@@ -46,10 +52,13 @@ export const inventoryService = {
     return data || [];
   },
 
-  async addTransaction(transaction: Omit<InventoryTransaction, 'id' | 'created_at'>): Promise<void> {
+  async addTransaction(transaction: Omit<InventoryTransaction, 'id' | 'created_at'>, userId?: string | null): Promise<void> {
     const { error } = await supabase
       .from('inventory_transactions')
-      .insert([transaction]);
+      .insert([{
+        ...transaction,
+        created_by: userId
+      }]);
 
     if (error) throw error;
 
@@ -67,7 +76,7 @@ export const inventoryService = {
       stockChange = -transaction.quantity;
     }
 
-    await this.updateInventoryStock(transaction.item_id, (item.current_stock || 0) + stockChange);
+    await this.updateInventoryStock(transaction.item_id, (item.current_stock || 0) + stockChange, userId);
   },
 
   // Recipes
@@ -90,7 +99,7 @@ export const inventoryService = {
   },
 
   // Deduct stock based on an order
-  async deductStockFromOrder(items: { id: string; quantity: number }[]): Promise<void> {
+  async deductStockFromOrder(items: { id: string; quantity: number }[], userId?: string | null): Promise<void> {
     try {
       for (const item of items) {
         // 1. Get recipes for this menu item
@@ -112,7 +121,7 @@ export const inventoryService = {
             quantity: totalQuantityToDeduct,
             notes: `Auto-deduct from order: ${item.id}`,
             transaction_date: new Date().toISOString()
-          });
+          }, userId);
         }
       }
     } catch (err) {

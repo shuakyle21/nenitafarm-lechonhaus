@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { InventoryItem, InventoryTransaction, Recipe, Supplier } from '@/types';
 import { inventoryService } from '@/services/inventoryService';
 
-export function useInventory() {
+export function useInventory(userId: string | null = null) {
   const [items, setItems] = useState<InventoryItem[]>([]);
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [loading, setLoading] = useState(true);
@@ -33,7 +33,7 @@ export function useInventory() {
 
   const addTransaction = async (transaction: Omit<InventoryTransaction, 'id' | 'created_at'>) => {
     try {
-      await inventoryService.addTransaction(transaction);
+      await inventoryService.addTransaction(transaction, userId);
       await fetchData(); // Refresh data to get updated stock levels
     } catch (err: any) {
       console.error('Error adding transaction:', err);
@@ -43,7 +43,7 @@ export function useInventory() {
 
   const addItem = async (item: Omit<InventoryItem, 'id'>) => {
     try {
-      const newItem = await inventoryService.addInventoryItem(item);
+      const newItem = await inventoryService.addInventoryItem(item, userId);
       setItems(prev => [...prev, newItem]);
       return newItem;
     } catch (err: any) {
