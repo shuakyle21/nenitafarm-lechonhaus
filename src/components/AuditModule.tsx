@@ -38,40 +38,8 @@ const AuditModule: React.FC = () => {
 
   const fetchReconciliation = async () => {
     try {
-      const dm = createDateMatcher();
-      const [allOrders, allExpenses, allCashTx] = await Promise.all([
-        orderService.getOrders(),
-        financeService.getExpenses(),
-        financeService.getCashTransactions()
-      ]);
-
-      const todayOrders = allOrders.filter(o => dm.isToday(o.date));
-      const todayExpenses = allExpenses.filter(e => dm.isToday(e.date));
-      const todayCashTx = allCashTx.filter(t => dm.isToday(t.created_at));
-
-      const cashSales = todayOrders
-        .filter(o => o.paymentMethod === 'CASH')
-        .reduce((sum, o) => sum + o.total, 0);
-
-      const expenses = todayExpenses.reduce((sum, e) => sum + e.amount, 0);
-      
-      const openingFund = todayCashTx
-        .filter(t => t.type === 'OPENING_FUND')
-        .reduce((sum, t) => sum + t.amount, 0);
-
-      const cashDrops = todayCashTx
-        .filter(t => t.type === 'CASH_DROP')
-        .reduce((sum, t) => sum + t.amount, 0);
-
-      const expectedCash = openingFund + cashSales - expenses - cashDrops;
-
-      setReconciliation({
-        openingFund,
-        cashSales,
-        expenses,
-        cashDrops,
-        expectedCash
-      });
+      const data = await auditService.getDailyReconciliation();
+      setReconciliation(data);
     } catch (err) {
       console.error('Failed to fetch reconciliation data:', err);
     }
