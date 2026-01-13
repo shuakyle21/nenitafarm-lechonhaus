@@ -129,6 +129,17 @@ export const useOfflineSync = (userId: string | null) => {
     };
   }, [syncOfflineOrders]); // correct dependency: syncOfflineOrders (which depends on pendingOrders)
 
+  // Auto-sync when online and has pending orders
+  useEffect(() => {
+    if (isOnline && pendingOrders.length > 0 && !isSyncing && !isSyncingRef.current) {
+      const timer = setTimeout(() => {
+        // eslint-disable-next-line @typescript-eslint/no-floating-promises
+        syncOfflineOrders();
+      }, 3000); // Wait 3 seconds to avoid rapid retries if there's a problem
+      return () => clearTimeout(timer);
+    }
+  }, [isOnline, pendingOrders.length, isSyncing, syncOfflineOrders]);
+
   const saveOrderWithOfflineSupport = async (
     order: Order
   ): Promise<{ success: boolean; mode: 'ONLINE' | 'OFFLINE'; data?: any }> => {
