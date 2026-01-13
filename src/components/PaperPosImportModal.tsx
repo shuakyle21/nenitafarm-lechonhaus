@@ -29,7 +29,7 @@ export default function PaperPosImportModal({
       date: new Date().toISOString().split('T')[0],
       items: '',
       total_amount: '',
-      payment_method: 'CASH',
+      payment_method: 'CASH', 
       order_type: 'DINE_IN',
       notes: '',
     },
@@ -162,7 +162,7 @@ export default function PaperPosImportModal({
         <div className="flex items-center justify-between p-6 border-b border-stone-200">
           <div className="flex items-center gap-3">
             <FileText className="w-6 h-6 text-orange-600" />
-            <h2 className="text-2xl font-bold text-stone-800">Import Paper POS Records</h2>
+            <h2 className="text-2xl font-bold text-stone-800">Import Records</h2>
           </div>
           <button
             onClick={onClose}
