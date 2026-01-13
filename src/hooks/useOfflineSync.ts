@@ -39,8 +39,6 @@ export const useOfflineSync = (userId: string | null) => {
           delivery_time: order.deliveryTime,
           contact_number: order.contactNumber,
           created_at: order.date, // Preserve the original creation date
-          created_by: userId,
-          updated_by: userId,
         },
       ])
       .select()
@@ -69,7 +67,7 @@ export const useOfflineSync = (userId: string | null) => {
 
     // 3. Deduct stock from inventory
     await inventoryService.deductStockFromOrder(
-      order.items.map((item) => ({ id: item.id, quantity: item.quantity })),
+      order.items.map((item) => ({ id: item.id, quantity: item.quantity, weight: item.weight })),
       userId
     );
 

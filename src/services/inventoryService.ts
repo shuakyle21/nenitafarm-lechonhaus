@@ -18,7 +18,6 @@ export const inventoryService = {
       .from('inventory_items')
       .insert([{
         ...item,
-        updated_by: userId
       }])
       .select()
       .single();
@@ -32,7 +31,6 @@ export const inventoryService = {
       .from('inventory_items')
       .update({ 
         current_stock: newStock,
-        updated_by: userId 
       })
       .eq('id', itemId);
 
@@ -57,7 +55,6 @@ export const inventoryService = {
       .from('inventory_transactions')
       .insert([{
         ...transaction,
-        created_by: userId
       }]);
 
     if (error) throw error;
@@ -99,7 +96,7 @@ export const inventoryService = {
   },
 
   // Deduct stock based on an order
-  async deductStockFromOrder(items: { id: string; quantity: number }[], userId?: string | null): Promise<void> {
+  async deductStockFromOrder(items: { id: string; quantity: number; weight?: number }[], userId?: string | null): Promise<void> {
     try {
       for (const item of items) {
         // 1. Get recipes for this menu item
@@ -113,7 +110,9 @@ export const inventoryService = {
 
         // 2. For each ingredient in the recipe, record usage and deduct stock
         for (const recipe of recipes) {
-          const totalQuantityToDeduct = recipe.quantity_required * item.quantity;
+          // Use weight for deduction if available (for weighted items), otherwise use quantity
+          const factor = item.weight || item.quantity;
+          const totalQuantityToDeduct = recipe.quantity_required * factor;
           
           await this.addTransaction({
             item_id: recipe.inventory_item_id,

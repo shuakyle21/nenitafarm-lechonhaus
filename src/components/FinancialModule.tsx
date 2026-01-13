@@ -123,7 +123,6 @@ const FinancialModule: React.FC<FinancialModuleProps> = ({
           amount: parseFloat(amount),
           reason,
           requested_by: person,
-          created_by: userId,
         },
       ]);
 
@@ -139,7 +138,6 @@ const FinancialModule: React.FC<FinancialModuleProps> = ({
           amount: parseFloat(amount),
           reason,
           added_by: person,
-          created_by: userId,
         },
       ]);
 
@@ -199,7 +197,6 @@ const FinancialModule: React.FC<FinancialModuleProps> = ({
             type: 'CASH_DROP',
             description: reason,
             performed_by: performedBy,
-            created_by: userId,
           },
         ]);
 
