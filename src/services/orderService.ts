@@ -24,51 +24,43 @@ export const orderService = {
     if (!data) return [];
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const mappedOrders: Order[] = data.map((order: any) => ({
-      id: order.id,
-      date: order.created_at,
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
-      items: order.order_items.map((item: any) => ({
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
-        id: item.menu_item_id,
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
-        name: item.menu_items?.name || 'Unknown Item',
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
-        price: item.price_at_time,
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
-        quantity: item.quantity,
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-        finalPrice: item.weight
-          ? item.price_at_time * item.weight
-          : item.price_at_time * item.quantity,
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
-        category: item.menu_items?.category || 'Short Orders',
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
-        image: item.menu_items?.image || '',
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
-        cartId: item.id,
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
-        weight: item.weight,
-      })),
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
-      subtotal: order.total_amount,
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
-      discount: order.discount_details,
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
-      total: order.total_amount,
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
-      cash: order.cash,
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
-      change: order.change,
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-      orderType: order.order_type as OrderType,
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
-      orderNumber: order.order_number,
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
-      paymentMethod: order.payment_method,
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
-      paymentReference: order.payment_reference,
-    }));
+    const mappedOrders: Order[] = data.map((order: any) => {
+      // Ensure order_items is an array to prevent crashes
+      const items = Array.isArray(order.order_items) ? order.order_items : [];
+      const totalAmount = parseFloat(order.total_amount || 0);
+
+      return {
+        id: order.id,
+        date: order.created_at,
+        items: items.map((item: any) => {
+          const priceAtTime = parseFloat(item.price_at_time || 0);
+          const weight = item.weight ? parseFloat(item.weight) : null;
+          const quantity = parseFloat(item.quantity || 0);
+
+          return {
+            id: item.menu_item_id,
+            name: item.menu_items?.name || 'Unknown Item',
+            price: priceAtTime,
+            quantity: quantity,
+            finalPrice: weight 
+              ? priceAtTime * weight 
+              : priceAtTime * quantity,
+            category: item.menu_items?.category || 'Short Orders',
+            image: item.menu_items?.image || '',
+            cartId: item.id,
+            weight: weight || undefined,
+          };
+        }),
+        subtotal: totalAmount,
+        discount: order.discount_details,
+        total: totalAmount,
+        cash: parseFloat(order.cash || 0),
+        change: parseFloat(order.change || 0),
+        orderType: order.order_type as OrderType,
+        orderNumber: order.order_number,
+        paymentMethod: order.payment_method,
+      };
+    });
     return mappedOrders;
   },
 

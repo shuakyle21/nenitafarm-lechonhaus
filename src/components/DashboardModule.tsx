@@ -24,7 +24,7 @@ import {
 import { MenuItem, Order, SalesAdjustment, Expense, InventoryItem, PaperPosRecord } from '../types';
 import OrderHistoryModal from './OrderHistoryModal';
 import PaperPosImportModal from './PaperPosImportModal';
-import { createDateMatcher } from '../utils/dateUtils';
+import { createDateMatcher, safeParseDate } from '../utils/dateUtils';
 
 interface DashboardModuleProps {
   items: MenuItem[];
@@ -211,13 +211,13 @@ const DashboardModule: React.FC<DashboardModuleProps> = ({
       }
 
       const dayOrders = orders.filter((o) => {
-        const orderDate = new Date(o.date);
+        const orderDate = safeParseDate(o.date);
         orderDate.setHours(0, 0, 0, 0);
         return orderDate.getTime() === dateTime;
       });
 
       const dayAdjustments = salesAdjustments.filter((s) => {
-        const adjDate = new Date(s.date);
+        const adjDate = safeParseDate(s.date);
         adjDate.setHours(0, 0, 0, 0);
         return adjDate.getTime() === dateTime;
       });
