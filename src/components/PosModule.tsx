@@ -123,18 +123,27 @@ const PosModule: React.FC<PosModuleProps> = ({
   // Check Opening Fund Status
   useEffect(() => {
     const checkOpeningFund = async () => {
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
+      try {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
 
-      const { data, error } = await supabase
-        .from('cash_transactions')
-        .select('id')
-        .eq('type', 'OPENING_FUND')
-        .gte('created_at', today.toISOString())
-        .limit(1);
+        const { data, error } = await supabase
+          .from('cash_transactions')
+          .select('id')
+          .eq('type', 'OPENING_FUND')
+          .gte('created_at', today.toISOString())
+          .limit(1);
 
-      if (!error && (!data || data.length === 0)) {
-        setIsOpeningFundModalOpen(true);
+        if (error) {
+          console.error('Error checking opening fund:', error);
+          return;
+        }
+
+        if (!data || data.length === 0) {
+          setIsOpeningFundModalOpen(true);
+        }
+      } catch (err) {
+        console.error('Unexpected error checking opening fund:', err);
       }
     };
 
