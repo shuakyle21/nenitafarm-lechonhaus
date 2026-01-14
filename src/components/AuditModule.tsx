@@ -14,6 +14,9 @@ import {
 import { orderService } from '@/services/orderService';
 import { financeService } from '@/services/financeService';
 import { createDateMatcher } from '@/utils/dateUtils';
+import { pdf } from '@react-pdf/renderer';
+import { saveAs } from 'file-saver';
+import DailyReconciliationPDF from './DailyReconciliationPDF';
 
 const AuditModule: React.FC = () => {
   const [logs, setLogs] = useState<AuditLog[]>([]);
@@ -30,6 +33,7 @@ const AuditModule: React.FC = () => {
     cashDrops: 0,
     expectedCash: 0
   });
+  const [isVerifying, setIsVerifying] = useState(false);
 
   useEffect(() => {
     fetchLogs();
@@ -307,8 +311,22 @@ const AuditModule: React.FC = () => {
               </div>
             </div>
 
-            <button className="w-full py-4 bg-stone-900 text-white rounded-2xl font-black uppercase tracking-widest shadow-xl hover:bg-stone-800 transition-all">
-              Verify & Lock Daily Report
+            <button 
+              onClick={handleVerifyAndLock}
+              disabled={isVerifying || !actualCash}
+              className="w-full py-4 bg-stone-900 text-white rounded-2xl font-black uppercase tracking-widest shadow-xl hover:bg-stone-800 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+            >
+              {isVerifying ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-2 border-white/20 border-t-white"></div>
+                  Verifying...
+                </>
+              ) : (
+                <>
+                  <CheckCircle2 size={20} />
+                  Verify & Lock Daily Report
+                </>
+              )}
             </button>
           </div>
         </div>
