@@ -194,7 +194,14 @@ const DailyReconciliationPDF: React.FC<DailyReconciliationPDFProps> = ({ data, d
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Audit Notification</Text>
           <Text style={styles.noteText}>
-            This report represents the verified daily cash flow as of {new Date().toLocaleString()}. 
+            This report represents the verified daily cash flow as of {new Date().toLocaleString("en-PH", {
+              year: "numeric",
+              month: "short",
+              day: "numeric",
+              hour: "numeric",
+              minute: "2-digit",
+              hour12: true,
+            })}. 
             Any discrepancies exceeding PHP 50.00 have been flagged for manual investigation of the 
             system audit trail (Activity Logs). Once locked, this report serves as a formal financial record.
           </Text>
@@ -219,7 +226,14 @@ const DailyReconciliationPDF: React.FC<DailyReconciliationPDFProps> = ({ data, d
         {/* Footer */}
         <Text style={styles.footer}>
           Nenita Farm Lechon Haus POS System - Official Financial Document
-          {"\n"}Report ID: REC-{Date.now().toString().slice(-8)} | Generated: {new Date().toISOString()}
+          {"\n"}Report ID: REC-{Date.now().toString().slice(-8)} | Generated: {new Date().toLocaleString("en-PH", {
+            year: "numeric",
+            month: "short",
+            day: "numeric",
+            hour: "numeric",
+            minute: "2-digit",
+            hour12: true,
+          })}
         </Text>
       </Page>
     </Document>

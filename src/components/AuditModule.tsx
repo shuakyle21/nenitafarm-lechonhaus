@@ -72,7 +72,15 @@ const AuditModule: React.FC = () => {
     try {
       const actualAmount = parseFloat(actualCash) || 0;
       const discrepancy = reconciliation.expectedCash - actualAmount;
-      const todayStr = new Date().toLocaleDateString();
+      const dateOptions: Intl.DateTimeFormatOptions = {
+        year: "numeric",
+        month: "short",
+        day: "numeric",
+        hour: "numeric",
+        minute: "2-digit",
+        hour12: true,
+      };
+      const todayStr = new Date().toLocaleString("en-PH", dateOptions);
 
       const reportData = {
         ...reconciliation,
@@ -216,7 +224,14 @@ const AuditModule: React.FC = () => {
                     onClick={() => setExpandedId(expandedId === log.id ? null : log.id)}
                   >
                     <td className="px-6 py-4 font-medium text-stone-600">
-                      {new Date(log.changed_at).toLocaleString()}
+                      {new Date(log.changed_at).toLocaleString("en-PH", {
+                        year: "numeric",
+                        month: "short",
+                        day: "numeric",
+                        hour: "numeric",
+                        minute: "2-digit",
+                        hour12: true,
+                      })}
                     </td>
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-2">
