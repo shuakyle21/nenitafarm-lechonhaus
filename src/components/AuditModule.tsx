@@ -62,6 +62,43 @@ const AuditModule: React.FC = () => {
     }
   };
 
+  const handleVerifyAndLock = async () => {
+    if (!actualCash) {
+      alert('Please enter the actual cash in drawer before verifying.');
+      return;
+    }
+
+    setIsVerifying(true);
+    try {
+      const actualAmount = parseFloat(actualCash) || 0;
+      const discrepancy = reconciliation.expectedCash - actualAmount;
+      const todayStr = new Date().toLocaleDateString();
+
+      const reportData = {
+        ...reconciliation,
+        actualCash: actualAmount,
+        discrepancy
+      };
+
+      const blob = await pdf(
+        <DailyReconciliationPDF 
+          data={reportData} 
+          date={todayStr} 
+          auditor="System Auditor" 
+        />
+      ).toBlob();
+
+      saveAs(blob, `Daily_Reconciliation_${new Date().toISOString().split('T')[0]}.pdf`);
+      
+      alert('Daily report verified and downloaded successfully.');
+    } catch (err) {
+      console.error('Failed to generate report:', err);
+      alert('Failed to generate the daily report. Please try again.');
+    } finally {
+      setIsVerifying(false);
+    }
+  };
+
   const getActionColor = (action: string) => {
     switch (action) {
       case 'INSERT': return 'text-green-600 bg-green-50 border-green-200';
