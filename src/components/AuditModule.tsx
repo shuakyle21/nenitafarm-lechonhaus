@@ -14,6 +14,8 @@ import {
 import { orderService } from '@/services/orderService';
 import { financeService } from '@/services/financeService';
 import { createDateMatcher } from '@/utils/dateUtils';
+import { menuService } from '@/services/menuService';
+import { MenuItem } from '@/types';
 import { pdf } from '@react-pdf/renderer';
 import { saveAs } from 'file-saver';
 import DailyReconciliationPDF from './DailyReconciliationPDF';
@@ -25,6 +27,7 @@ const AuditModule: React.FC = () => {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [activeTab, setActiveTab] = useState<'LOGS' | 'RECONCILIATION'>('LOGS');
+  const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
   const [actualCash, setActualCash] = useState<string>('');
   const [reconciliation, setReconciliation] = useState({
     openingFund: 0,
@@ -38,7 +41,17 @@ const AuditModule: React.FC = () => {
   useEffect(() => {
     fetchLogs();
     fetchReconciliation();
+    fetchMenuItems();
   }, []);
+
+  const fetchMenuItems = async () => {
+    try {
+      const items = await menuService.getMenuItems();
+      setMenuItems(items);
+    } catch (err) {
+      console.error('Failed to fetch menu items:', err);
+    }
+  };
 
   const fetchReconciliation = async () => {
     try {
@@ -119,8 +132,29 @@ const AuditModule: React.FC = () => {
   const filteredLogs = logs.filter(log => 
     log.table_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     log.action.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    log.user?.username.toLowerCase().includes(searchTerm.toLowerCase())
+    log.user?.username.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    getItemName(log).toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+  function getItemName(log: AuditLog) {
+    const data = log.new_data || log.old_data || {};
+    
+    if (log.table_name === 'order_items') {
+      const menuId = data.menu_item_id;
+      const menuItem = menuItems.find(item => item.id === menuId);
+      return menuItem ? menuItem.name : `Item #${menuId?.substring(0, 5)}`;
+    }
+    
+    if (log.table_name === 'orders') {
+      return `Order #${data.order_number || data.id?.substring(0, 8)}`;
+    }
+
+    if (log.table_name === 'expenses') {
+      return data.description || 'Expense';
+    }
+
+    return 'N/A';
+  }
 
   if (loading) {
     return (
@@ -211,6 +245,7 @@ const AuditModule: React.FC = () => {
                 <th className="px-6 py-4 text-xs font-bold text-stone-400 uppercase tracking-widest">Time</th>
                 <th className="px-6 py-4 text-xs font-bold text-stone-400 uppercase tracking-widest">User</th>
                 <th className="px-6 py-4 text-xs font-bold text-stone-400 uppercase tracking-widest">Table</th>
+                <th className="px-6 py-4 text-xs font-bold text-stone-400 uppercase tracking-widest">Detail</th>
                 <th className="px-6 py-4 text-xs font-bold text-stone-400 uppercase tracking-widest">Action</th>
                 <th className="px-6 py-4 text-xs font-bold text-stone-400 uppercase tracking-widest">Record ID</th>
                 <th className="px-6 py-4"></th>
@@ -245,6 +280,9 @@ const AuditModule: React.FC = () => {
                     </td>
                     <td className="px-6 py-4 font-bold text-stone-700 uppercase text-xs tracking-tight">
                       {log.table_name}
+                    </td>
+                    <td className="px-6 py-4 font-medium text-stone-800">
+                      {getItemName(log)}
                     </td>
                     <td className="px-6 py-4">
                       <span className={`px-3 py-1 rounded-full text-[10px] font-black border uppercase tracking-wider ${getActionColor(log.action)}`}>
