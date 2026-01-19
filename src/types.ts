@@ -116,6 +116,18 @@ export interface Attendance {
   notes?: string;
 }
 
+export type StaffTransactionType = 'ADVANCE' | 'PAYMENT' | 'SALARY_PAYOUT';
+
+export interface StaffTransaction {
+  id: string;
+  staff_id: string;
+  amount: number;
+  type: StaffTransactionType;
+  date: string;
+  notes?: string;
+  created_at: string;
+}
+
 export interface Booking {
   id?: string;
   customer_name: string;
