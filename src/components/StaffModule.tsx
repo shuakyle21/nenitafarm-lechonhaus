@@ -1,8 +1,8 @@
 import * as React from 'react';
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
-import { Staff, Attendance } from '../types';
-import { Plus, Save, X, UserCheck, UserX, FileText } from 'lucide-react';
+import { Staff, Attendance, StaffTransaction, StaffTransactionType } from '../types';
+import { Plus, Save, X, UserCheck, UserX, FileText, CreditCard, DollarSign, Calculator, Calendar } from 'lucide-react';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
@@ -24,9 +24,22 @@ const StaffModule: React.FC = () => {
     daily_wage: 0,
   });
 
+  // Payroll & CA State
+  const [transactions, setTransactions] = useState<StaffTransaction[]>([]);
+  const [isCAModalOpen, setIsCAModalOpen] = useState(false);
+  const [isPayModalOpen, setIsPayModalOpen] = useState(false);
+  const [isPayrollModalOpen, setIsPayrollModalOpen] = useState(false);
+  const [selectedStaffForAction, setSelectedStaffForAction] = useState<Staff | null>(null);
+  const [transactionData, setTransactionData] = useState({ amount: 0, notes: '', date: new Date().toISOString().split('T')[0] });
+  const [payrollRange, setPayrollRange] = useState({
+    startDate: new Date(new Date().setDate(new Date().getDate() - 15)).toISOString().split('T')[0],
+    endDate: new Date().toISOString().split('T')[0],
+  });
+
   useEffect(() => {
     fetchStaff();
     fetchAttendance();
+    fetchTransactions();
   }, []);
 
   const fetchStaff = async () => {
@@ -151,6 +164,52 @@ const StaffModule: React.FC = () => {
       return { status: 'ABSENT', recordId: record.id, notes: record.notes };
     if (!record.clock_out) return { status: 'CLOCKED_IN', recordId: record.id };
     return { status: 'CLOCKED_OUT', recordId: record.id };
+  };
+
+  const fetchTransactions = async () => {
+    try {
+      const { data, error } = await supabase.from('staff_transactions').select('*').order('date', { ascending: false });
+      if (error) throw error;
+      if (data) setTransactions(data);
+    } catch (error) {
+      console.error('Error fetching transactions:', error);
+    }
+  };
+
+  const getOutstandingAdvance = (staffId: string) => {
+    const staffTx = transactions.filter(t => t.staff_id === staffId);
+    const advances = staffTx.filter(t => t.type === 'ADVANCE').reduce((sum, t) => sum + Number(t.amount), 0);
+    const payments = staffTx.filter(t => t.type === 'PAYMENT' || t.type === 'SALARY_PAYOUT').reduce((sum, t) => sum + Number(t.amount), 0);
+    return advances - payments;
+  };
+
+  const handleSaveTransaction = async (type: StaffTransactionType) => {
+    if (!selectedStaffForAction) return;
+    try {
+      const { data, error } = await supabase
+        .from('staff_transactions')
+        .insert([{
+          staff_id: selectedStaffForAction.id,
+          amount: transactionData.amount,
+          type,
+          date: transactionData.date,
+          notes: transactionData.notes
+        }])
+        .select()
+        .single();
+
+      if (error) throw error;
+      if (data) {
+        setTransactions([data, ...transactions]);
+        setIsCAModalOpen(false);
+        setIsPayModalOpen(false);
+        setTransactionData({ amount: 0, notes: '', date: new Date().toISOString().split('T')[0] });
+        alert(`${type === 'ADVANCE' ? 'Cash Advance' : 'Payment'} recorded successfully!`);
+      }
+    } catch (error) {
+      console.error('Error recording transaction:', error);
+      alert('Failed to record transaction');
+    }
   };
 
   // --- Clock & Report Logic ---
@@ -379,6 +438,36 @@ const StaffModule: React.FC = () => {
                     )}
                   </div>
                 )}
+
+                {/* Payroll & CA Actions */}
+                <div className="mt-4 pt-4 border-t border-stone-100">
+                  <div className="flex justify-between items-center mb-3">
+                    <span className="text-xs font-bold text-stone-400 uppercase tracking-wider">Outstanding CA</span>
+                    <span className={`text-sm font-black ${getOutstandingAdvance(staff.id) > 0 ? 'text-red-600' : 'text-green-600'}`}>
+                      P {getOutstandingAdvance(staff.id).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-3 gap-2">
+                    <button
+                      onClick={() => { setSelectedStaffForAction(staff); setIsCAModalOpen(true); }}
+                      className="bg-orange-50 text-orange-700 p-2 rounded-lg text-[10px] font-bold flex flex-col items-center gap-1 hover:bg-orange-100 transition-colors"
+                    >
+                      <DollarSign size={14} /> CA Advance
+                    </button>
+                    <button
+                      onClick={() => { setSelectedStaffForAction(staff); setIsPayModalOpen(true); }}
+                      className="bg-blue-50 text-blue-700 p-2 rounded-lg text-[10px] font-bold flex flex-col items-center gap-1 hover:bg-blue-100 transition-colors"
+                    >
+                      <CreditCard size={14} /> Pay CA
+                    </button>
+                    <button
+                      onClick={() => { setSelectedStaffForAction(staff); setIsPayrollModalOpen(true); }}
+                      className="bg-purple-50 text-purple-700 p-2 rounded-lg text-[10px] font-bold flex flex-col items-center gap-1 hover:bg-purple-100 transition-colors"
+                    >
+                      <Calculator size={14} /> Payroll
+                    </button>
+                  </div>
+                </div>
               </div>
             );
           })}
@@ -512,6 +601,117 @@ const StaffModule: React.FC = () => {
                 Confirm Absence
               </button>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Cash Advance & Payment Modals */}
+      {(isCAModalOpen || isPayModalOpen) && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
+            <div className={`p-4 border-b border-stone-100 flex justify-between items-center ${isCAModalOpen ? 'bg-orange-50' : 'bg-blue-50'}`}>
+              <h2 className="font-bold text-lg text-stone-800">
+                {isCAModalOpen ? 'Cash Advance' : 'Pay Advance'} - {selectedStaffForAction?.name}
+              </h2>
+              <button
+                onClick={() => { setIsCAModalOpen(false); setIsPayModalOpen(false); }}
+                className="p-2 hover:bg-stone-200 rounded-full transition-colors"
+              >
+                <X size={20} className="text-stone-500" />
+              </button>
+            </div>
+
+            <div className="p-6 space-y-4">
+              <div>
+                <label className="block text-sm font-bold text-stone-600 mb-1">Amount (PHP)</label>
+                <input
+                  type="number"
+                  required
+                  min="0"
+                  step="0.01"
+                  value={transactionData.amount}
+                  onChange={(e) => setTransactionData({ ...transactionData, amount: parseFloat(e.target.value) })}
+                  className="w-full p-3 bg-stone-50 border border-stone-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-stone-900"
+                  placeholder="0.00"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-bold text-stone-600 mb-1">Date</label>
+                <input
+                  type="date"
+                  value={transactionData.date}
+                  onChange={(e) => setTransactionData({ ...transactionData, date: e.target.value })}
+                  className="w-full p-3 bg-stone-50 border border-stone-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-stone-900"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-bold text-stone-600 mb-1">Notes (Optional)</label>
+                <textarea
+                  value={transactionData.notes}
+                  onChange={(e) => setTransactionData({ ...transactionData, notes: e.target.value })}
+                  className="w-full p-3 bg-stone-50 border border-stone-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-stone-900 min-h-[80px]"
+                  placeholder="Reason or details..."
+                />
+              </div>
+
+              <button
+                onClick={() => handleSaveTransaction(isCAModalOpen ? 'ADVANCE' : 'PAYMENT')}
+                className={`w-full text-white py-4 rounded-xl font-bold text-lg shadow-lg transition-all mt-4 flex items-center justify-center gap-2 ${isCAModalOpen ? 'bg-orange-600 hover:bg-orange-700' : 'bg-blue-600 hover:bg-blue-700'}`}
+              >
+                <Save size={20} />
+                Confirm {isCAModalOpen ? 'Advance' : 'Payment'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Payroll Modal */}
+      {isPayrollModalOpen && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
+            <div className="p-4 border-b border-stone-100 flex justify-between items-center bg-purple-50">
+              <h2 className="font-bold text-lg text-stone-800">Generate Payroll - {selectedStaffForAction?.name}</h2>
+              <button
+                onClick={() => setIsPayrollModalOpen(false)}
+                className="p-2 hover:bg-stone-200 rounded-full transition-colors"
+              >
+                <X size={20} className="text-stone-500" />
+              </button>
+            </div>
+
+            <div className="p-6 space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-bold text-stone-600 mb-1">Start Date</label>
+                  <input
+                    type="date"
+                    value={payrollRange.startDate}
+                    onChange={(e) => setPayrollRange({ ...payrollRange, startDate: e.target.value })}
+                    className="w-full p-3 bg-stone-50 border border-stone-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-600"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-bold text-stone-600 mb-1">End Date</label>
+                  <input
+                    type="date"
+                    value={payrollRange.endDate}
+                    onChange={(e) => setPayrollRange({ ...payrollRange, endDate: e.target.value })}
+                    className="w-full p-3 bg-stone-50 border border-stone-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-600"
+                  />
+                </div>
+              </div>
+
+              <button
+                onClick={() => { /* TODO: Generate PDF logic */ }}
+                className="w-full bg-purple-600 text-white py-4 rounded-xl font-bold text-lg shadow-lg hover:bg-purple-700 transition-all mt-4 flex items-center justify-center gap-2"
+              >
+                <FileText size={20} />
+                Generate Salary Report
+              </button>
+            </div>
           </div>
         </div>
       )}
