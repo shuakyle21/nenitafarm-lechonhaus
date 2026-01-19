@@ -5,6 +5,7 @@ import { Staff, Attendance, StaffTransaction, StaffTransactionType } from '../ty
 import { Plus, Save, X, UserCheck, UserX, FileText, CreditCard, DollarSign, Calculator, Calendar } from 'lucide-react';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import { generatePayrollPDF } from '../utils/payrollPDF';
 
 const StaffModule: React.FC = () => {
   const [staffList, setStaffList] = useState<Staff[]>([]);
@@ -181,6 +182,80 @@ const StaffModule: React.FC = () => {
     const advances = staffTx.filter(t => t.type === 'ADVANCE').reduce((sum, t) => sum + Number(t.amount), 0);
     const payments = staffTx.filter(t => t.type === 'PAYMENT' || t.type === 'SALARY_PAYOUT').reduce((sum, t) => sum + Number(t.amount), 0);
     return advances - payments;
+  };
+
+  const handleGeneratePayroll = async () => {
+    if (!selectedStaffForAction) return;
+    try {
+      // 1. Fetch attendance for the range
+      const { data: attData, error: attError } = await supabase
+        .from('attendance')
+        .select('*')
+        .eq('staff_id', selectedStaffForAction.id)
+        .gte('date', payrollRange.startDate)
+        .lte('date', payrollRange.endDate)
+        .order('date', { ascending: true });
+
+      if (attError) throw attError;
+
+      // 2. Fetch all transactions for this staff to get accurate balance
+      const { data: txData, error: txError } = await supabase
+        .from('staff_transactions')
+        .select('*')
+        .eq('staff_id', selectedStaffForAction.id)
+        .lte('date', payrollRange.endDate)
+        .order('date', { ascending: true });
+
+      if (txError) throw txError;
+
+      // 3. Generate PDF
+      const { grossPay, deduction, netPay } = generatePayrollPDF({
+        staff: selectedStaffForAction,
+        startDate: payrollRange.startDate,
+        endDate: payrollRange.endDate,
+        attendance: attData || [],
+        transactions: txData || [],
+        prevBalance: 0 // Logic included in totalDebt calculation inside PDF tool for simplicity
+      });
+
+      // 4. Update preview state if we want to confirm payout
+      if (confirm(`Salary Report Generated for ${selectedStaffForAction.name}.\n\nGross Pay: P ${grossPay.toFixed(2)}\nDeduction: P ${deduction.toFixed(2)}\nNet Pay: P ${netPay.toFixed(2)}\n\nDo you want to RECORD this payout and clear the used CA balance?`)) {
+        await handleConfirmPayout(selectedStaffForAction.id, deduction, netPay);
+      }
+
+      setIsPayrollModalOpen(false);
+    } catch (error) {
+      console.error('Error generating payroll:', error);
+      alert('Failed to generate payroll report');
+    }
+  };
+
+  const handleConfirmPayout = async (staffId: string, deduction: number, netPay: number) => {
+    try {
+      const records = [];
+
+      // If there was a deduction, record it as a PAYMENT (to clear CA)
+      if (deduction > 0) {
+        records.push({
+          staff_id: staffId,
+          amount: deduction,
+          type: 'SALARY_PAYOUT' as StaffTransactionType,
+          date: new Date().toISOString().split('T')[0],
+          notes: `Automatic deduction from payroll (${payrollRange.startDate} to ${payrollRange.endDate})`
+        });
+      }
+
+      if (records.length > 0) {
+        const { error } = await supabase.from('staff_transactions').insert(records);
+        if (error) throw error;
+        await fetchTransactions();
+      }
+
+      alert('Payout recorded successfully and ledger updated.');
+    } catch (error) {
+      console.error('Error confirming payout:', error);
+      alert('Failed to record payout');
+    }
   };
 
   const handleSaveTransaction = async (type: StaffTransactionType) => {
@@ -705,7 +780,7 @@ const StaffModule: React.FC = () => {
               </div>
 
               <button
-                onClick={() => { /* TODO: Generate PDF logic */ }}
+                onClick={handleGeneratePayroll}
                 className="w-full bg-purple-600 text-white py-4 rounded-xl font-bold text-lg shadow-lg hover:bg-purple-700 transition-all mt-4 flex items-center justify-center gap-2"
               >
                 <FileText size={20} />
