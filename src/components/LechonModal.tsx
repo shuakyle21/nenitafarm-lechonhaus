@@ -152,6 +152,27 @@ const LechonModal: React.FC<LechonModalProps> = ({ isOpen, onClose, onConfirm, i
               <span className="text-xs opacity-75">e.g., ₱500</span>
             </button>
           </div>
+          
+          {/* Quick Select Buttons */}
+          <div className="mb-6">
+            <div className="text-xs text-stone-500 font-bold uppercase tracking-wider mb-2 px-1">
+              Quick Select (By Price)
+            </div>
+            <div className="grid grid-cols-4 gap-2">
+              {[100, 175, 350, 700].map((preset) => (
+                <button
+                  key={preset}
+                  onClick={() => {
+                    setMode('price');
+                    setInputValue(preset.toString());
+                  }}
+                  className="py-2.5 rounded-lg border-b-4 border-stone-200 bg-white text-stone-700 font-bold text-sm hover:bg-red-50 hover:text-red-700 hover:border-red-200 active:border-b-0 active:mt-1 active:mb-[3px] transition-all shadow-sm"
+                >
+                  ₱{preset}
+                </button>
+              ))}
+            </div>
+          </div>
 
           {/* Display Preview */}
           <div className="bg-white border border-stone-200 rounded-xl p-4 mb-6 flex justify-between items-center shadow-sm">
