@@ -43,6 +43,62 @@ export const getLocalDateString = (date: Date) => {
 };
 
 /**
+ * Get the start of day in Philippine timezone (GMT+8)
+ * Returns ISO string for start of day (00:00:00) in Philippine time
+ */
+export const getPhilippineStartOfDay = (date: Date = new Date()): string => {
+  // Convert to Philippine timezone and get start of day
+  const phDate = new Date(date.toLocaleString('en-US', { timeZone: 'Asia/Manila' }));
+  phDate.setHours(0, 0, 0, 0);
+  return phDate.toISOString();
+};
+
+/**
+ * Get the end of day in Philippine timezone (GMT+8)
+ * Returns ISO string for end of day (23:59:59.999) in Philippine time
+ */
+export const getPhilippineEndOfDay = (date: Date = new Date()): string => {
+  // Convert to Philippine timezone and get end of day
+  const phDate = new Date(date.toLocaleString('en-US', { timeZone: 'Asia/Manila' }));
+  phDate.setHours(23, 59, 59, 999);
+  return phDate.toISOString();
+};
+
+/**
+ * Get date for quick filter options (Today, Yesterday, Last 7 Days)
+ */
+export const getDateRangeForFilter = (filterType: 'today' | 'yesterday' | 'last7days'): { startDate: string; endDate: string } => {
+  const now = new Date();
+  
+  switch (filterType) {
+    case 'today':
+      return {
+        startDate: getPhilippineStartOfDay(now),
+        endDate: getPhilippineEndOfDay(now)
+      };
+    case 'yesterday':
+      const yesterday = new Date(now);
+      yesterday.setDate(yesterday.getDate() - 1);
+      return {
+        startDate: getPhilippineStartOfDay(yesterday),
+        endDate: getPhilippineEndOfDay(yesterday)
+      };
+    case 'last7days':
+      const sevenDaysAgo = new Date(now);
+      sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 6); // Include today
+      return {
+        startDate: getPhilippineStartOfDay(sevenDaysAgo),
+        endDate: getPhilippineEndOfDay(now)
+      };
+    default:
+      return {
+        startDate: getPhilippineStartOfDay(now),
+        endDate: getPhilippineEndOfDay(now)
+      };
+  }
+};
+
+/**
  * Creates optimized date matcher functions with memoized 'today' reference
  * Prevents repeated Date object creation and improves performance
  */

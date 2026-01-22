@@ -9,14 +9,17 @@ import {
   ChevronUp,
   Filter as FilterIcon,
   Search,
-  CheckCircle2
+  CheckCircle2,
+  Calendar
 } from 'lucide-react';
 import { orderService } from '@/services/orderService';
 import { financeService } from '@/services/financeService';
-import { createDateMatcher } from '@/utils/dateUtils';
+import { createDateMatcher, getDateRangeForFilter } from '@/utils/dateUtils';
 import { pdf } from '@react-pdf/renderer';
 import { saveAs } from 'file-saver';
 import DailyReconciliationPDF from './DailyReconciliationPDF';
+
+type DateFilterType = 'today' | 'yesterday' | 'last7days' | 'all';
 
 const AuditModule: React.FC = () => {
   const [logs, setLogs] = useState<AuditLog[]>([]);
@@ -26,6 +29,8 @@ const AuditModule: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [activeTab, setActiveTab] = useState<'LOGS' | 'RECONCILIATION'>('LOGS');
   const [actualCash, setActualCash] = useState<string>('');
+  const [dateFilter, setDateFilter] = useState<DateFilterType>('today');
+  const [showFilters, setShowFilters] = useState(false);
   const [reconciliation, setReconciliation] = useState({
     openingFund: 0,
     cashSales: 0,
@@ -38,7 +43,7 @@ const AuditModule: React.FC = () => {
   useEffect(() => {
     fetchLogs();
     fetchReconciliation();
-  }, []);
+  }, [dateFilter]);
 
   const fetchReconciliation = async () => {
     try {
@@ -52,7 +57,18 @@ const AuditModule: React.FC = () => {
   const fetchLogs = async () => {
     try {
       setLoading(true);
-      const data = await auditService.getLogs();
+      
+      // Get date range based on filter
+      let startDate: string | undefined;
+      let endDate: string | undefined;
+      
+      if (dateFilter !== 'all') {
+        const range = getDateRangeForFilter(dateFilter);
+        startDate = range.startDate;
+        endDate = range.endDate;
+      }
+      
+      const data = await auditService.getLogs(startDate, endDate);
       setLogs(data);
     } catch (err) {
       console.error('Error fetching logs:', err);
@@ -185,21 +201,58 @@ const AuditModule: React.FC = () => {
       </div>
 
       {/* Filters */}
-      <div className="bg-white p-4 rounded-2xl shadow-sm border border-stone-100 mb-6 flex gap-4">
-        <div className="flex-1 relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-stone-400" size={18} />
-          <input 
-            type="text"
-            placeholder="Search by table, action, or user..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 bg-stone-50 border border-stone-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-800/20"
-          />
+      <div className="bg-white p-4 rounded-2xl shadow-sm border border-stone-100 mb-6">
+        <div className="flex gap-4 mb-4">
+          <div className="flex-1 relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-stone-400" size={18} />
+            <input 
+              type="text"
+              placeholder="Search by table, action, or user..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full pl-10 pr-4 py-2 bg-stone-50 border border-stone-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-800/20"
+            />
+          </div>
+          <button 
+            onClick={() => setShowFilters(!showFilters)}
+            className={`px-4 py-2 border rounded-xl text-stone-600 flex items-center gap-2 font-bold transition-colors ${showFilters ? 'bg-red-800 text-white border-red-800' : 'border-stone-200 hover:bg-stone-50'}`}
+          >
+            <Calendar size={18} />
+            Date Filters
+          </button>
         </div>
-        <button className="px-4 py-2 border border-stone-200 rounded-xl text-stone-600 flex items-center gap-2 font-bold hover:bg-stone-50 transition-colors">
-          <FilterIcon size={18} />
-          Filters
-        </button>
+        
+        {showFilters && (
+          <div className="pt-4 border-t border-stone-100">
+            <p className="text-xs font-bold text-stone-400 uppercase tracking-widest mb-3">Quick Select</p>
+            <div className="flex gap-2">
+              <button 
+                onClick={() => setDateFilter('today')}
+                className={`px-4 py-2 rounded-lg font-bold text-sm transition-all ${dateFilter === 'today' ? 'bg-red-800 text-white shadow-lg' : 'bg-stone-100 text-stone-600 hover:bg-stone-200'}`}
+              >
+                Today
+              </button>
+              <button 
+                onClick={() => setDateFilter('yesterday')}
+                className={`px-4 py-2 rounded-lg font-bold text-sm transition-all ${dateFilter === 'yesterday' ? 'bg-red-800 text-white shadow-lg' : 'bg-stone-100 text-stone-600 hover:bg-stone-200'}`}
+              >
+                Yesterday
+              </button>
+              <button 
+                onClick={() => setDateFilter('last7days')}
+                className={`px-4 py-2 rounded-lg font-bold text-sm transition-all ${dateFilter === 'last7days' ? 'bg-red-800 text-white shadow-lg' : 'bg-stone-100 text-stone-600 hover:bg-stone-200'}`}
+              >
+                Last 7 Days
+              </button>
+              <button 
+                onClick={() => setDateFilter('all')}
+                className={`px-4 py-2 rounded-lg font-bold text-sm transition-all ${dateFilter === 'all' ? 'bg-red-800 text-white shadow-lg' : 'bg-stone-100 text-stone-600 hover:bg-stone-200'}`}
+              >
+                All Time
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Log Table */}
