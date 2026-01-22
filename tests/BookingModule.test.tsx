@@ -4,25 +4,24 @@ import BookingModule from '@/components/BookingModule';
 import { MenuItem } from '@/types';
 
 // Mock Supabase
-vi.mock('@/lib/supabase', () => ({
-  supabase: {
-    from: () => ({
-      select: () => ({
-        eq: () => ({
-          order: () => ({
-            data: [],
-            error: null,
-          }),
-        }),
-      }),
-      on: () => ({
-        subscribe: () => ({
-          unsubscribe: vi.fn(),
-        }),
-      }),
-    }),
-  },
-}));
+vi.mock('@/lib/supabase', () => {
+  const mockFrom = {
+    select: vi.fn().mockReturnThis(),
+    eq: vi.fn().mockReturnThis(),
+    gte: vi.fn().mockReturnThis(),
+    order: vi.fn().mockReturnThis(),
+    delete: vi.fn().mockReturnThis(),
+    update: vi.fn().mockReturnThis(),
+    insert: vi.fn().mockReturnThis(),
+    then: (resolve) => resolve({ data: [], error: null }),
+  };
+
+  return {
+    supabase: {
+      from: vi.fn().mockReturnValue(mockFrom),
+    },
+  };
+});
 
 // Mock Lucide React icons
 vi.mock('lucide-react', () => ({
@@ -42,6 +41,8 @@ vi.mock('lucide-react', () => ({
   ShoppingBag: () => <div data-testid="icon-shopping-bag" />,
   CreditCard: () => <div data-testid="icon-credit-card" />,
   Printer: () => <div data-testid="icon-printer" />,
+  Search: () => <div data-testid="icon-search" />,
+  X: () => <div data-testid="icon-x" />,
 }));
 
 // Mock PDF renderer
@@ -88,18 +89,17 @@ describe('BookingModule', () => {
     // Select Pre-order
     fireEvent.click(screen.getByLabelText('Pre-order'));
 
-    // Select Item
-    const select = screen.getByTestId('item-select');
-    fireEvent.change(select, { target: { value: '1' } }); // Select Lechon Belly
+    // Open Item Selector
+    const openBtn = screen.getByTestId('open-item-selector');
+    fireEvent.click(openBtn);
 
-    // Check if price input is populated
-    const priceInput = screen.getByDisplayValue('650');
-    expect(priceInput).toBeInTheDocument();
+    // Find and add Lechon Belly
+    const addBtn = screen.getByTestId('add-item-1');
+    fireEvent.click(addBtn);
 
-    // Add Item
-    // Finding the button containing the Plus icon
-    const plusIcon = screen.getByTestId('icon-plus');
-    fireEvent.click(plusIcon.closest('button')!);
+    // Confirm selection
+    const confirmBtn = screen.getByTestId('confirm-add-items');
+    fireEvent.click(confirmBtn);
 
     // Check Total
     expect(screen.getByText('Total Amount')).toBeInTheDocument();

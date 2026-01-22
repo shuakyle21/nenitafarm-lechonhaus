@@ -345,7 +345,7 @@ const BookingModule: React.FC<BookingModuleProps> = ({ items }) => {
                         <Pencil size={14} />
                       </button>
                       <button
-                        onClick={() => handleDelete(booking.id!)}
+                        onClick={() => handleDelete(booking.id)}
                         className="p-1.5 text-stone-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
                         title="Delete"
                       >
@@ -537,6 +537,7 @@ const BookingModule: React.FC<BookingModuleProps> = ({ items }) => {
                 <div className="flex justify-center">
                   <button
                     type="button"
+                    data-testid="open-item-selector"
                     onClick={() => setIsItemSelectorOpen(true)}
                     className="w-full py-4 border-2 border-dashed border-orange-300 rounded-2xl text-orange-600 font-black uppercase tracking-widest hover:bg-orange-100/50 hover:border-orange-400 transition-all flex items-center justify-center gap-2 group"
                   >

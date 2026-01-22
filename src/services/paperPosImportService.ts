@@ -223,7 +223,7 @@ export const paperPosImportService = {
 
     for (const record of unsyncedRecords) {
       try {
-        await this.syncRecordToOrder(record.id!);
+        await this.syncRecordToOrder(record.id);
         results.success++;
       } catch (error) {
         results.failed++;

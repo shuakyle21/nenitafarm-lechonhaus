@@ -189,7 +189,7 @@ const SidebarCart: React.FC<SidebarCartProps> = ({
             placeholder="Delivery Address"
             value={deliveryDetails?.address || ''}
             onChange={(e) =>
-              onUpdateDeliveryDetails({ ...deliveryDetails!, address: e.target.value })
+              onUpdateDeliveryDetails({ ...deliveryDetails, address: e.target.value })
             }
             className="w-full p-2 text-sm border border-red-200 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500 bg-white"
           />
@@ -198,7 +198,7 @@ const SidebarCart: React.FC<SidebarCartProps> = ({
               type="time"
               value={deliveryDetails?.time || ''}
               onChange={(e) =>
-                onUpdateDeliveryDetails({ ...deliveryDetails!, time: e.target.value })
+                onUpdateDeliveryDetails({ ...deliveryDetails, time: e.target.value })
               }
               className="flex-1 p-2 text-sm border border-red-200 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500 bg-white"
             />
@@ -207,7 +207,7 @@ const SidebarCart: React.FC<SidebarCartProps> = ({
               placeholder="Contact #"
               value={deliveryDetails?.contact || ''}
               onChange={(e) =>
-                onUpdateDeliveryDetails({ ...deliveryDetails!, contact: e.target.value })
+                onUpdateDeliveryDetails({ ...deliveryDetails, contact: e.target.value })
               }
               className="flex-1 p-2 text-sm border border-red-200 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500 bg-white"
             />
