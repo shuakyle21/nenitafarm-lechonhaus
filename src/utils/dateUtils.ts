@@ -47,10 +47,25 @@ export const getLocalDateString = (date: Date) => {
  * Returns ISO string for start of day (00:00:00) in Philippine time
  */
 export const getPhilippineStartOfDay = (date: Date = new Date()): string => {
-  // Convert to Philippine timezone and get start of day
-  const phDate = new Date(date.toLocaleString('en-US', { timeZone: 'Asia/Manila' }));
-  phDate.setHours(0, 0, 0, 0);
-  return phDate.toISOString();
+  // Philippine time is UTC+8
+  const PHILIPPINE_OFFSET_MS = 8 * 60 * 60 * 1000;
+  
+  // Get the UTC timestamp
+  const utcTime = date.getTime();
+  
+  // Convert to Philippine time
+  const phTime = new Date(utcTime + PHILIPPINE_OFFSET_MS);
+  
+  // Set to start of day in Philippine time
+  const phStartOfDay = new Date(Date.UTC(
+    phTime.getUTCFullYear(),
+    phTime.getUTCMonth(),
+    phTime.getUTCDate(),
+    0, 0, 0, 0
+  ));
+  
+  // Convert back to UTC for storage
+  return new Date(phStartOfDay.getTime() - PHILIPPINE_OFFSET_MS).toISOString();
 };
 
 /**
@@ -58,10 +73,25 @@ export const getPhilippineStartOfDay = (date: Date = new Date()): string => {
  * Returns ISO string for end of day (23:59:59.999) in Philippine time
  */
 export const getPhilippineEndOfDay = (date: Date = new Date()): string => {
-  // Convert to Philippine timezone and get end of day
-  const phDate = new Date(date.toLocaleString('en-US', { timeZone: 'Asia/Manila' }));
-  phDate.setHours(23, 59, 59, 999);
-  return phDate.toISOString();
+  // Philippine time is UTC+8
+  const PHILIPPINE_OFFSET_MS = 8 * 60 * 60 * 1000;
+  
+  // Get the UTC timestamp
+  const utcTime = date.getTime();
+  
+  // Convert to Philippine time
+  const phTime = new Date(utcTime + PHILIPPINE_OFFSET_MS);
+  
+  // Set to end of day in Philippine time
+  const phEndOfDay = new Date(Date.UTC(
+    phTime.getUTCFullYear(),
+    phTime.getUTCMonth(),
+    phTime.getUTCDate(),
+    23, 59, 59, 999
+  ));
+  
+  // Convert back to UTC for storage
+  return new Date(phEndOfDay.getTime() - PHILIPPINE_OFFSET_MS).toISOString();
 };
 
 /**
