@@ -13,13 +13,9 @@ import {
 } from 'lucide-react';
 import { orderService } from '@/services/orderService';
 import { financeService } from '@/services/financeService';
-<<<<<<< HEAD
 import { createDateMatcher, getDateRangeForFilter } from '@/utils/dateUtils';
-=======
-import { createDateMatcher } from '@/utils/dateUtils';
 import { menuService } from '@/services/menuService';
 import { MenuItem } from '@/types';
->>>>>>> 8831e22 (feat: Add a 'Detail' column to audit logs for better item identification and enhance log filtering by item name.)
 import { pdf } from '@react-pdf/renderer';
 import { saveAs } from 'file-saver';
 import DailyReconciliationPDF from './DailyReconciliationPDF';
@@ -49,12 +45,8 @@ const AuditModule: React.FC = () => {
   useEffect(() => {
     fetchLogs();
     fetchReconciliation();
-<<<<<<< HEAD
-  }, [dateFilter]);
-=======
     fetchMenuItems();
-  }, []);
->>>>>>> 8831e22 (feat: Add a 'Detail' column to audit logs for better item identification and enhance log filtering by item name.)
+  }, [dateFilter]);
 
   const fetchMenuItems = async () => {
     try {
