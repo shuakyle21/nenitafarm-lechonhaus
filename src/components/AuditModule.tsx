@@ -7,7 +7,6 @@ import {
   AlertCircle, 
   ChevronDown, 
   ChevronUp,
-  Filter as FilterIcon,
   Search,
   CheckCircle2,
   Calendar
