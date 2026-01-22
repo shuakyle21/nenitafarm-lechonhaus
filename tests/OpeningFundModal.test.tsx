@@ -41,7 +41,7 @@ describe('OpeningFundModal', () => {
 
     const form = submitButton.closest('form');
     expect(form).toBeInTheDocument();
-    fireEvent.submit(form!);
+    fireEvent.submit(form);
 
     expect(mockSubmit).toHaveBeenCalledWith(5000, 'John Doe');
   });
