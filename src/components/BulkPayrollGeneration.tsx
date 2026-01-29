@@ -137,27 +137,8 @@ const BulkPayrollGeneration: React.FC = () => {
   };
 
   return (
-    <div className="flex-1 bg-stone-50 overflow-hidden flex flex-col">
-      {/* Header */}
-      <header className="bg-white border-b border-stone-200 px-6 py-4">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-xl font-bold text-stone-800">Bulk Payroll Generation</h1>
-            <p className="text-sm text-stone-500">Generate payroll for multiple staff members</p>
-          </div>
-          <div className="text-right">
-            <div className="text-lg font-mono font-bold text-stone-800">
-              {currentTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
-            </div>
-            <div className="text-xs text-stone-400 uppercase">
-              {currentTime.toLocaleDateString([], { weekday: 'long', month: 'short', day: 'numeric' })}
-            </div>
-          </div>
-        </div>
-      </header>
-
-      <main className="flex-1 overflow-y-auto p-6">
-        {/* Filters */}
+    <div className="flex-1">
+      {/* Filters */}
         <div className="flex items-center gap-4 mb-6">
           <div>
             <label className="block text-xs font-medium text-stone-500 mb-1">Date Range Picker</label>
@@ -270,7 +251,6 @@ const BulkPayrollGeneration: React.FC = () => {
             </table>
           </div>
         )}
-      </main>
     </div>
   );
 };

@@ -97,29 +97,8 @@ const FinancialLedger: React.FC<FinancialLedgerProps> = ({ onBack }) => {
   }
 
   return (
-    <div className="flex-1 bg-stone-50 overflow-hidden flex flex-col">
-      {/* Header */}
-      <header className="bg-white border-b border-stone-200 px-6 py-4">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-xl font-bold text-stone-800">Restaurant Financial Ledger Overview</h1>
-            <p className="text-sm text-stone-500">Track all staff-related financial transactions</p>
-          </div>
-          <div className="flex items-center gap-4">
-            <div className="text-right">
-              <div className="text-lg font-mono font-bold text-stone-800">
-                {currentTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
-              </div>
-              <div className="text-xs text-stone-400 uppercase">
-                {currentTime.toLocaleDateString([], { weekday: 'long', month: 'short', day: 'numeric' })}
-              </div>
-            </div>
-          </div>
-        </div>
-      </header>
-
-      <main className="flex-1 overflow-y-auto p-6">
-        {/* Summary Cards */}
+    <div className="flex-1">
+      {/* Summary Cards */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
           <div className="bg-white rounded-xl border border-stone-200 p-5">
             <p className="text-sm text-stone-500 mb-1">Total Payroll Paid</p>
@@ -238,7 +217,6 @@ const FinancialLedger: React.FC<FinancialLedgerProps> = ({ onBack }) => {
             </table>
           </div>
         </div>
-      </main>
     </div>
   );
 };
