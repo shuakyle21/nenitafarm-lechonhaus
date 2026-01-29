@@ -6,6 +6,7 @@ import {
   Settings, Search, Filter, ChevronRight, Clock, Wallet, Users,
   Edit2, Trash2, Save, ArrowLeft
 } from 'lucide-react';
+import StaffDetailedManagement from './StaffDetailedManagement';
 
 type ViewMode = 'grid' | 'manage' | 'payroll' | 'ledger';
 type RoleFilter = 'All' | 'Server' | 'Cashier' | 'Kitchen' | 'Manager';
@@ -236,13 +237,13 @@ const StaffManagementModule: React.FC = () => {
             <div>
               <h1 className="text-xl font-bold text-stone-800">
                 {viewMode === 'grid' && 'Staff Management'}
-                {viewMode === 'manage' && `${selectedStaff?.name} - Details`}
+                {viewMode === 'manage' && 'Staff Member Detailed Management'}
                 {viewMode === 'payroll' && 'Bulk Payroll Generation'}
                 {viewMode === 'ledger' && 'Restaurant Financial Ledger'}
               </h1>
               <p className="text-sm text-stone-500">
                 {viewMode === 'grid' && 'Manage servers, roles, and attendance'}
-                {viewMode === 'manage' && 'Salary, transactions, and payroll history'}
+                {viewMode === 'manage' && 'Personal info, employment details, and payroll history'}
                 {viewMode === 'payroll' && 'Generate payroll for selected staff'}
                 {viewMode === 'ledger' && 'Overview of all financial transactions'}
               </p>
@@ -426,7 +427,27 @@ const StaffManagementModule: React.FC = () => {
           </div>
         )}
 
-        {/* Other views will be added in next file */}
+        {/* Staff Member Detailed Management View */}
+        {viewMode === 'manage' && selectedStaff && (
+          <StaffDetailedManagement
+            staff={selectedStaff}
+            transactions={transactions.filter(t => t.staff_id === selectedStaff.id)}
+            onSave={async (updates) => {
+              try {
+                await staffManagementService.updateStaff(selectedStaff.id, updates);
+                await fetchAllData();
+                // Update selectedStaff with new data
+                setSelectedStaff(prev => prev ? { ...prev, ...updates } : null);
+                alert('Staff member updated successfully');
+              } catch (error) {
+                console.error('Update staff error:', error);
+                alert('Failed to update staff');
+              }
+            }}
+            onDelete={() => handleDeleteStaff(selectedStaff.id)}
+            currentTime={currentTime}
+          />
+        )}
       </main>
 
       {/* Add Staff Modal */}
