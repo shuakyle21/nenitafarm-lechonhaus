@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { supabase } from '../lib/supabase';
-import { Order, Expense, SalesAdjustment, CashTransaction, PaperPosRecord } from '../types';
+import { Order, Expense, SalesAdjustment, CashTransaction, PaperPosRecord, StaffTransaction } from '../types';
 import {
   LineChart,
   Line,
@@ -93,6 +93,9 @@ const FinancialModule: React.FC<FinancialModuleProps> = ({
   const [isPaperPosImportModalOpen, setIsPaperPosImportModalOpen] = useState(false);
   const [showPaperPosRecords, setShowPaperPosRecords] = useState(false);
 
+  // Internal State for Staff Transactions
+  const [staffTransactions, setStaffTransactions] = useState<StaffTransaction[]>([]);
+
   // Date Range State
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
@@ -108,7 +111,18 @@ const FinancialModule: React.FC<FinancialModuleProps> = ({
       if (data) setCashTransactions(data);
       if (error) console.error('Error fetching cash transactions:', error);
     };
+    const fetchStaffTransactions = async () => {
+      const { data, error } = await supabase
+        .from('staff_transactions')
+        .select(`*, staff:staff_id(id, name, role)`)
+        .order('date', { ascending: false });
+
+      if (data) setStaffTransactions(data);
+      if (error) console.error('Error fetching staff transactions:', error);
+    };
+
     fetchCashTransactions();
+    fetchStaffTransactions();
   }, [onRefresh]); // Refetch when parent refreshes
 
   const handleTransaction = useCallback(async (e: React.FormEvent) => {
@@ -228,13 +242,18 @@ const FinancialModule: React.FC<FinancialModuleProps> = ({
       dateMatcher.isToday(ct.created_at)
     );
 
+    const todayStaffTransactions = staffTransactions.filter((st) =>
+      dateMatcher.isToday(st.date)
+    );
+
     return {
       orders: todayOrders,
       expenses: todayExpenses,
       salesAdjustments: todaySalesAdjustments,
       cashTransactions: todayCashTransactions,
+      staffTransactions: todayStaffTransactions,
     };
-  }, [orders, expenses, salesAdjustments, cashTransactions, dateMatcher]);
+  }, [orders, expenses, salesAdjustments, cashTransactions, staffTransactions, dateMatcher]);
 
   // Format Currency
   const formatCurrency = useCallback((value: number) => {
@@ -262,6 +281,14 @@ const FinancialModule: React.FC<FinancialModuleProps> = ({
       0
     );
     const expensesTotal = todayData.expenses.reduce((sum, exp) => sum + exp.amount, 0);
+    const staffExpensesTotal = todayData.staffTransactions
+      .filter(st => st.type === 'SALARY_PAYOUT' || st.type === 'BONUS')
+      .reduce((sum, st) => sum + Number(st.amount), 0);
+    const totalDeductionsApplied = todayData.staffTransactions
+      .filter(st => st.type === 'DEDUCTION' || st.type === 'PAYMENT')
+      .reduce((sum, st) => sum + Number(st.amount), 0);
+    
+    const combinedExpensesTotal = expensesTotal + staffExpensesTotal;
 
     // Cash Flow - Single pass for transactions
     const cashFlow = todayData.cashTransactions.reduce(
@@ -281,8 +308,9 @@ const FinancialModule: React.FC<FinancialModuleProps> = ({
     const netCash =
       cashFlow.opening +
       salesBreakdown.cash +
-      adjustmentsTotal -
-      expensesTotal -
+      adjustmentsTotal +
+      totalDeductionsApplied -
+      combinedExpensesTotal -
       cashFlow.drops;
 
     return {
@@ -290,7 +318,10 @@ const FinancialModule: React.FC<FinancialModuleProps> = ({
       digitalSales: salesBreakdown.digital,
       totalSales,
       adjustmentsTotal,
-      expensesTotal,
+      expensesTotal: combinedExpensesTotal,
+      staffExpensesTotal,
+      directExpensesTotal: expensesTotal,
+      deductionsTotal: totalDeductionsApplied,
       openingFund: cashFlow.opening,
       cashDrops: cashFlow.drops,
       totalRevenue,
@@ -495,6 +526,14 @@ const FinancialModule: React.FC<FinancialModuleProps> = ({
           type: 'CASH_DROP' as const,
           person: t.performed_by,
         })),
+      ...todayData.staffTransactions.map((st) => ({
+        id: st.id,
+        date: st.date,
+        amount: Number(st.amount),
+        reason: `${st.type}: ${st.description || st.notes || 'Staff Transaction'}`,
+        type: (st.type === 'SALARY_PAYOUT' || st.type === 'BONUS' ? 'EXPENSE' : 'SALES') as any,
+        person: st.staff?.name || 'Staff',
+      })),
     ];
     return combined.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
   }, [todayData]);
