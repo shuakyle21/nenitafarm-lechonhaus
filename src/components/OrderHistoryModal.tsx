@@ -221,15 +221,29 @@ const OrderHistoryModal: React.FC<OrderHistoryModalProps> = ({
                         </div>
                       </td>
                       <td className="p-4">
-                        {order.orderType === 'TAKEOUT' ? (
-                          <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-orange-100 text-orange-700 text-xs font-bold uppercase tracking-wider">
-                            <ShoppingBag size={12} /> Takeout
-                          </span>
-                        ) : (
-                          <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-blue-100 text-blue-700 text-xs font-bold uppercase tracking-wider">
-                            <Utensils size={12} /> Dine-in
-                          </span>
-                        )}
+                        <div className="flex flex-col gap-1">
+                          {order.orderType === 'TAKEOUT' ? (
+                            <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-orange-100 text-orange-700 text-xs font-bold uppercase tracking-wider w-fit">
+                              <ShoppingBag size={12} /> Takeout
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-blue-100 text-blue-700 text-xs font-bold uppercase tracking-wider w-fit">
+                              <Utensils size={12} /> Dine-in
+                            </span>
+                          )}
+                          <div className="flex flex-wrap gap-1 mt-1">
+                            {order.tableNumber && (
+                              <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-black uppercase tracking-wider bg-red-100 text-red-800 border border-red-200">
+                                T-{order.tableNumber}
+                              </span>
+                            )}
+                            {order.serverName && (
+                              <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-black uppercase tracking-wider bg-stone-100 text-stone-600 border border-stone-200">
+                                {order.serverName}
+                              </span>
+                            )}
+                          </div>
+                        </div>
                       </td>
                       <td className="p-4 text-stone-600">
                         <div className="max-w-[300px] whitespace-normal font-medium">

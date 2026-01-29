@@ -59,6 +59,8 @@ export const orderService = {
         orderType: order.order_type as OrderType,
         orderNumber: order.order_number,
         paymentMethod: order.payment_method,
+        tableNumber: order.table_number,
+        serverName: order.server_name,
       };
     });
     return mappedOrders;

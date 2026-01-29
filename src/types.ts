@@ -64,6 +64,7 @@ export interface Order {
   deliveryTime?: string;
   contactNumber?: string;
   tableNumber?: string;
+  serverName?: string;
   paymentMethod?: string;
   paymentReference?: string;
 }

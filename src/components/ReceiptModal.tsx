@@ -153,6 +153,8 @@ const ReceiptModal: React.FC<ReceiptModalProps> = ({
       change,
       paymentMethod,
       paymentReference: referenceNo,
+      tableNumber: existingOrder?.tableNumber || tableNumber,
+      serverName: existingOrder?.serverName || server?.name,
     };
 
     onSaveOrder(newOrder);
@@ -207,15 +209,13 @@ const ReceiptModal: React.FC<ReceiptModalProps> = ({
                 <p>Order #: {orderNo}</p>
                 <p>
                   Table:{' '}
-                  {existingOrder?.tableNumber ||
-                    tableNumber ||
-                    (existingOrder ? 'N/A' : orderCount + 1)}
+                  {existingOrder?.tableNumber || tableNumber || 'N/A'}
                 </p>
               </div>
               <div className="text-right space-y-1">
                 <p>{dateTime.date}</p>
                 <p>{dateTime.time}</p>
-                <p>Server: {server?.name || 'N/A'}</p>
+                <p>Server: {existingOrder?.serverName || server?.name || 'N/A'}</p>
               </div>
             </div>
 

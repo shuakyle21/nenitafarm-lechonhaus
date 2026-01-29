@@ -336,6 +336,7 @@ const PosModule: React.FC<PosModuleProps> = ({
       deliveryTime: orderType === 'DELIVERY' ? deliveryDetails.time : undefined,
       contactNumber: orderType === 'DELIVERY' ? deliveryDetails.contact : undefined,
       tableNumber: tableNumber,
+      serverName: selectedServer?.name,
     };
     
     const success = await onSaveOrder(finalOrder);
