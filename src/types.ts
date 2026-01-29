@@ -105,6 +105,14 @@ export interface Staff {
   status: 'ACTIVE' | 'INACTIVE';
   image_url?: string;
   daily_wage?: number;
+  hourly_rate?: number;
+  bonuses?: number;
+  email?: string;
+  phone?: string;
+  address?: string;
+  hire_date?: string;
+  emergency_contact?: string;
+  created_at?: string;
 }
 
 export interface Attendance {
@@ -117,16 +125,24 @@ export interface Attendance {
   notes?: string;
 }
 
-export type StaffTransactionType = 'ADVANCE' | 'PAYMENT' | 'SALARY_PAYOUT';
+export type StaffTransactionType = 'ADVANCE' | 'PAYMENT' | 'SALARY_PAYOUT' | 'DEDUCTION' | 'BONUS';
+export type StaffTransactionStatus = 'PENDING' | 'PAID' | 'ACTIVE' | 'APPLIED' | 'CANCELLED';
 
 export interface StaffTransaction {
   id: string;
   staff_id: string;
   amount: number;
   type: StaffTransactionType;
+  description?: string;
   date: string;
   notes?: string;
+  status?: StaffTransactionStatus;
+  pay_period_start?: string;
+  pay_period_end?: string;
   created_at: string;
+  created_by?: string;
+  // Joined data
+  staff?: Staff;
 }
 
 export interface Booking {
