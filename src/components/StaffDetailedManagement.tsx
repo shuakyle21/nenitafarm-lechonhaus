@@ -134,7 +134,7 @@ const StaffDetailedManagement: React.FC<StaffDetailedManagementProps> = ({
       {/* Employment Details Section */}
       <section className="bg-white rounded-xl border border-stone-200 p-6">
         <h2 className="text-base font-semibold text-stone-800 mb-4">Employment Details</h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label className="block text-xs font-medium text-stone-500 mb-1.5">Role</label>
             <select
@@ -146,16 +146,6 @@ const StaffDetailedManagement: React.FC<StaffDetailedManagementProps> = ({
               <option value="Cashier">Cashier</option>
               <option value="Kitchen">Kitchen Staff</option>
               <option value="Manager">Manager</option>
-            </select>
-          </div>
-          <div>
-            <label className="block text-xs font-medium text-stone-500 mb-1.5">Shift</label>
-            <select
-              className="w-full px-3 py-2.5 bg-stone-50 border border-stone-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-stone-900"
-            >
-              <option value="morning">Morning Shift</option>
-              <option value="afternoon">Afternoon Shift</option>
-              <option value="evening">Evening Shift</option>
             </select>
           </div>
           <div>
