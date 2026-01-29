@@ -7,6 +7,8 @@ import {
   Edit2, Trash2, Save, ArrowLeft
 } from 'lucide-react';
 import StaffDetailedManagement from './StaffDetailedManagement';
+import BulkPayrollGeneration from './BulkPayrollGeneration';
+import FinancialLedger from './FinancialLedger';
 
 type ViewMode = 'grid' | 'manage' | 'payroll' | 'ledger';
 type RoleFilter = 'All' | 'Server' | 'Cashier' | 'Kitchen' | 'Manager';
@@ -445,8 +447,17 @@ const StaffManagementModule: React.FC = () => {
               }
             }}
             onDelete={() => handleDeleteStaff(selectedStaff.id)}
-            currentTime={currentTime}
           />
+        )}
+
+        {/* Bulk Payroll View */}
+        {viewMode === 'payroll' && (
+          <BulkPayrollGeneration />
+        )}
+
+        {/* Financial Ledger View */}
+        {viewMode === 'ledger' && (
+          <FinancialLedger onBack={() => setViewMode('grid')} />
         )}
       </main>
 
