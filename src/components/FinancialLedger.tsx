@@ -1,7 +1,9 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { StaffTransaction } from '@/types';
 import { staffManagementService } from '@/services/staffManagementService';
-import { ArrowUpRight, Calendar, Filter, Download, TrendingUp } from 'lucide-react';
+import { ArrowUpRight, Calendar, Filter, Download, TrendingUp, FileText } from 'lucide-react';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
 interface FinancialLedgerProps {
   onBack?: () => void;
@@ -88,6 +90,90 @@ const FinancialLedger: React.FC<FinancialLedgerProps> = ({ onBack }) => {
     return styles[status || 'PENDING'] || 'bg-stone-100 text-stone-600';
   };
 
+  const exportPDF = () => {
+    const doc = new jsPDF();
+    
+    doc.setFontSize(18);
+    doc.text('NENITA FARM LECHON HAUS', 105, 15, { align: 'center' });
+    doc.setFontSize(14);
+    doc.text('Staff Financial Ledger Report', 105, 22, { align: 'center' });
+    doc.setFontSize(10);
+    doc.text(`Generated on: ${currentTime.toLocaleString()}`, 105, 28, { align: 'center' });
+
+    // Summary Section
+    doc.setFontSize(12);
+    doc.text('Financial Summary', 14, 40);
+    autoTable(doc, {
+      body: [
+        ['Total Payroll Paid', `P ${summary.totalPayroll.toLocaleString(undefined, { minimumFractionDigits: 2 })}`],
+        ['Total Active Cash Advances', `P ${summary.totalCA.toLocaleString(undefined, { minimumFractionDigits: 2 })}`],
+        ['Total Deductions Applied', `P ${summary.totalDeductions.toLocaleString(undefined, { minimumFractionDigits: 2 })}`],
+        ['Net Financial Outflow', `P ${summary.netOutflow.toLocaleString(undefined, { minimumFractionDigits: 2 })}`],
+      ],
+      startY: 45,
+      theme: 'plain',
+      styles: { fontSize: 10 },
+      columnStyles: { 0: { fontStyle: 'bold' } }
+    });
+
+    // Transaction Table
+    autoTable(doc, {
+      head: [['Date', 'Employee', 'Type', 'Description', 'Amount', 'Status']],
+      body: filteredTransactions.map(tx => [
+        new Date(tx.date).toLocaleDateString(),
+        tx.staff?.name || 'Unknown',
+        getTypeLabel(tx.type),
+        tx.description || tx.notes || '-',
+        `P ${Number(tx.amount).toFixed(2)}`,
+        tx.status || 'Pending'
+      ]),
+      startY: (doc as any).lastAutoTable.finalY + 10,
+      theme: 'grid',
+      headStyles: { fillColor: [34, 34, 34] },
+    });
+
+    doc.save(`financial_ledger_${new Date().toISOString().split('T')[0]}.pdf`);
+  };
+
+  const exportExcel = () => {
+    const headers = ['Date', 'Employee', 'Type', 'Description', 'Amount', 'Status'];
+    const rows = filteredTransactions.map(tx => [
+      new Date(tx.date).toLocaleDateString(),
+      tx.staff?.name || 'Unknown',
+      getTypeLabel(tx.type),
+      tx.description || tx.notes || '-',
+      tx.amount,
+      tx.status || 'Pending'
+    ]);
+
+    // Add summary to the top of Excel
+    const summaryRows = [
+      ['NENITA FARM LECHON HAUS - Financial Ledger Report'],
+      [`Generated on: ${currentTime.toLocaleString()}`],
+      [''],
+      ['Summary'],
+      ['Total Payroll Paid', summary.totalPayroll],
+      ['Total Active Cash Advances', summary.totalCA],
+      ['Total Deductions Applied', summary.totalDeductions],
+      ['Net Financial Outflow', summary.netOutflow],
+      [''],
+      ['Transactions'],
+      headers
+    ];
+
+    const csvContent = [
+      ...summaryRows.map(r => r.join(',')),
+      ...rows.map(r => r.join(',')),
+    ].join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `financial_ledger_${new Date().toISOString().split('T')[0]}.csv`;
+    a.click();
+  };
+
   if (loading) {
     return (
       <div className="flex-1 flex items-center justify-center bg-stone-50">
@@ -162,6 +248,22 @@ const FinancialLedger: React.FC<FinancialLedgerProps> = ({ onBack }) => {
                   <option value="ADVANCE">Cash Advance</option>
                   <option value="DEDUCTION">Deduction</option>
                 </select>
+              </div>
+              <div className="flex items-center gap-2 border-l border-stone-200 pl-3 ml-2">
+                <button
+                  onClick={exportPDF}
+                  className="p-2 hover:bg-stone-50 rounded-lg text-red-600 transition-colors"
+                  title="Export as PDF"
+                >
+                  <FileText size={18} />
+                </button>
+                <button
+                  onClick={exportExcel}
+                  className="p-2 hover:bg-stone-50 rounded-lg text-emerald-600 transition-colors"
+                  title="Export as Excel"
+                >
+                  <Download size={18} />
+                </button>
               </div>
             </div>
           </div>
