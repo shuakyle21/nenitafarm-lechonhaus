@@ -95,10 +95,9 @@ const StaffManagementModule: React.FC = () => {
   };
 
   const getOutstandingCA = (staffId: string) => {
-    const staffTx = transactions.filter(t => t.staff_id === staffId);
-    const advances = staffTx.filter(t => t.type === 'ADVANCE').reduce((sum, t) => sum + Number(t.amount), 0);
-    const payments = staffTx.filter(t => t.type === 'PAYMENT' || t.type === 'SALARY_PAYOUT').reduce((sum, t) => sum + Number(t.amount), 0);
-    return advances - payments;
+    return transactions
+      .filter(t => t.staff_id === staffId && t.type === 'ADVANCE' && t.status === 'ACTIVE')
+      .reduce((sum, t) => sum + Number(t.amount), 0);
   };
 
   // Actions

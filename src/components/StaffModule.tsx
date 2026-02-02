@@ -2,10 +2,11 @@ import * as React from 'react';
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { Staff, Attendance, StaffTransaction, StaffTransactionType } from '../types';
-import { Plus, Save, X, UserCheck, UserX, FileText, CreditCard, DollarSign, Calculator, Calendar } from 'lucide-react';
+import { Plus, Save, X, UserCheck, UserX, FileText, CreditCard, DollarSign, Calculator } from 'lucide-react';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { generatePayrollPDF } from '../utils/payrollPDF';
+import { staffManagementService } from '@/services/staffManagementService';
 
 const StaffModule: React.FC = () => {
   const [staffList, setStaffList] = useState<Staff[]>([]);
@@ -38,16 +39,15 @@ const StaffModule: React.FC = () => {
   });
 
   useEffect(() => {
-    fetchStaff();
-    fetchAttendance();
-    fetchTransactions();
+    void fetchStaff();
+    void fetchAttendance();
+    void fetchTransactions();
   }, []);
 
   const fetchStaff = async () => {
     try {
-      const { data, error } = await supabase.from('staff').select('*').order('name');
-      if (error) throw error;
-      if (data) setStaffList(data);
+      const data = await staffManagementService.getStaff();
+      setStaffList(data);
     } catch (error) {
       console.error('Error fetching staff:', error);
     }
@@ -55,10 +55,8 @@ const StaffModule: React.FC = () => {
 
   const fetchAttendance = async () => {
     try {
-      const today = new Date().toISOString().split('T')[0];
-      const { data, error } = await supabase.from('attendance').select('*').eq('date', today);
-      if (error) throw error;
-      if (data) setAttendanceList(data);
+      const data = await staffManagementService.getAttendance();
+      setAttendanceList(data);
     } catch (error) {
       console.error('Error fetching attendance:', error);
     }
@@ -67,16 +65,11 @@ const StaffModule: React.FC = () => {
   const handleAddStaff = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const { data, error } = await supabase.from('staff').insert([formData]).select().single();
-
-      if (error) throw error;
-
-      if (data) {
-        setStaffList([...staffList, data]);
-        setIsAddModalOpen(false);
-        setFormData({ name: '', role: 'Server', pin: '', status: 'ACTIVE', daily_wage: 0 });
-        alert('Staff added successfully!');
-      }
+      const data = await staffManagementService.createStaff(formData);
+      setStaffList([...staffList, data]);
+      setIsAddModalOpen(false);
+      setFormData({ name: '', role: 'Server', pin: '', status: 'ACTIVE', daily_wage: 0 });
+      alert('Staff added successfully!');
     } catch (error) {
       console.error('Error adding staff:', error);
       alert('Failed to add staff');
@@ -85,24 +78,9 @@ const StaffModule: React.FC = () => {
 
   const handleClockIn = async (staffId: string) => {
     try {
-      const { data, error } = await supabase
-        .from('attendance')
-        .insert([
-          {
-            staff_id: staffId,
-            clock_in: new Date().toISOString(),
-            date: new Date().toISOString().split('T')[0],
-            status: 'PRESENT',
-          },
-        ])
-        .select()
-        .single();
-
-      if (error) throw error;
-      if (data) {
-        setAttendanceList([...attendanceList, data]);
-        alert('Clocked in successfully!');
-      }
+      const data = await staffManagementService.clockIn(staffId);
+      setAttendanceList([...attendanceList, data]);
+      alert('Clocked in successfully!');
     } catch (error) {
       console.error('Error clocking in:', error);
       alert('Failed to clock in');
@@ -111,13 +89,7 @@ const StaffModule: React.FC = () => {
 
   const handleClockOut = async (attendanceId: string) => {
     try {
-      const { error } = await supabase
-        .from('attendance')
-        .update({ clock_out: new Date().toISOString() })
-        .eq('id', attendanceId);
-
-      if (error) throw error;
-
+      await staffManagementService.clockOut(attendanceId);
       setAttendanceList((prev) =>
         prev.map((a) => (a.id === attendanceId ? { ...a, clock_out: new Date().toISOString() } : a))
       );
@@ -131,27 +103,11 @@ const StaffModule: React.FC = () => {
   const handleMarkAbsent = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const { data, error } = await supabase
-        .from('attendance')
-        .insert([
-          {
-            staff_id: absentData.staffId,
-            clock_in: new Date().toISOString(), // Required by schema, but irrelevant for absent
-            date: new Date().toISOString().split('T')[0],
-            status: 'ABSENT',
-            notes: absentData.reason,
-          },
-        ])
-        .select()
-        .single();
-
-      if (error) throw error;
-      if (data) {
-        setAttendanceList([...attendanceList, data]);
-        setIsAbsentModalOpen(false);
-        setAbsentData({ staffId: '', reason: '' });
-        alert('Marked as absent.');
-      }
+      const data = await staffManagementService.markAbsent(absentData.staffId, absentData.reason);
+      setAttendanceList([...attendanceList, data]);
+      setIsAbsentModalOpen(false);
+      setAbsentData({ staffId: '', reason: '' });
+      alert('Marked as absent.');
     } catch (error) {
       console.error('Error marking absent:', error);
       alert('Failed to mark absent');
@@ -169,19 +125,17 @@ const StaffModule: React.FC = () => {
 
   const fetchTransactions = async () => {
     try {
-      const { data, error } = await supabase.from('staff_transactions').select('*').order('date', { ascending: false });
-      if (error) throw error;
-      if (data) setTransactions(data);
+      const data = await staffManagementService.getTransactions();
+      setTransactions(data);
     } catch (error) {
       console.error('Error fetching transactions:', error);
     }
   };
 
   const getOutstandingAdvance = (staffId: string) => {
-    const staffTx = transactions.filter(t => t.staff_id === staffId);
-    const advances = staffTx.filter(t => t.type === 'ADVANCE').reduce((sum, t) => sum + Number(t.amount), 0);
-    const payments = staffTx.filter(t => t.type === 'PAYMENT' || t.type === 'SALARY_PAYOUT').reduce((sum, t) => sum + Number(t.amount), 0);
-    return advances - payments;
+    return transactions
+      .filter(t => t.staff_id === staffId && t.type === 'ADVANCE' && t.status === 'ACTIVE')
+      .reduce((sum, t) => sum + Number(t.amount), 0);
   };
 
   const handleGeneratePayroll = async () => {
@@ -220,7 +174,7 @@ const StaffModule: React.FC = () => {
 
       // 4. Update preview state if we want to confirm payout
       if (confirm(`Salary Report Generated for ${selectedStaffForAction.name}.\n\nGross Pay: P ${grossPay.toFixed(2)}\nDeduction: P ${deduction.toFixed(2)}\nNet Pay: P ${netPay.toFixed(2)}\n\nDo you want to RECORD this payout and clear the used CA balance?`)) {
-        await handleConfirmPayout(selectedStaffForAction.id, deduction, netPay);
+        void handleConfirmPayout(selectedStaffForAction.id, deduction, netPay);
       }
 
       setIsPayrollModalOpen(false);
@@ -261,26 +215,20 @@ const StaffModule: React.FC = () => {
   const handleSaveTransaction = async (type: StaffTransactionType) => {
     if (!selectedStaffForAction) return;
     try {
-      const { data, error } = await supabase
-        .from('staff_transactions')
-        .insert([{
-          staff_id: selectedStaffForAction.id,
-          amount: transactionData.amount,
-          type,
-          date: transactionData.date,
-          notes: transactionData.notes
-        }])
-        .select()
-        .single();
+      const data = await staffManagementService.createTransaction({
+        staff_id: selectedStaffForAction.id,
+        amount: transactionData.amount,
+        type,
+        date: transactionData.date,
+        notes: transactionData.notes,
+        status: type === 'ADVANCE' ? 'ACTIVE' : 'PAID'
+      });
 
-      if (error) throw error;
-      if (data) {
-        setTransactions([data, ...transactions]);
-        setIsCAModalOpen(false);
-        setIsPayModalOpen(false);
-        setTransactionData({ amount: 0, notes: '', date: new Date().toISOString().split('T')[0] });
-        alert(`${type === 'ADVANCE' ? 'Cash Advance' : 'Payment'} recorded successfully!`);
-      }
+      setTransactions([data, ...transactions]);
+      setIsCAModalOpen(false);
+      setIsPayModalOpen(false);
+      setTransactionData({ amount: 0, notes: '', date: new Date().toISOString().split('T')[0] });
+      alert(`${type === 'ADVANCE' ? 'Cash Advance' : 'Payment'} recorded successfully!`);
     } catch (error) {
       console.error('Error recording transaction:', error);
       alert('Failed to record transaction');
