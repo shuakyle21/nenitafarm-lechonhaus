@@ -2,7 +2,7 @@ import * as React from 'react';
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { Staff, Attendance, StaffTransaction, StaffTransactionType } from '../types';
-import { Plus, Save, X, UserCheck, UserX, FileText, CreditCard, DollarSign, Calculator } from 'lucide-react';
+import { Plus, Save, X, UserCheck, UserX, FileText, CreditCard, DollarSign, Calculator, Calendar } from 'lucide-react';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { generatePayrollPDF } from '../utils/payrollPDF';
