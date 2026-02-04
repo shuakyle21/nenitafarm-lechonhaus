@@ -62,13 +62,39 @@ const App: React.FC = () => {
 
       {/* Main Content Area - with bottom padding on mobile for nav */}
       <div className="flex-1 h-full overflow-hidden flex flex-col pb-16 lg:pb-0">
-        {activeModule === 'POS' && <PosPage onSaveOrder={saveOrderWithOfflineSupport} isOnline={isOnline} />}
-        {activeModule === 'DASHBOARD' && userRole === 'ADMIN' && <DashboardPage username={username} />}
-        {activeModule === 'STAFF' && <StaffPage />}
-        {activeModule === 'FINANCE' && userRole === 'ADMIN' && <FinancePage username={username} userId={userId} />}
-        {activeModule === 'BOOKING' && <BookingPage />}
-        {activeModule === 'INVENTORY' && userRole === 'ADMIN' && <InventoryPage userId={userId} />}
-        {activeModule === 'AUDIT' && userRole === 'ADMIN' && <AuditPage />}
+        {/* Render modules based on access control */}
+        {activeModule === 'POS' && (
+          <PosPage onSaveOrder={saveOrderWithOfflineSupport} isOnline={isOnline} />
+        )}
+        
+        {activeModule === 'BOOKING' && (
+          <BookingPage />
+        )}
+
+        {/* Admin only modules */}
+        {userRole === 'ADMIN' && (
+          <>
+            {activeModule === 'DASHBOARD' && <DashboardPage username={username} />}
+            {activeModule === 'STAFF' && <StaffPage />}
+            {activeModule === 'FINANCE' && <FinancePage username={username} userId={userId} />}
+            {activeModule === 'INVENTORY' && <InventoryPage userId={userId} />}
+            {activeModule === 'AUDIT' && <AuditPage />}
+          </>
+        )}
+
+        {/* Fallback for Cashier attempting to access restricted modules via direct state manipulation */}
+        {userRole === 'CASHIER' && !['POS', 'BOOKING'].includes(activeModule) && (
+          <div className="flex-1 flex flex-col items-center justify-center p-8 text-center bg-stone-50">
+            <h3 className="text-xl font-bold text-stone-800 mb-2">Access Restricted</h3>
+            <p className="text-stone-500 mb-6">You don't have permission to access this module.</p>
+            <button 
+              onClick={() => setActiveModule('POS')}
+              className="px-6 py-2 bg-red-800 text-white rounded-lg font-bold shadow-md hover:bg-red-700 transition-colors"
+            >
+              Return to POS
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Mobile Bottom Navigation - hidden on desktop */}
@@ -76,6 +102,7 @@ const App: React.FC = () => {
         activeModule={activeModule}
         onModuleChange={setActiveModule}
         userRole={userRole}
+        onLogout={handleLogout}
       />
     </div>
   );
