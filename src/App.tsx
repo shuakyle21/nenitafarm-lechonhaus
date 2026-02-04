@@ -1,6 +1,7 @@
 import * as React from 'react';
 import { useState } from 'react';
 import MainSidebar from '@/components/MainSidebar';
+import MobileBottomNav from '@/components/MobileBottomNav';
 import { useOfflineSync } from '@/hooks/useOfflineSync';
 
 // Pages
@@ -49,7 +50,7 @@ const App: React.FC = () => {
 
   return (
     <div className="flex h-full w-full bg-stone-100 overflow-hidden font-roboto">
-      {/* System Sidebar */}
+      {/* Desktop Sidebar - hidden on mobile/tablet */}
       <MainSidebar
         activeModule={activeModule}
         onModuleChange={setActiveModule}
@@ -59,9 +60,9 @@ const App: React.FC = () => {
         pendingOrdersCount={pendingOrdersCount}
       />
 
-      {/* Main Content Area */}
-      <div className="flex-1 h-full overflow-hidden flex flex-col">
-        {activeModule === 'POS' && <PosPage onSaveOrder={saveOrderWithOfflineSupport} />}
+      {/* Main Content Area - with bottom padding on mobile for nav */}
+      <div className="flex-1 h-full overflow-hidden flex flex-col pb-16 lg:pb-0">
+        {activeModule === 'POS' && <PosPage onSaveOrder={saveOrderWithOfflineSupport} isOnline={isOnline} />}
         {activeModule === 'DASHBOARD' && userRole === 'ADMIN' && <DashboardPage username={username} />}
         {activeModule === 'STAFF' && <StaffPage />}
         {activeModule === 'FINANCE' && userRole === 'ADMIN' && <FinancePage username={username} userId={userId} />}
@@ -69,6 +70,13 @@ const App: React.FC = () => {
         {activeModule === 'INVENTORY' && userRole === 'ADMIN' && <InventoryPage userId={userId} />}
         {activeModule === 'AUDIT' && userRole === 'ADMIN' && <AuditPage />}
       </div>
+
+      {/* Mobile Bottom Navigation - hidden on desktop */}
+      <MobileBottomNav
+        activeModule={activeModule}
+        onModuleChange={setActiveModule}
+        userRole={userRole}
+      />
     </div>
   );
 };
