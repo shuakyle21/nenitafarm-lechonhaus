@@ -228,23 +228,24 @@ const BookingModule: React.FC<BookingModuleProps> = ({ items }) => {
   };
 
   return (
-    <div className="flex h-full w-full bg-stone-100 overflow-hidden font-roboto animate-in fade-in duration-300">
+    <div className="flex flex-col lg:flex-row h-full w-full bg-stone-100 overflow-hidden font-roboto animate-in fade-in duration-300">
       <style>{`
                 .react-calendar { width: 100% !important; border: none !important; font-family: inherit; background: transparent; }
-                .react-calendar__tile { padding: 1.5em 0.5em; }
+                .react-calendar__tile { padding: 1em 0.5em; }
                 .react-calendar__tile--active { background: #dc2626 !important; color: white !important; border-radius: 0.5rem; }
                 .react-calendar__tile--now { background: #fee2e2; color: #dc2626; border-radius: 0.5rem; }
-                .react-calendar__navigation button { font-size: 1.2em; font-weight: bold; }
+                .react-calendar__navigation button { font-size: 1.1em; font-weight: bold; }
             `}</style>
 
-      {/* LEFT PANEL: Calendar & List (40%) */}
-      <div className="w-[40%] h-full flex flex-col border-r border-stone-200 bg-white overflow-y-auto">
-        <div className="p-6 border-b border-stone-200 bg-stone-50/50 shrink-0">
-          <h2 className="text-2xl font-brand font-black text-stone-800 mb-6 flex items-center gap-2">
-            <CalendarIcon className="text-red-600" />
-            Bookings & Reservations
+      {/* LEFT PANEL: Calendar & List - responsive width */}
+      <div className="w-full lg:w-[40%] h-auto lg:h-full flex flex-col border-b lg:border-b-0 lg:border-r border-stone-200 bg-white overflow-y-auto">
+        <div className="p-3 md:p-6 lg:p-8 border-b border-stone-200 bg-stone-50/50 shrink-0">
+          <h2 className="text-lg md:text-2xl font-brand font-black text-stone-800 mb-4 md:mb-6 flex items-center gap-2">
+            <CalendarIcon className="text-red-600" size={20} />
+            <span className="hidden sm:inline">Bookings & Reservations</span>
+            <span className="sm:hidden">Bookings</span>
           </h2>
-          <div className="calendar-wrapper shadow-lg rounded-2xl overflow-hidden border border-stone-100 bg-white p-2">
+          <div className="calendar-wrapper shadow-lg rounded-2xl overflow-hidden border border-stone-100 bg-white p-1.5 md:p-2">
             <Calendar
               onChange={setDate}
               value={date}
@@ -268,7 +269,7 @@ const BookingModule: React.FC<BookingModuleProps> = ({ items }) => {
           </div>
         </div>
 
-        <div className="p-6 bg-stone-50 min-h-0">
+        <div className="p-3 md:p-6 lg:p-8 bg-stone-50 min-h-0">
           <div className="sticky top-0 bg-stone-50 z-10 pb-4 shadow-sm -mx-6 px-6 pt-2 mb-2">
             <h3 className="font-bold text-stone-700 mb-4 flex items-center justify-between">
               <span>Upcoming Bookings</span>
@@ -392,9 +393,9 @@ const BookingModule: React.FC<BookingModuleProps> = ({ items }) => {
         </div>
       </div>
 
-      {/* RIGHT PANEL: Form (60%) */}
-      <div className="flex-1 p-8 overflow-y-auto">
-        <div className="max-w-2xl mx-auto bg-white rounded-2xl shadow-sm border border-stone-200 p-8">
+      {/* RIGHT PANEL: Form - responsive */}
+      <div className="flex-1 p-3 md:p-6 lg:p-8 overflow-y-auto">
+        <div className="max-w-2xl mx-auto bg-white rounded-2xl shadow-sm border border-stone-200 p-4 md:p-6 lg:p-8">
           <div className="flex justify-between items-center mb-6 pb-4 border-b border-stone-100">
             <h3 className="text-xl font-bold text-stone-800">
               {editingId ? 'Edit Booking' : 'New Booking'}
@@ -409,8 +410,8 @@ const BookingModule: React.FC<BookingModuleProps> = ({ items }) => {
             )}
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-6">
-            <div className="grid grid-cols-2 gap-6">
+          <form onSubmit={handleSubmit} className="space-y-4 md:space-y-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 md:gap-6">
               <div className="space-y-2">
                 <label className="text-sm font-bold text-stone-700 flex items-center gap-2">
                   <User size={16} /> Customer Name
@@ -441,7 +442,7 @@ const BookingModule: React.FC<BookingModuleProps> = ({ items }) => {
               </div>
             </div>
 
-            <div className="grid grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 md:gap-6">
               <div className="space-y-2">
                 <label className="text-sm font-bold text-stone-700">Date</label>
                 <input

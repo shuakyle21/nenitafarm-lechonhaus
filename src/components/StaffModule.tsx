@@ -333,17 +333,17 @@ const StaffModule: React.FC = () => {
 
   return (
     <div className="flex-1 bg-stone-100 overflow-hidden flex flex-col font-roboto animate-in fade-in duration-300">
-      {/* Header */}
-      <div className="bg-white p-6 border-b border-stone-200 flex justify-between items-center shadow-sm">
+      {/* Header - responsive */}
+      <div className="bg-white p-3 md:p-6 lg:p-8 border-b border-stone-200 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 shadow-sm">
         <div>
-          <h1 className="text-2xl font-brand font-black text-stone-800">Staff Management</h1>
-          <p className="text-stone-500 text-sm">Manage servers, roles, and attendance</p>
+          <h1 className="text-lg md:text-2xl font-brand font-black text-stone-800">Staff Management</h1>
+          <p className="text-stone-500 text-xs md:text-sm hidden sm:block">Manage servers, roles, and attendance</p>
         </div>
 
-        <div className="flex items-center gap-4">
-          {/* Clock Display */}
-          <div className="flex flex-col items-end mr-4">
-            <div className="text-2xl font-mono font-bold text-stone-800 leading-none">
+        <div className="flex items-center gap-2 md:gap-4 flex-wrap">
+          {/* Clock Display - hidden on xs */}
+          <div className="hidden md:flex flex-col items-end mr-4">
+            <div className="text-xl font-mono font-bold text-stone-800 leading-none">
               {currentTime.toLocaleTimeString([], {
                 hour: '2-digit',
                 minute: '2-digit',
@@ -361,25 +361,25 @@ const StaffModule: React.FC = () => {
 
           <button
             onClick={generateWeeklyReport}
-            className="bg-white text-stone-700 border border-stone-300 px-4 py-2 rounded-xl font-bold flex items-center gap-2 hover:bg-stone-50 transition-colors shadow-sm"
+            className="bg-white text-stone-700 border border-stone-300 px-3 py-2 rounded-xl font-bold text-sm flex items-center gap-2 hover:bg-stone-50 transition-colors shadow-sm"
           >
-            <FileText size={18} />
-            Report
+            <FileText size={16} />
+            <span className="hidden sm:inline">Report</span>
           </button>
 
           <button
             onClick={() => setIsAddModalOpen(true)}
-            className="bg-stone-900 text-white px-4 py-2 rounded-xl font-bold flex items-center gap-2 hover:bg-stone-800 transition-colors shadow-lg"
+            className="bg-stone-900 text-white px-3 py-2 rounded-xl font-bold text-sm flex items-center gap-2 hover:bg-stone-800 transition-colors shadow-lg"
           >
-            <Plus size={18} />
-            Add Staff
+            <Plus size={16} />
+            <span className="hidden sm:inline">Add Staff</span>
           </button>
         </div>
       </div>
 
-      {/* Content */}
-      <div className="flex-1 overflow-y-auto p-8">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      {/* Content - responsive grid */}
+      <div className="flex-1 overflow-y-auto p-3 md:p-6 lg:p-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6 lg:gap-8">
           {staffList.map((staff) => {
             const { status, recordId, notes } = getAttendanceStatus(staff.id);
             return (

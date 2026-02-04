@@ -31,7 +31,7 @@ const MainSidebar: React.FC<MainSidebarProps> = ({
   pendingOrdersCount = 0,
 }) => {
   return (
-    <div className="w-24 bg-stone-950 flex flex-col items-center py-6 text-stone-500 shadow-2xl z-50 border-r border-stone-900">
+    <div className="hidden lg:flex w-24 bg-stone-950 flex-col items-center py-6 text-stone-500 shadow-2xl z-50 border-r border-stone-900">
       {/* Brand Icon */}
       <div className="mb-8 w-16 h-16 shrink-0 rounded-2xl flex items-center justify-center overflow-hidden bg-gradient-to-br from-red-600 to-red-800 p-0.5 shadow-lg shadow-red-900/20 ring-4 ring-stone-900">
         <div className="w-full h-full bg-white rounded-xl flex items-center justify-center p-1">

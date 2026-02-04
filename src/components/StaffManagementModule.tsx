@@ -224,7 +224,7 @@ const StaffManagementModule: React.FC = () => {
   return (
     <div className="flex-1 bg-stone-50 overflow-hidden flex flex-col">
       {/* Header */}
-      <header className="bg-white border-b border-stone-200 px-6 py-4">
+      <header className="bg-white border-b border-stone-200 p-3 md:p-6 lg:p-8">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
             {viewMode !== 'grid' && (
@@ -324,9 +324,9 @@ const StaffManagementModule: React.FC = () => {
       </header>
 
       {/* Content */}
-      <main className="flex-1 overflow-y-auto p-6">
+      <main className="flex-1 overflow-y-auto p-3 md:p-6 lg:p-8">
         {viewMode === 'grid' && (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-6">
             {filteredStaff.map(staff => {
               const { status, recordId } = getAttendanceStatus(staff.id);
               const outstandingCA = getOutstandingCA(staff.id);

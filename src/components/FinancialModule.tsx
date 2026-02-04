@@ -539,18 +539,18 @@ const FinancialModule: React.FC<FinancialModuleProps> = ({
   }, [todayData]);
 
   return (
-    <div className="h-full w-full bg-stone-100 overflow-y-auto p-6 font-roboto animate-in fade-in duration-300">
-      {/* Header */}
-      <div className="flex flex-col xl:flex-row xl:items-end justify-between mb-8 gap-6">
+    <div className="h-full w-full bg-stone-100 overflow-y-auto p-3 md:p-6 lg:p-8 font-roboto animate-in fade-in duration-300">
+      {/* Header - responsive */}
+      <div className="flex flex-col lg:flex-row lg:items-end justify-between mb-4 md:mb-8 gap-4 lg:gap-6">
         <div className="flex items-center gap-3">
-          <div className="p-3 bg-blue-600 text-white rounded-xl shadow-lg shadow-blue-200">
-            <Wallet size={24} />
+          <div className="p-2.5 md:p-3 bg-blue-600 text-white rounded-xl shadow-lg shadow-blue-200">
+            <Wallet size={20} />
           </div>
           <div className="font-roboto animate-in fade-in duration-300">
-            <h1 className="text-3xl font-brand font-black text-stone-800 tracking-tight">
+            <h1 className="text-xl md:text-3xl font-brand font-black text-stone-800 tracking-tight">
               Financial Analysis
             </h1>
-            <p className="text-stone-500 font-medium">Cash Management & Sales Analytics</p>
+            <p className="text-stone-500 font-medium text-sm hidden sm:block">Cash Management & Sales Analytics</p>
           </div>
         </div>
 
@@ -658,8 +658,8 @@ const FinancialModule: React.FC<FinancialModuleProps> = ({
         </div>
       </div>
 
-      {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+      {/* Summary Cards - responsive grid */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6 mb-4 md:mb-8">
         {/* Net Cash Card */}
         <div className="bg-white p-6 rounded-2xl shadow-sm border border-stone-200">
           <div className="flex justify-between items-start mb-4">

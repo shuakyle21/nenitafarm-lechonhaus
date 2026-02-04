@@ -180,15 +180,16 @@ const AuditModule: React.FC = () => {
   }
 
   return (
-    <div className="flex flex-col h-full bg-stone-50 p-6 overflow-hidden">
+    <div className="flex flex-col h-full bg-stone-50 p-3 md:p-6 lg:p-8 overflow-hidden">
       {/* Header */}
-      <div className="flex items-center justify-between mb-8">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4 md:mb-8 gap-4">
         <div>
-          <h1 className="text-3xl font-black text-stone-800 uppercase tracking-tighter flex items-center gap-3">
-            <ClipboardList className="text-red-800" size={32} />
-            System Audit Trail
+          <h1 className="text-xl md:text-3xl font-black text-stone-800 uppercase tracking-tighter flex items-center gap-2 md:gap-3">
+            <ClipboardList className="text-red-800" size={24} />
+            <span className="hidden sm:inline">System Audit Trail</span>
+            <span className="sm:hidden">Audit Trail</span>
           </h1>
-          <p className="text-stone-500 font-medium mt-1">
+          <p className="text-xs md:text-sm text-stone-500 font-medium mt-1 hidden sm:block">
             Historical record of all system mutations and staff actions.
           </p>
         </div>
@@ -218,8 +219,8 @@ const AuditModule: React.FC = () => {
 
       {activeTab === 'LOGS' ? (
         <>
-          {/* Stats Bar */}
-      <div className="grid grid-cols-4 gap-4 mb-6">
+          {/* Stats Bar - responsive grid */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 md:gap-4 lg:gap-6 mb-4 md:mb-6">
         {[
           { label: 'Total Events', value: logs.length, color: 'border-stone-200' },
           { label: 'Inserts', value: logs.filter(l => l.action === 'INSERT').length, color: 'border-green-200' },
@@ -388,7 +389,7 @@ const AuditModule: React.FC = () => {
       </div>
     </>
       ) : (
-        <div className="flex-1 bg-white rounded-3xl shadow-xl border border-stone-100 p-8 overflow-y-auto">
+        <div className="flex-1 bg-white rounded-3xl shadow-xl border border-stone-100 p-4 md:p-8 lg:p-12 overflow-y-auto">
           <div className="max-w-4xl mx-auto">
             <h2 className="text-2xl font-black text-stone-800 uppercase mb-6 flex items-center gap-3">
               <HistoryIcon className="text-amber-600" />

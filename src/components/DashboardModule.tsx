@@ -233,7 +233,7 @@ const DashboardModule: React.FC<DashboardModuleProps> = ({
   }, [orders, salesAdjustments, todayData.totalSales, dateMatcher]);
 
   return (
-    <div className="flex-1 bg-stone-100 overflow-y-auto p-8 font-roboto animate-in fade-in duration-300">
+    <div className="flex-1 bg-stone-100 overflow-y-auto p-3 md:p-6 lg:p-8 font-roboto animate-in fade-in duration-300">
       {/* Header */}
       <div className="flex justify-between items-end mb-8">
         <div>
