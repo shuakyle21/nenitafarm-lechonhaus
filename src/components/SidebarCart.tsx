@@ -80,7 +80,7 @@ const SidebarCart: React.FC<SidebarCartProps> = ({
   const total = subtotal - discountAmount;
 
   return (
-    <div className="h-full flex flex-col bg-white border-r border-stone-200 shadow-xl z-20">
+    <div className="h-auto lg:h-full flex flex-col bg-white lg:border-r lg:border-stone-200 lg:shadow-xl z-20">
       {/* Header */}
       <div className="bg-red-900 text-white p-4 shadow-md bg-[url('https://www.transparenttextures.com/patterns/cubes.png')]">
         <div className="flex items-center gap-2 mb-1 opacity-80">
@@ -216,7 +216,7 @@ const SidebarCart: React.FC<SidebarCartProps> = ({
       )}
 
       {/* Cart Items List */}
-      <div className="flex-1 overflow-y-auto p-2 space-y-2 bg-stone-50/50">
+      <div className="flex-none lg:flex-1 lg:overflow-y-auto p-2 space-y-2 bg-stone-50/50">
         {cart.length === 0 ? (
           <div className="h-full flex flex-col items-center justify-center text-stone-400 p-8 text-center">
             <div className="bg-stone-100 p-4 rounded-full mb-4">
@@ -285,9 +285,9 @@ const SidebarCart: React.FC<SidebarCartProps> = ({
         )}
       </div>
 
-      {/* Footer / Totals */}
-      <div className="bg-white p-4 border-t border-stone-200 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
-        <div className="space-y-2 mb-4">
+      {/* Footer / Totals - compact on mobile */}
+      <div className="bg-white p-3 md:p-4 border-t border-stone-200 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
+        <div className="space-y-1.5 md:space-y-2 mb-3 md:mb-4">
           <div className="flex justify-between text-stone-500 text-sm">
             <span>Subtotal</span>
             <span>₱{subtotal.toLocaleString('en-PH', { minimumFractionDigits: 2 })}</span>
@@ -313,50 +313,50 @@ const SidebarCart: React.FC<SidebarCartProps> = ({
             </div>
           )}
 
-          <div className="flex justify-between text-stone-800 text-xl font-bold pt-2 border-t border-dashed border-stone-200">
+          <div className="flex justify-between text-stone-800 text-lg md:text-xl font-bold pt-2 border-t border-dashed border-stone-200">
             <span>Total</span>
-            <span className="font-brand text-2xl">
+            <span className="font-brand text-xl md:text-2xl">
               ₱{total.toLocaleString('en-PH', { minimumFractionDigits: 2 })}
             </span>
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-3 mb-3">
+        <div className="grid grid-cols-2 gap-2 mb-2">
           <button
             onClick={onOpenDiscount}
-            className={`py-3 px-4 rounded-xl border-2 font-bold transition-colors flex items-center justify-center gap-2 ${
+            className={`py-2 px-3 rounded-xl border-2 font-bold text-xs transition-colors flex items-center justify-center gap-1.5 ${
               discount
                 ? 'border-yellow-500 bg-yellow-50 text-yellow-700'
                 : 'border-stone-200 text-stone-600 hover:bg-stone-50'
             }`}
           >
-            {discount ? 'Edit Discount' : 'Discount'}
+            {discount ? 'Edit' : 'Discount'}
           </button>
           <button
             onClick={onClear}
-            className="py-3 px-4 rounded-xl border-2 border-red-100 text-red-600 font-bold hover:bg-red-50 transition-colors"
+            className="py-2 px-3 rounded-xl border-2 border-red-100 text-red-600 font-bold text-xs hover:bg-red-50 transition-colors"
           >
             Void
           </button>
         </div>
 
-        <div className="grid grid-cols-2 gap-3 mb-3">
+        <div className="grid grid-cols-2 gap-2 mb-2">
           <button
             onClick={onSaveForLater}
             disabled={cart.length === 0}
-            className="py-3 px-4 rounded-xl border-2 border-blue-100 text-blue-600 font-bold hover:bg-blue-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+            className="py-2 px-3 rounded-xl border-2 border-blue-100 text-blue-600 font-bold text-xs hover:bg-blue-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-1.5"
           >
-            <ShoppingBag size={18} />
+            <ShoppingBag size={14} />
             Save
           </button>
           <button
             onClick={onOpenSavedOrders}
-            className="py-3 px-4 rounded-xl border-2 border-stone-200 text-stone-600 font-bold hover:bg-stone-50 transition-colors flex items-center justify-center gap-2 relative"
+            className="py-2 px-3 rounded-xl border-2 border-stone-200 text-stone-600 font-bold text-xs hover:bg-stone-50 transition-colors flex items-center justify-center gap-1.5 relative"
           >
-            <Clock size={18} />
+            <Clock size={14} />
             Saved
             {savedOrdersCount > 0 && (
-              <span className="absolute -top-2 -right-2 bg-red-600 text-white text-[10px] font-bold w-5 h-5 rounded-full flex items-center justify-center shadow-sm">
+              <span className="absolute -top-1.5 -right-1.5 bg-red-600 text-white text-[9px] font-bold w-4 h-4 rounded-full flex items-center justify-center shadow-sm">
                 {savedOrdersCount}
               </span>
             )}
@@ -366,7 +366,7 @@ const SidebarCart: React.FC<SidebarCartProps> = ({
         <button
           onClick={onConfirmOrder}
           disabled={cart.length === 0}
-          className="w-full bg-green-600 text-white py-4 rounded-xl font-bold text-lg shadow-lg hover:bg-green-700 active:scale-[0.98] transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+          className="w-full bg-green-600 text-white py-3 rounded-xl font-bold text-base shadow-lg hover:bg-green-700 active:scale-[0.98] transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed mb-2 sm:mb-0"
         >
           <span>PAY</span>
           <span>₱{total.toLocaleString('en-PH', { minimumFractionDigits: 2 })}</span>

@@ -19,9 +19,10 @@ import SavedOrdersModal from './SavedOrdersModal';
 import ReceiptModal from './ReceiptModal';
 import MenuManagementModal from './MenuManagementModal';
 import { VariantSelector } from './VariantSelector';
-import { Search, Settings } from 'lucide-react';
+import { Search, Settings, ShoppingCart, X } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import OpeningFundModal from './OpeningFundModal';
+import { useBreakpoint } from '@/hooks/useBreakpoint';
 
 interface PosModuleProps {
   items: MenuItem[];
@@ -31,6 +32,7 @@ interface PosModuleProps {
   onDeleteItem: (id: string) => Promise<void>;
   onSaveOrder: (order: Order) => Promise<boolean>;
   staffList: Staff[];
+  isOnline: boolean;
 }
 
 const PosModule: React.FC<PosModuleProps> = ({
@@ -41,7 +43,10 @@ const PosModule: React.FC<PosModuleProps> = ({
   onDeleteItem,
   onSaveOrder,
   staffList,
+  isOnline,
 }) => {
+  const { isMobile, isTablet } = useBreakpoint();
+  const [isCartOpen, setIsCartOpen] = useState(false);
   const [activeCategory, setActiveCategory] = useState<Category>('Lechon & Grills');
 
   // Persistence: Load initial state from localStorage
@@ -119,6 +124,15 @@ const PosModule: React.FC<PosModuleProps> = ({
   // Opening Fund State
   const [isOpeningFundModalOpen, setIsOpeningFundModalOpen] = useState(false);
   const [openingFundLoading, setOpeningFundLoading] = useState(false);
+  const [itemAddedFlash, setItemAddedFlash] = useState(false);
+
+  // Helper to trigger a brief visual feedback when item added
+  const triggerAddedFlash = useCallback(() => {
+    if (!isCartOpen) {
+      setItemAddedFlash(true);
+      setTimeout(() => setItemAddedFlash(false), 800);
+    }
+  }, [isCartOpen]);
 
   // Check Opening Fund Status
   useEffect(() => {
@@ -255,7 +269,12 @@ const PosModule: React.FC<PosModuleProps> = ({
         },
       ];
     });
-  }, []);
+
+    // Visual feedback instead of auto-open
+    if (isMobile || isTablet) {
+      triggerAddedFlash();
+    }
+  }, [isMobile, isTablet, triggerAddedFlash]);
 
   const addVariantItemToCart = useCallback((variant: Variant) => {
     if (!selectedVariantItem) return;
@@ -286,7 +305,10 @@ const PosModule: React.FC<PosModuleProps> = ({
       ];
     });
     setSelectedVariantItem(null);
-  }, [selectedVariantItem]);
+    if (isMobile || isTablet) {
+      triggerAddedFlash();
+    }
+  }, [selectedVariantItem, isMobile, isTablet, triggerAddedFlash]);
 
   const addWeightedItemToCart = useCallback((weight: number, price: number) => {
     if (!selectedLechonItem) return;
@@ -301,7 +323,10 @@ const PosModule: React.FC<PosModuleProps> = ({
         finalPrice: price,
       },
     ]);
-  }, [selectedLechonItem]);
+    if (isMobile || isTablet) {
+      triggerAddedFlash();
+    }
+  }, [selectedLechonItem, isMobile, isTablet, triggerAddedFlash]);
 
   const removeFromCart = useCallback((cartId: string) => {
     setCart((prev) => prev.filter((i) => i.cartId !== cartId));
@@ -462,9 +487,9 @@ const PosModule: React.FC<PosModuleProps> = ({
   };
 
   return (
-    <div className="flex h-full w-full bg-stone-100 overflow-hidden font-roboto animate-in fade-in duration-300">
-      {/* LEFT PANEL: CART (30%) */}
-      <div className="w-[30%] h-full shrink-0">
+    <div className="flex flex-col lg:flex-row h-full w-full bg-stone-100 overflow-hidden font-roboto animate-in fade-in duration-300">
+      {/* DESKTOP: LEFT PANEL CART (visible only on lg+) */}
+      <div className="hidden lg:block w-[35%] h-full shrink-0">
         <SidebarCart
           cart={cart}
           discount={discountDetails}
@@ -494,63 +519,72 @@ const PosModule: React.FC<PosModuleProps> = ({
         />
       </div>
 
-      {/* RIGHT PANEL: MENU (70%) */}
-      <div className="flex-1 flex flex-col h-full overflow-hidden relative">
-        {/* Top Branding Bar */}
-        <header className="bg-white border-b border-stone-200 px-6 py-4 flex justify-between items-center shadow-sm z-10">
-          <div className="flex items-center gap-5">
-            {/* Logo Representation */}
-            <div className="w-16 h-16 rounded-full bg-white border-2 border-yellow-500 flex flex-col items-center justify-center shadow-lg relative overflow-hidden group p-1">
+      {/* RIGHT PANEL: MENU (full width on mobile, 65% on desktop) */}
+      <div className="flex-1 flex flex-col h-full bg-white overflow-hidden">
+        {/* Header - responsive padding */}
+        <header className="bg-white border-b border-stone-200 px-3 py-2 md:px-6 md:py-4 flex justify-between items-center z-20 shadow-sm">
+          <div className="flex items-center gap-2 md:gap-4">
+            {/* Logo - smaller on mobile */}
+            <div className="w-10 h-10 md:w-16 md:h-16 rounded-full bg-white border-2 border-yellow-500 flex flex-col items-center justify-center shadow-lg relative overflow-hidden group p-0.5 md:p-1 shrink-0">
               <img
                 src="/assets/logo.png"
                 alt="Nenita Farm Logo"
                 className="w-full h-full object-contain"
               />
             </div>
-            <div>
-              <h1 className="text-2xl font-brand font-black text-red-800 tracking-tight leading-none drop-shadow-sm">
-                NENITA FARM Lechon Haus and Catering Services
+            <div className="hidden sm:block">
+              <h1 className="text-lg md:text-2xl font-brand font-black text-red-800 tracking-tight leading-none drop-shadow-sm">
+                NENITA FARM Lechon Haus
               </h1>
-              <div className="text-xs font-bold text-yellow-600 tracking-[0.2em] uppercase bg-black/5 px-2 py-0.5 rounded mt-0.5 inline-block">
+              <div className="text-[10px] md:text-xs font-bold text-yellow-600 tracking-[0.2em] uppercase bg-black/5 px-2 py-0.5 rounded mt-0.5 inline-block">
                 POS Terminal
               </div>
             </div>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 md:gap-3">
+            {/* Search - responsive width */}
             <div className="relative">
               <Search
                 className="absolute left-3 top-1/2 -translate-y-1/2 text-stone-400"
-                size={20}
+                size={18}
               />
               <input
                 id="menu-search"
                 name="menu-search"
                 type="text"
-                placeholder="Search menu..."
+                placeholder="Search..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10 pr-4 py-3 bg-stone-100 rounded-full border border-stone-200 focus:outline-none focus:ring-2 focus:ring-red-500 w-64 transition-all shadow-inner"
+                className="pl-9 pr-3 py-2.5 md:py-3 bg-stone-100 rounded-full border border-stone-200 focus:outline-none focus:ring-2 focus:ring-red-500 w-32 sm:w-48 md:w-64 transition-all shadow-inner text-sm"
               />
             </div>
 
+            {/* Mobile: Dynamic Cart Button (Removed per request, now opens on item selection) */}
+        <div className="lg:hidden flex items-center gap-3">
+          {isOnline ? (
+            <div className="w-2 h-2 rounded-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)] animate-pulse" />
+          ) : (
+            <div className="w-2 h-2 rounded-full bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.6)]" />
+          )}
+        </div>
             <button
               onClick={() => setIsMenuManagerOpen(true)}
-              className="p-3 bg-stone-900 text-white rounded-full hover:bg-stone-700 transition-colors shadow-lg"
+              className="p-2.5 md:p-3 bg-stone-900 text-white rounded-full hover:bg-stone-700 transition-colors shadow-lg"
               title="Manage Menu"
             >
-              <Settings size={20} />
+              <Settings size={18} />
             </button>
           </div>
         </header>
 
-        {/* Category Navigation */}
-        <nav className="bg-white border-b border-stone-200 px-6 pt-2 pb-0 flex gap-8 overflow-x-auto no-scrollbar shadow-sm z-10">
+        {/* Category Navigation - touch-friendly on mobile */}
+        <nav className="bg-white border-b border-stone-200 px-3 md:px-6 pt-3 pb-0 flex gap-4 md:gap-8 overflow-x-auto no-scrollbar shadow-sm z-10">
           {allCategories.map((cat) => (
             <button
               key={cat}
               onClick={() => setActiveCategory(cat)}
-              className={`pb-4 px-1 text-sm font-bold uppercase tracking-wide whitespace-nowrap border-b-4 transition-all ${
+              className={`pb-3 md:pb-4 px-1 text-xs md:text-sm font-bold uppercase tracking-wide whitespace-nowrap border-b-4 transition-all ${
                 activeCategory === cat
                   ? 'border-red-600 text-red-800'
                   : 'border-transparent text-stone-500 hover:text-stone-800 hover:border-stone-200'
@@ -561,9 +595,9 @@ const PosModule: React.FC<PosModuleProps> = ({
           ))}
         </nav>
 
-        {/* Menu Grid */}
-        <main className="flex-1 overflow-y-auto p-6 bg-stone-100">
-          <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-6 pb-20">
+        {/* Menu Grid - responsive columns and padding */}
+        <main className="flex-1 overflow-y-auto p-3 md:p-6 lg:p-8 bg-stone-100">
+          <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3 md:gap-6 lg:gap-8 pb-20">
             {filteredItems.map((item) => (
               <div
                 key={item.id}
@@ -682,6 +716,109 @@ const PosModule: React.FC<PosModuleProps> = ({
         onRestore={handleRestoreSavedOrder}
         onDelete={handleDeleteSavedOrder}
       />
+
+      {/* MOBILE: Bottom Drawer Cart Panel */}
+      {cart.length > 0 && (
+        <>
+          {/* Backdrop - only when expanded */}
+          {isCartOpen && (
+            <div 
+              className="lg:hidden fixed inset-0 bg-black/60 z-[60] animate-in fade-in duration-300"
+              onClick={() => setIsCartOpen(false)}
+            />
+          )}
+          
+          {/* Drawer Panel - persistent at bottom when items exist */}
+          <div 
+            className={`lg:hidden fixed inset-x-0 z-[70] transition-all duration-500 ease-in-out overflow-hidden flex flex-col
+              ${isCartOpen ? 'h-[85vh] bg-white rounded-t-3xl shadow-[0_-8px_30px_rgb(0,0,0,0.2)]' : 'h-16 rounded-t-2xl'}
+              ${!isCartOpen && itemAddedFlash ? 'bg-red-600 shadow-[0_-4px_20px_rgba(220,38,38,0.4)]' : 'bg-white shadow-[0_-8px_30px_rgb(0,0,0,0.12)]'}`}
+            style={{ bottom: 'calc(var(--mobile-nav-height, 4rem) + var(--safe-area-bottom, 0px))' }}
+          >
+            {/* Handle bar and header - Tapping this toggles the drawer */}
+            <div 
+              className={`flex-shrink-0 pt-2 pb-3 px-4 border-b border-stone-100 relative cursor-pointer active:opacity-80 transition-colors
+                ${!isCartOpen && itemAddedFlash ? 'border-red-500' : 'border-stone-100'}`}
+              onClick={() => setIsCartOpen(!isCartOpen)}
+            >
+              <div className="flex justify-center mb-2">
+                <div className={`w-10 h-1 rounded-full transition-colors ${!isCartOpen && itemAddedFlash ? 'bg-white/60' : 'bg-stone-300'}`} />
+              </div>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <h2 className={`text-lg font-bold transition-colors ${!isCartOpen && itemAddedFlash ? 'text-white' : 'text-stone-800'}`}>Your Order</h2>
+                  <span className={`text-[10px] font-black px-1.5 py-0.5 rounded-full transition-colors ${!isCartOpen && itemAddedFlash ? 'bg-white text-red-600' : 'bg-red-100 text-red-600'}`}>
+                    {cart.reduce((sum, item) => sum + item.quantity, 0)}
+                  </span>
+                </div>
+                
+                <div className="flex items-center gap-3">
+                  {!isCartOpen && (
+                    <span className={`font-black text-xl font-brand transition-colors ${itemAddedFlash ? 'text-white underline decoration-wavy decoration-white/30 underline-offset-4' : 'text-stone-900'}`}>
+                      ₱{cart.reduce((sum, item) => sum + item.finalPrice, 0).toLocaleString('en-PH', { minimumFractionDigits: 2 })}
+                    </span>
+                  )}
+                  {isCartOpen ? (
+                     <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setIsCartOpen(false);
+                        }}
+                        className="p-2 -mr-2 text-stone-500 hover:text-stone-800 active:bg-stone-100 rounded-full transition-colors"
+                      >
+                        <X size={22} />
+                      </button>
+                  ) : (
+                    <div className="w-10 h-10 flex items-center justify-center -mr-2">
+                      <div className={`transform transition-transform duration-300 ${isCartOpen ? 'rotate-180' : ''}`}>
+                         <ShoppingCart size={18} className="text-stone-400" />
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+            
+            {/* Cart content - scrollable area */}
+            <div className={`flex-1 overflow-y-auto min-h-0 transition-opacity duration-300 pb-20 ${isCartOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
+              <SidebarCart
+                cart={cart}
+                discount={discountDetails}
+                onRemove={removeFromCart}
+                onUpdateQuantity={updateQuantity}
+                onClear={() => setCart([])}
+                onOpenDiscount={() => setIsDiscountModalOpen(true)}
+                onConfirmOrder={() => {
+                  setIsReceiptModalOpen(true);
+                  setIsCartOpen(false);
+                }}
+                staffList={staffList}
+                selectedServer={selectedServer}
+                onSelectServer={setSelectedServer}
+                orderType={orderType}
+                onSetOrderType={setOrderType}
+                orderCount={orderCount}
+                deliveryDetails={deliveryDetails}
+                onUpdateDeliveryDetails={setDeliveryDetails}
+                onSaveForLater={handleSaveForLater}
+                savedOrdersCount={savedOrders.length}
+                onOpenSavedOrders={() => setIsSavedOrdersModalOpen(true)}
+                tableNumber={tableNumber}
+                onSetTableNumber={setTableNumber}
+              />
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* Mobile Opening Fund Modal */}
+      <div className="lg:hidden">
+        <OpeningFundModal
+          isOpen={isOpeningFundModalOpen}
+          onSubmit={handleOpeningFundSubmit}
+          isLoading={openingFundLoading}
+        />
+      </div>
     </div>
   );
 };
