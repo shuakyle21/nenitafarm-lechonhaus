@@ -778,60 +778,64 @@ const PosModule: React.FC<PosModuleProps> = ({
               onClick={() => setIsCartOpen(false)}
             />
           )}
+
+          {/* Floating Action Button (FAB) - When closed */}
+          {!isCartOpen && (
+            <button
+              onClick={() => setIsCartOpen(true)}
+              className={`lg:hidden fixed z-[70] flex items-center gap-3 px-5 py-3 rounded-full shadow-[0_8px_30px_rgb(0,0,0,0.25)] transition-all duration-300 right-4 animate-in slide-in-from-bottom-8 ${
+                itemAddedFlash 
+                  ? 'bg-white scale-110 shadow-[0_0_20px_rgba(220,38,38,0.4)] text-red-600' 
+                  : 'bg-red-600 hover:bg-red-700 active:scale-95 text-white'
+              }`}
+              style={{ bottom: 'calc(var(--mobile-nav-height, 4rem) + var(--safe-area-bottom, 0px) + 1.25rem)' }}
+            >
+              <div className="relative">
+                <ShoppingCart size={22} className={itemAddedFlash ? "text-red-600 animate-bounce" : "text-white"} />
+                <span className={`absolute -top-2 -right-2 text-[10px] font-black px-1.5 py-0.5 rounded-full min-w-[20px] text-center shadow-sm ${
+                  itemAddedFlash ? 'bg-red-600 text-white' : 'bg-white text-red-600'
+                }`}>
+                  {cart.reduce((sum, item) => sum + item.quantity, 0)}
+                </span>
+              </div>
+              <div className="flex flex-col items-start min-w-[4rem]">
+                <span className={`text-[10px] uppercase font-bold opacity-80 leading-none ${itemAddedFlash ? 'text-red-500' : 'text-red-100'}`}>
+                  View Cart
+                </span>
+                <span className={`font-brand font-black text-lg leading-none mt-0.5 ${itemAddedFlash ? 'text-red-600 underline decoration-wavy decoration-red-300 underline-offset-2' : 'text-white'}`}>
+                  ₱{cart.reduce((sum, item) => sum + item.finalPrice, 0).toLocaleString('en-PH', { minimumFractionDigits: 2 })}
+                </span>
+              </div>
+            </button>
+          )}
           
-          {/* Drawer Panel - persistent at bottom when items exist */}
+          {/* Drawer Panel - Sliding up when opened */}
           <div 
-            className={`lg:hidden fixed inset-x-0 z-[70] transition-all duration-500 ease-in-out overflow-hidden flex flex-col
-              ${isCartOpen ? 'h-[85vh] bg-white rounded-t-3xl shadow-[0_-8px_30px_rgb(0,0,0,0.2)]' : 'h-16 rounded-t-2xl'}
-              ${!isCartOpen && itemAddedFlash ? 'bg-red-600 shadow-[0_-4px_20px_rgba(220,38,38,0.4)]' : 'bg-white shadow-[0_-8px_30px_rgb(0,0,0,0.12)]'}`}
+            className={`lg:hidden fixed inset-x-0 z-[70] transition-transform duration-500 ease-in-out overflow-hidden flex flex-col h-[85vh] bg-white rounded-t-3xl shadow-[0_-8px_30px_rgb(0,0,0,0.2)]
+              ${isCartOpen ? 'translate-y-0' : 'translate-y-full opacity-0 pointer-events-none'}`}
             style={{ bottom: 'calc(var(--mobile-nav-height, 4rem) + var(--safe-area-bottom, 0px))' }}
           >
-            {/* Handle bar and header - Tapping this toggles the drawer */}
-            <div 
-              className={`flex-shrink-0 pt-2 pb-3 px-4 border-b border-stone-100 relative cursor-pointer active:opacity-80 transition-colors
-                ${!isCartOpen && itemAddedFlash ? 'border-red-500' : 'border-stone-100'}`}
-              onClick={() => setIsCartOpen(!isCartOpen)}
-            >
-              <div className="flex justify-center mb-2">
-                <div className={`w-10 h-1 rounded-full transition-colors ${!isCartOpen && itemAddedFlash ? 'bg-white/60' : 'bg-stone-300'}`} />
+            {/* Header */}
+            <div className="flex-shrink-0 pt-4 pb-3 px-6 border-b border-stone-100 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <h2 className="text-xl font-bold text-stone-800 font-brand tracking-tight">Your Order</h2>
+                <span className="bg-red-100 text-red-600 font-bold px-2 py-0.5 rounded-full text-xs">
+                  {cart.reduce((sum, item) => sum + item.quantity, 0)} items
+                </span>
               </div>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <h2 className={`text-lg font-bold transition-colors ${!isCartOpen && itemAddedFlash ? 'text-white' : 'text-stone-800'}`}>Your Order</h2>
-                  <span className={`text-[10px] font-black px-1.5 py-0.5 rounded-full transition-colors ${!isCartOpen && itemAddedFlash ? 'bg-white text-red-600' : 'bg-red-100 text-red-600'}`}>
-                    {cart.reduce((sum, item) => sum + item.quantity, 0)}
-                  </span>
-                </div>
-                
-                <div className="flex items-center gap-3">
-                  {!isCartOpen && (
-                    <span className={`font-black text-xl font-brand transition-colors ${itemAddedFlash ? 'text-white underline decoration-wavy decoration-white/30 underline-offset-4' : 'text-stone-900'}`}>
-                      ₱{cart.reduce((sum, item) => sum + item.finalPrice, 0).toLocaleString('en-PH', { minimumFractionDigits: 2 })}
-                    </span>
-                  )}
-                  {isCartOpen ? (
-                     <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setIsCartOpen(false);
-                        }}
-                        className="p-2 -mr-2 text-stone-500 hover:text-stone-800 active:bg-stone-100 rounded-full transition-colors"
-                      >
-                        <X size={22} />
-                      </button>
-                  ) : (
-                    <div className="w-10 h-10 flex items-center justify-center -mr-2">
-                      <div className={`transform transition-transform duration-300 ${isCartOpen ? 'rotate-180' : ''}`}>
-                         <ShoppingCart size={18} className="text-stone-400" />
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setIsCartOpen(false);
+                }}
+                className="w-10 h-10 flex items-center justify-center bg-stone-100 hover:bg-stone-200 text-stone-600 rounded-full transition-colors active:scale-95"
+              >
+                <X size={20} />
+              </button>
             </div>
             
             {/* Cart content - scrollable area */}
-            <div className={`flex-1 overflow-y-auto min-h-0 transition-opacity duration-300 pb-20 ${isCartOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
+            <div className="flex-1 overflow-y-auto min-h-0 pb-20">
               <SidebarCart
                 cart={cart}
                 discount={discountDetails}
