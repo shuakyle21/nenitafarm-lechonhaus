@@ -48,88 +48,103 @@ const InventoryModule: React.FC<InventoryModuleProps> = ({ userId }) => {
   return (
     <div className="space-y-4 md:space-y-6 lg:space-y-8 animate-in fade-in duration-500">
       {/* Header Section */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 sticky top-0 bg-stone-100 z-10 py-2">
         <div>
-          <h1 className="text-2xl font-black text-stone-900 uppercase tracking-tight flex items-center gap-2">
+          <h1 className="text-xl md:text-2xl font-black text-stone-900 uppercase tracking-tight flex items-center gap-2">
             <Package className="text-red-600" />
             Inventory & Stock
           </h1>
-          <p className="text-stone-500 text-sm">Manage raw materials and food costing</p>
+          <p className="text-stone-500 text-xs md:text-sm">Manage raw materials and food costing</p>
         </div>
         
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 overflow-x-auto no-scrollbar pb-1 -mx-4 px-4 md:mx-0 md:px-0 md:pb-0 snap-x">
           <button 
             onClick={() => setActiveTab('LIST')}
-            className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${activeTab === 'LIST' ? 'bg-red-800 text-white shadow-lg shadow-red-900/20' : 'bg-white text-stone-600 hover:bg-stone-50'}`}
+            className={`
+              whitespace-nowrap snap-start px-4 py-2 rounded-full text-sm font-bold transition-all border
+              ${activeTab === 'LIST' 
+                ? 'bg-red-800 text-white border-transparent shadow-md' 
+                : 'bg-white text-stone-600 border-stone-200 hover:bg-stone-50'}
+            `}
           >
             Stock List
           </button>
           <button 
             onClick={() => setActiveTab('TRANSACTIONS')}
-            className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${activeTab === 'TRANSACTIONS' ? 'bg-red-800 text-white shadow-lg shadow-red-900/20' : 'bg-white text-stone-600 hover:bg-stone-50'}`}
+            className={`
+              whitespace-nowrap snap-start px-4 py-2 rounded-full text-sm font-bold transition-all border
+              ${activeTab === 'TRANSACTIONS' 
+                ? 'bg-red-800 text-white border-transparent shadow-md' 
+                : 'bg-white text-stone-600 border-stone-200 hover:bg-stone-50'}
+            `}
           >
             History
           </button>
           <button 
             onClick={() => setActiveTab('RECIPES')}
-            className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${activeTab === 'RECIPES' ? 'bg-red-800 text-white shadow-lg shadow-red-900/20' : 'bg-white text-stone-600 hover:bg-stone-50'}`}
+            className={`
+              whitespace-nowrap snap-start px-4 py-2 rounded-full text-sm font-bold transition-all border
+              ${activeTab === 'RECIPES' 
+                ? 'bg-red-800 text-white border-transparent shadow-md' 
+                : 'bg-white text-stone-600 border-stone-200 hover:bg-stone-50'}
+            `}
           >
             Recipe Costing
           </button>
         </div>
       </div>
 
-      {/* Quick Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="bg-white p-6 rounded-2xl shadow-sm border border-stone-200 flex items-center justify-between">
+      {/* Quick Stats - Scrollable on mobile */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 md:gap-4 overflow-x-auto snap-x">
+        <div className="bg-white p-4 md:p-6 rounded-2xl shadow-sm border border-stone-200 flex items-center justify-between snap-center min-w-[200px]">
           <div>
-            <p className="text-stone-500 text-xs font-bold uppercase tracking-wider mb-1">Total Items</p>
-            <p className="text-3xl font-black text-stone-900">{items.length}</p>
+            <p className="text-stone-500 text-[10px] md:text-xs font-bold uppercase tracking-wider mb-1">Total Items</p>
+            <p className="text-2xl md:text-3xl font-black text-stone-900">{items.length}</p>
           </div>
-          <div className="w-12 h-12 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center">
-            <Package size={24} />
+          <div className="w-10 h-10 md:w-12 md:h-12 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center">
+            <Package size={20} className="md:w-6 md:h-6" />
           </div>
         </div>
 
-        <div className="bg-white p-6 rounded-2xl shadow-sm border border-stone-200 flex items-center justify-between">
+        <div className="bg-white p-4 md:p-6 rounded-2xl shadow-sm border border-stone-200 flex items-center justify-between snap-center min-w-[200px]">
           <div>
-            <p className="text-stone-500 text-xs font-bold uppercase tracking-wider mb-1">Low Stock</p>
-            <p className="text-3xl font-black text-orange-600">{lowStockItems.length}</p>
+            <p className="text-stone-500 text-[10px] md:text-xs font-bold uppercase tracking-wider mb-1">Low Stock</p>
+            <p className="text-2xl md:text-3xl font-black text-orange-600">{lowStockItems.length}</p>
           </div>
-          <div className="w-12 h-12 bg-orange-50 text-orange-600 rounded-xl flex items-center justify-center">
-            <AlertTriangle size={24} />
+          <div className="w-10 h-10 md:w-12 md:h-12 bg-orange-50 text-orange-600 rounded-xl flex items-center justify-center">
+            <AlertTriangle size={20} className="md:w-6 md:h-6" />
           </div>
         </div>
 
-        <div className="bg-white p-6 rounded-2xl shadow-sm border border-stone-200 flex items-center justify-between">
+        <div className="bg-white p-4 md:p-6 rounded-2xl shadow-sm border border-stone-200 flex items-center justify-between snap-center min-w-[200px]">
           <div>
-            <p className="text-stone-500 text-xs font-bold uppercase tracking-wider mb-1">Out of Stock</p>
-            <p className="text-3xl font-black text-red-600">{items.filter(i => i.current_stock === 0).length}</p>
+            <p className="text-stone-500 text-[10px] md:text-xs font-bold uppercase tracking-wider mb-1">Out of Stock</p>
+            <p className="text-2xl md:text-3xl font-black text-red-600">{items.filter(i => i.current_stock === 0).length}</p>
           </div>
-          <div className="w-12 h-12 bg-red-50 text-red-600 rounded-xl flex items-center justify-center">
-            <AlertTriangle size={24} />
+          <div className="w-10 h-10 md:w-12 md:h-12 bg-red-50 text-red-600 rounded-xl flex items-center justify-center">
+            <AlertTriangle size={20} className="md:w-6 md:h-6" />
           </div>
         </div>
       </div>
 
       {/* Main Content Area */}
       {activeTab === 'LIST' && (
-        <div className="bg-white rounded-2xl shadow-sm border border-stone-200 overflow-hidden">
+        <div className="bg-white rounded-2xl shadow-sm border border-stone-200 overflow-hidden flex flex-col h-[calc(100vh-280px)] md:h-auto">
           {/* Controls */}
-          <div className="p-4 border-b border-stone-100 flex flex-col md:flex-row gap-4 justify-between bg-stone-50/50">
-            <div className="relative flex-1 max-w-md">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-stone-400" size={18} />
+          <div className="p-4 border-b border-stone-100 flex flex-col md:flex-row gap-3 justify-between bg-stone-50/50 sticky top-0 z-10">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-stone-400" size={16} />
               <input 
                 type="text" 
                 placeholder="Search ingredients..." 
-                className="w-full pl-10 pr-4 py-2 bg-white border border-stone-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-red-600/20 focus:border-red-600 transition-all"
+                className="w-full pl-9 pr-4 py-2 bg-white border border-stone-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-red-600/20 focus:border-red-600 transition-all"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
             </div>
             
-            <div className="flex items-center gap-2">
-              <div className="flex items-center gap-1 bg-white border border-stone-200 rounded-xl px-3 py-2">
+            <div className="flex items-center gap-2 overflow-x-auto">
+              <div className="flex items-center gap-1 bg-white border border-stone-200 rounded-xl px-3 py-2 shrink-0">
                 <Filter size={14} className="text-stone-400" />
                 <select 
                   className="text-sm font-bold text-stone-600 focus:outline-none bg-transparent"
@@ -142,17 +157,19 @@ const InventoryModule: React.FC<InventoryModuleProps> = ({ userId }) => {
                 </select>
               </div>
               
-              <button className="bg-red-800 text-white px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 hover:bg-red-700 transition-all shadow-lg shadow-red-900/20">
-                <Plus size={18} />
-                Add Ingredient
+              <button className="bg-red-800 text-white px-3 py-2 rounded-xl text-sm font-bold flex items-center gap-2 hover:bg-red-700 transition-all shadow-md shrink-0 whitespace-nowrap">
+                <Plus size={16} />
+                <span className="hidden sm:inline">Add Ingredient</span>
+                <span className="sm:hidden">Add</span>
               </button>
             </div>
           </div>
 
-          {/* Table */}
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm text-left">
-              <thead className="text-xs text-stone-500 uppercase font-bold bg-stone-50">
+          {/* Responsive List View */}
+          <div className="flex-1 overflow-y-auto">
+            {/* Desktop Table View (Hidden on Mobile) */}
+            <table className="w-full text-sm text-left hidden md:table">
+              <thead className="text-xs text-stone-500 uppercase font-bold bg-stone-50 sticky top-0 z-10">
                 <tr>
                   <th className="px-6 py-4">Item Name</th>
                   <th className="px-6 py-4">Category</th>
@@ -196,15 +213,49 @@ const InventoryModule: React.FC<InventoryModuleProps> = ({ userId }) => {
                     </td>
                   </tr>
                 ))}
-                {filteredItems.length === 0 && (
-                  <tr>
-                    <td colSpan={5} className="px-6 py-12 text-center text-stone-500">
-                      No ingredients found matching your search.
-                    </td>
-                  </tr>
-                )}
               </tbody>
             </table>
+
+            {/* Mobile Card View (Hidden on Desktop) */}
+            <div className="md:hidden divide-y divide-stone-100">
+              {filteredItems.map((item) => (
+                <div key={item.id} className="p-4 bg-white active:bg-stone-50 transition-colors">
+                  <div className="flex justify-between items-start mb-2">
+                    <div>
+                      <div className="font-bold text-stone-900 text-base">{item.name}</div>
+                      <div className="text-xs text-stone-500 font-medium bg-stone-100 px-2 py-0.5 rounded-full inline-block mt-1">
+                        {item.category || 'Uncategorized'}
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <div className={`font-mono text-xl font-bold ${item.current_stock <= item.reorder_level ? 'text-orange-600' : 'text-stone-900'}`}>
+                        {item.current_stock} <span className="text-xs text-stone-400 font-sans uppercase">{item.unit}</span>
+                      </div>
+                      <div className="text-[10px] text-stone-400 uppercase font-bold mt-0.5">
+                        Min: {item.reorder_level}
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-center justify-end gap-2 pt-2 mt-2 border-t border-stone-50">
+                    <button className="flex-1 py-2 px-3 bg-stone-50 text-stone-600 rounded-lg text-xs font-bold border border-stone-200 flex items-center justify-center gap-2 active:scale-95 transition-transform">
+                      <History size={14} />
+                      History
+                    </button>
+                    <button className="flex-1 py-2 px-3 bg-stone-900 text-white rounded-lg text-xs font-bold shadow-md flex items-center justify-center gap-2 active:scale-95 transition-transform">
+                      <Plus size={14} />
+                      Add Stock
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {filteredItems.length === 0 && (
+              <div className="p-8 text-center text-stone-500">
+                <p>No ingredients found matching your search.</p>
+              </div>
+            )}
           </div>
         </div>
       )}

@@ -61,6 +61,7 @@ const PosModule: React.FC<PosModuleProps> = ({
   });
 
   const [searchQuery, setSearchQuery] = useState('');
+  const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
 
   const [selectedServer, setSelectedServer] = useState<Staff | null>(() => {
     try {
@@ -532,19 +533,22 @@ const PosModule: React.FC<PosModuleProps> = ({
                 className="w-full h-full object-contain"
               />
             </div>
-            <div className="hidden sm:block">
-              <h1 className="text-lg md:text-2xl font-brand font-black text-red-800 tracking-tight leading-none drop-shadow-sm">
+            <div className="min-w-0">
+              <h1 className="text-xs sm:text-lg md:text-2xl font-brand font-black text-red-800 tracking-tight leading-tight drop-shadow-sm">
                 NENITA FARM Lechon Haus
               </h1>
-              <div className="text-[10px] md:text-xs font-bold text-yellow-600 tracking-[0.2em] uppercase bg-black/5 px-2 py-0.5 rounded mt-0.5 inline-block">
+              <p className="text-[8px] sm:text-[10px] md:text-xs font-semibold text-stone-500 leading-tight">
+                & Catering Services
+              </p>
+              <div className="hidden sm:inline-block text-[10px] md:text-xs font-bold text-yellow-600 tracking-[0.2em] uppercase bg-black/5 px-2 py-0.5 rounded mt-0.5">
                 POS Terminal
               </div>
             </div>
           </div>
 
-          <div className="flex items-center gap-2 md:gap-3">
-            {/* Search - responsive width */}
-            <div className="relative">
+          <div className="flex items-center gap-2 md:gap-3 shrink-0">
+            {/* Search - full bar on sm+, icon button on mobile */}
+            <div className="relative hidden sm:block">
               <Search
                 className="absolute left-3 top-1/2 -translate-y-1/2 text-stone-400"
                 size={18}
@@ -556,9 +560,19 @@ const PosModule: React.FC<PosModuleProps> = ({
                 placeholder="Search..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-9 pr-3 py-2.5 md:py-3 bg-stone-100 rounded-full border border-stone-200 focus:outline-none focus:ring-2 focus:ring-red-500 w-32 sm:w-48 md:w-64 transition-all shadow-inner text-sm"
+                className="pl-9 pr-3 py-2.5 md:py-3 bg-stone-100 rounded-full border border-stone-200 focus:outline-none focus:ring-2 focus:ring-red-500 w-48 md:w-64 transition-all shadow-inner text-sm"
               />
             </div>
+            {/* Mobile search icon button */}
+            <button
+              onClick={() => setMobileSearchOpen(!mobileSearchOpen)}
+              className={`sm:hidden p-2.5 rounded-full transition-colors shadow-sm ${
+                mobileSearchOpen ? 'bg-red-100 text-red-600' : 'bg-stone-100 text-stone-600 hover:bg-stone-200'
+              }`}
+              title="Search menu"
+            >
+              <Search size={18} />
+            </button>
 
             {/* Mobile: Dynamic Cart Button (Removed per request, now opens on item selection) */}
         <div className="lg:hidden flex items-center gap-3">
@@ -578,22 +592,59 @@ const PosModule: React.FC<PosModuleProps> = ({
           </div>
         </header>
 
-        {/* Category Navigation - touch-friendly on mobile */}
-        <nav className="bg-white border-b border-stone-200 px-3 md:px-6 pt-3 pb-0 flex gap-4 md:gap-8 overflow-x-auto no-scrollbar shadow-sm z-10">
+        {/* Mobile expandable search bar */}
+        {mobileSearchOpen && (
+          <div className="sm:hidden bg-white border-b border-stone-200 px-3 py-2 animate-in slide-in-from-top-1 duration-200">
+            <div className="relative">
+              <Search
+                className="absolute left-3 top-1/2 -translate-y-1/2 text-stone-400"
+                size={16}
+              />
+              <input
+                type="text"
+                placeholder="Search menu items..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                autoFocus
+                className="w-full pl-9 pr-9 py-2.5 bg-stone-100 rounded-full border border-stone-200 focus:outline-none focus:ring-2 focus:ring-red-500 text-sm"
+              />
+              {searchQuery && (
+                <button
+                  onClick={() => { setSearchQuery(''); setMobileSearchOpen(false); }}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-600"
+                >
+                  ✕
+                </button>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Category Navigation - Industrial/Tactile for Mobile, Clean Tabs for Desktop */}
+        <div className="bg-white border-b border-stone-200 sticky top-0 z-30">
+        <nav className="px-3 py-3 md:px-6 md:pt-3 md:pb-0 flex gap-2 md:gap-8 overflow-x-auto no-scrollbar shadow-sm snap-x snap-mandatory scroll-pl-3 items-center">
           {allCategories.map((cat) => (
             <button
               key={cat}
               onClick={() => setActiveCategory(cat)}
-              className={`pb-3 md:pb-4 px-1 text-xs md:text-sm font-bold uppercase tracking-wide whitespace-nowrap border-b-4 transition-all ${
+              className={`
+                snap-start shrink-0 select-none
+                text-xs md:text-sm font-bold uppercase tracking-wide whitespace-nowrap transition-all duration-200
+                /* MOBILE: Tactile Pill Style - Industrial Utilitarian */
+                rounded-full px-4 py-2.5 border shadow-sm
+                /* DESKTOP: Clean Tab Style - Returns to Sleek Minimal */
+                md:rounded-none md:bg-transparent md:border-0 md:border-b-4 md:shadow-none md:px-1 md:pb-4 md:py-0
+                ${
                 activeCategory === cat
-                  ? 'border-red-600 text-red-800'
-                  : 'border-transparent text-stone-500 hover:text-stone-800 hover:border-stone-200'
+                  ? 'bg-red-800 text-white border-transparent shadow-md scale-105 md:scale-100 md:bg-transparent md:text-red-800 md:border-red-800 md:shadow-none ring-2 ring-transparent'
+                  : 'bg-stone-100 text-stone-600 border-stone-200 hover:bg-stone-200 md:bg-transparent md:text-stone-500 md:border-transparent md:hover:text-stone-800 md:hover:border-stone-200 active:scale-95 md:active:scale-100'
               }`}
             >
               {cat}
             </button>
           ))}
         </nav>
+        </div>
 
         {/* Menu Grid - responsive columns and padding */}
         <main className="flex-1 overflow-y-auto p-3 md:p-6 lg:p-8 bg-stone-100">

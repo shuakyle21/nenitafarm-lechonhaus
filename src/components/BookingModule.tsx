@@ -228,7 +228,7 @@ const BookingModule: React.FC<BookingModuleProps> = ({ items }) => {
   };
 
   return (
-    <div className="flex flex-col lg:flex-row h-full w-full bg-stone-100 overflow-hidden font-roboto animate-in fade-in duration-300">
+    <div className="flex flex-col lg:flex-row h-full w-full bg-stone-100 overflow-y-auto lg:overflow-hidden font-roboto animate-in fade-in duration-300">
       <style>{`
                 .react-calendar { width: 100% !important; border: none !important; font-family: inherit; background: transparent; }
                 .react-calendar__tile { padding: 1em 0.5em; }
@@ -238,7 +238,7 @@ const BookingModule: React.FC<BookingModuleProps> = ({ items }) => {
             `}</style>
 
       {/* LEFT PANEL: Calendar & List - responsive width */}
-      <div className="w-full lg:w-[40%] h-auto lg:h-full flex flex-col border-b lg:border-b-0 lg:border-r border-stone-200 bg-white overflow-y-auto">
+      <div className="w-full lg:w-[40%] lg:h-full flex flex-col border-b lg:border-b-0 lg:border-r border-stone-200 bg-white lg:overflow-y-auto">
         <div className="p-3 md:p-6 lg:p-8 border-b border-stone-200 bg-stone-50/50 shrink-0">
           <h2 className="text-lg md:text-2xl font-brand font-black text-stone-800 mb-4 md:mb-6 flex items-center gap-2">
             <CalendarIcon className="text-red-600" size={20} />
@@ -394,7 +394,7 @@ const BookingModule: React.FC<BookingModuleProps> = ({ items }) => {
       </div>
 
       {/* RIGHT PANEL: Form - responsive */}
-      <div className="flex-1 p-3 md:p-6 lg:p-8 overflow-y-auto">
+      <div className="flex-1 p-3 md:p-6 lg:p-8 lg:overflow-y-auto">
         <div className="max-w-2xl mx-auto bg-white rounded-2xl shadow-sm border border-stone-200 p-4 md:p-6 lg:p-8">
           <div className="flex justify-between items-center mb-6 pb-4 border-b border-stone-100">
             <h3 className="text-xl font-bold text-stone-800">

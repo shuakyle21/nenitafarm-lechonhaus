@@ -235,28 +235,39 @@ const DashboardModule: React.FC<DashboardModuleProps> = ({
   return (
     <div className="flex-1 bg-stone-100 overflow-y-auto p-3 md:p-6 lg:p-8 font-roboto animate-in fade-in duration-300">
       {/* Header */}
-      <div className="flex justify-between items-end mb-8">
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-end mb-4 md:mb-8 gap-3">
         <div>
-          <h1 className="text-3xl font-brand font-black text-stone-800">Dashboard</h1>
-          <p className="text-stone-500 mt-1">Welcome back, Manager Nenita</p>
+          <h1 className="text-2xl md:text-3xl font-brand font-black text-stone-800">Dashboard</h1>
+          <p className="text-stone-500 mt-1 text-sm">Welcome back, Manager Nenita</p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 sm:gap-3">
           {paperPosImport && (
             <button
               onClick={() => setIsPaperPosModalOpen(true)}
-              className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg shadow-sm transition-colors text-sm font-bold"
+              className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-lg shadow-sm transition-colors text-sm font-bold"
             >
               <Upload size={16} />
-              <span>Import Paper POS</span>
+              <span className="hidden sm:inline">Import Paper POS</span>
+              <span className="sm:hidden">Import</span>
             </button>
           )}
-          <div className="flex items-center gap-3 bg-white px-4 py-2 rounded-lg shadow-sm border border-stone-200 text-stone-600 text-sm font-medium">
+          <div className="hidden sm:flex items-center gap-2 bg-white px-3 py-2 rounded-lg shadow-sm border border-stone-200 text-stone-600 text-sm font-medium">
             <Calendar size={16} />
             <span>
               {new Date().toLocaleDateString('en-US', {
                 weekday: 'long',
                 year: 'numeric',
                 month: 'long',
+                day: 'numeric',
+              })}
+            </span>
+          </div>
+          {/* Compact date for mobile */}
+          <div className="flex sm:hidden items-center gap-1.5 bg-white px-2.5 py-2 rounded-lg shadow-sm border border-stone-200 text-stone-600 text-xs font-medium">
+            <Calendar size={14} />
+            <span>
+              {new Date().toLocaleDateString('en-US', {
+                month: 'short',
                 day: 'numeric',
               })}
             </span>

@@ -225,8 +225,9 @@ const StaffManagementModule: React.FC = () => {
     <div className="flex-1 bg-stone-50 overflow-hidden flex flex-col">
       {/* Header */}
       <header className="bg-white border-b border-stone-200 p-3 md:p-6 lg:p-8">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          {/* Title row */}
+          <div className="flex items-center gap-3">
             {viewMode !== 'grid' && (
               <button
                 onClick={() => { setViewMode('grid'); setSelectedStaff(null); }}
@@ -235,14 +236,14 @@ const StaffManagementModule: React.FC = () => {
                 <ArrowLeft size={20} />
               </button>
             )}
-            <div>
-              <h1 className="text-xl font-bold text-stone-800">
+            <div className="min-w-0">
+              <h1 className="text-lg sm:text-xl font-bold text-stone-800 truncate">
                 {viewMode === 'grid' && 'Staff Management'}
-                {viewMode === 'manage' && 'Staff Member Detailed Management'}
-                {viewMode === 'payroll' && 'Bulk Payroll Generation'}
-                {viewMode === 'ledger' && 'Restaurant Financial Ledger'}
+                {viewMode === 'manage' && 'Staff Details'}
+                {viewMode === 'payroll' && 'Bulk Payroll'}
+                {viewMode === 'ledger' && 'Financial Ledger'}
               </h1>
-              <p className="text-sm text-stone-500">
+              <p className="text-xs sm:text-sm text-stone-500 hidden sm:block">
                 {viewMode === 'grid' && 'Manage servers, roles, and attendance'}
                 {viewMode === 'manage' && 'Personal info, employment details, and payroll history'}
                 {viewMode === 'payroll' && 'Generate payroll for selected staff'}
@@ -251,10 +252,11 @@ const StaffManagementModule: React.FC = () => {
             </div>
           </div>
           
-          <div className="flex items-center gap-3">
-            {/* Clock */}
-            <div className="text-right mr-4">
-              <div className="text-lg font-mono font-bold text-stone-800">
+          {/* Actions row */}
+          <div className="flex items-center gap-2">
+            {/* Clock - desktop only */}
+            <div className="hidden md:flex flex-col items-end mr-2">
+              <div className="text-lg font-mono font-bold text-stone-800 leading-none">
                 {currentTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
               </div>
               <div className="text-xs text-stone-400 uppercase tracking-wide">
@@ -266,24 +268,24 @@ const StaffManagementModule: React.FC = () => {
               <>
                 <button
                   onClick={() => setViewMode('ledger')}
-                  className="px-4 py-2 bg-stone-100 text-stone-700 rounded-lg font-medium flex items-center gap-2 hover:bg-stone-200 transition-colors"
+                  className="px-3 py-2 bg-stone-100 text-stone-700 rounded-lg font-medium flex items-center gap-1.5 hover:bg-stone-200 transition-colors text-sm"
                 >
-                  <Wallet size={18} />
-                  Ledger
+                  <Wallet size={16} />
+                  <span className="hidden sm:inline">Ledger</span>
                 </button>
                 <button
                   onClick={() => setViewMode('payroll')}
-                  className="px-4 py-2 bg-stone-100 text-stone-700 rounded-lg font-medium flex items-center gap-2 hover:bg-stone-200 transition-colors"
+                  className="px-3 py-2 bg-stone-100 text-stone-700 rounded-lg font-medium flex items-center gap-1.5 hover:bg-stone-200 transition-colors text-sm"
                 >
-                  <FileText size={18} />
-                  Bulk Payroll
+                  <FileText size={16} />
+                  <span className="hidden sm:inline">Bulk Payroll</span>
                 </button>
                 <button
                   onClick={() => setShowAddModal(true)}
-                  className="px-4 py-2 bg-stone-900 text-white rounded-lg font-medium flex items-center gap-2 hover:bg-stone-800 transition-colors"
+                  className="px-3 py-2 bg-stone-900 text-white rounded-lg font-medium flex items-center gap-1.5 hover:bg-stone-800 transition-colors text-sm"
                 >
-                  <Plus size={18} />
-                  Add Staff
+                  <Plus size={16} />
+                  <span className="hidden sm:inline">Add Staff</span>
                 </button>
               </>
             )}
@@ -292,8 +294,8 @@ const StaffManagementModule: React.FC = () => {
         
         {/* Filters (Grid View Only) */}
         {viewMode === 'grid' && (
-          <div className="flex items-center gap-4 mt-4">
-            <div className="relative flex-1 max-w-xs">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 mt-4">
+            <div className="relative flex-1 sm:max-w-xs">
               <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-stone-400" />
               <input
                 type="text"
@@ -303,13 +305,13 @@ const StaffManagementModule: React.FC = () => {
                 className="w-full pl-10 pr-4 py-2 bg-stone-100 border-0 rounded-lg focus:outline-none focus:ring-2 focus:ring-stone-900"
               />
             </div>
-            <div className="flex items-center gap-2">
-              <Filter size={16} className="text-stone-400" />
+            <div className="flex items-center gap-2 overflow-x-auto no-scrollbar -mx-3 px-3 sm:mx-0 sm:px-0 snap-x">
+              <Filter size={16} className="text-stone-400 shrink-0" />
               {(['All', 'Server', 'Cashier', 'Kitchen', 'Manager'] as RoleFilter[]).map(role => (
                 <button
                   key={role}
                   onClick={() => setRoleFilter(role)}
-                  className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                  className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors whitespace-nowrap snap-start shrink-0 ${
                     roleFilter === role 
                       ? 'bg-stone-900 text-white' 
                       : 'bg-stone-100 text-stone-600 hover:bg-stone-200'

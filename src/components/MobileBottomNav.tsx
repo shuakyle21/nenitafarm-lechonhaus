@@ -45,7 +45,7 @@ const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-[60] bg-stone-950 border-t border-stone-800 lg:hidden shadow-[0_-4px_20px_rgba(0,0,0,0.4)]">
       <div 
-        className="flex justify-around items-center h-16"
+        className="flex items-stretch h-16 overflow-x-auto no-scrollbar"
         style={{ paddingBottom: 'var(--safe-area-bottom)' }}
       >
         {filteredItems.map((item) => {
@@ -56,42 +56,53 @@ const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
             <button
               key={item.id}
               onClick={() => onModuleChange(item.id)}
-              className={`flex flex-col items-center justify-center flex-1 h-full py-2 transition-all ${
-                isActive 
-                  ? 'text-white' 
-                  : 'text-stone-500 hover:text-stone-300'
-              }`}
+              className={`
+                relative flex flex-col items-center justify-center min-w-[4.5rem] flex-1 px-1 transition-all duration-200 group
+                ${isActive ? 'bg-white/5' : 'hover:bg-white/5'}
+              `}
             >
-              <div className={`relative p-2 rounded-xl transition-all ${
-                isActive 
-                  ? `bg-gradient-to-br ${item.color} shadow-lg` 
-                  : ''
-              }`}>
-                <Icon size={18} />
-                {isActive && (
-                  <div className="absolute inset-0 bg-white/20 rounded-xl animate-pulse" />
-                )}
+              {/* Active Indicator Line */}
+              {isActive && (
+                <div className="absolute top-0 inset-x-4 h-0.5 bg-red-600 shadow-[0_0_8px_rgba(220,38,38,0.8)]" />
+              )}
+              
+              <div className={`
+                flex flex-col items-center gap-1.5 transition-transform duration-200
+                ${isActive ? 'scale-105' : 'scale-100 group-active:scale-95'}
+              `}>
+                <Icon 
+                  size={20} 
+                  className={`transition-colors duration-200 ${
+                    isActive ? 'text-white drop-shadow-md' : 'text-stone-500 group-hover:text-stone-300'
+                  }`} 
+                  start="true"
+                />
+                <span className={`text-[9px] font-black uppercase tracking-wider leading-none transition-colors duration-200 ${
+                  isActive ? 'text-white' : 'text-stone-600 group-hover:text-stone-400'
+                }`}>
+                  {item.label}
+                </span>
               </div>
-              <span className={`text-[9px] font-bold mt-1 uppercase tracking-tight ${
-                isActive ? 'text-white' : 'text-stone-500'
-              }`}>
-                {item.label}
-              </span>
             </button>
           );
         })}
 
-        {/* mobile Logout button */}
+        {/* Divider */}
+        <div className="w-px bg-stone-800 my-3 mx-1" />
+
+        {/* Improved Logout button */}
         <button
           onClick={onLogout}
-          className="flex flex-col items-center justify-center flex-1 h-full py-2 text-red-500/70 hover:text-red-500 transition-all"
+          className="relative flex flex-col items-center justify-center min-w-[4.5rem] px-1 group active:bg-red-950/20 transition-colors"
         >
-          <div className="p-2 rounded-xl border border-red-900/30 bg-red-950/20">
-            <LogOut size={18} />
+          <div className="flex flex-col items-center gap-1.5 transition-transform duration-200 group-active:scale-95">
+            <div className="p-1.5 rounded-lg border border-red-900/40 bg-red-950/30 text-red-500 group-hover:text-red-400 group-hover:border-red-800 transition-all">
+              <LogOut size={16} />
+            </div>
+            <span className="text-[9px] font-black uppercase tracking-wider leading-none text-red-700/70 group-hover:text-red-500 transition-colors">
+              OFF
+            </span>
           </div>
-          <span className="text-[9px] font-bold mt-1 uppercase tracking-tight">
-            Off
-          </span>
         </button>
       </div>
     </nav>
