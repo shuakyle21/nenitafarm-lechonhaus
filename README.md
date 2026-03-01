@@ -181,3 +181,34 @@ Run the test suite using Vitest:
 ```bash
 npm run test
 ```
+
+---
+
+## 🔄 Database Migrations
+
+### Order Timestamp Fix
+
+If you have existing orders with incorrect timestamp formats (from before the ISO 8601 fix), you need to run a one-time migration.
+
+**Symptoms of the issue:**
+- Orders showing incorrect times (e.g., 8 hours off)
+- "Today's Orders" filter not working correctly
+- Order times don't match when they were actually placed
+
+**Solution:**
+
+See the detailed guide: [`supabase/MIGRATION_GUIDE.md`](supabase/MIGRATION_GUIDE.md)
+
+**Quick migration (automated):**
+```sql
+-- Run this in Supabase SQL Editor
+-- File: supabase/fix_order_timestamps_auto.sql
+```
+
+**Step-by-step migration (recommended for production):**
+```sql
+-- Run this in Supabase SQL Editor
+-- File: supabase/fix_order_timestamps.sql
+```
+
+This migration is only needed once for existing data. All new orders will automatically use the correct ISO 8601 format.
