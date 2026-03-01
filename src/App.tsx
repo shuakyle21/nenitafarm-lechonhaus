@@ -61,7 +61,10 @@ const App: React.FC = () => {
       />
 
       {/* Main Content Area - with bottom padding on mobile for nav */}
-      <div className="flex-1 h-full overflow-hidden flex flex-col pb-16 lg:pb-0">
+      <div 
+        className="flex-1 h-full overflow-hidden flex flex-col lg:pb-0"
+        style={{ paddingBottom: 'calc(var(--mobile-nav-height, 4rem) + var(--safe-area-bottom, 0px))' }}
+      >
         {/* Render modules based on access control */}
         {activeModule === 'POS' && (
           <PosPage onSaveOrder={saveOrderWithOfflineSupport} isOnline={isOnline} />

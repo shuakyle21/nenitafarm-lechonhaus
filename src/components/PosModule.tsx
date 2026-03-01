@@ -523,7 +523,7 @@ const PosModule: React.FC<PosModuleProps> = ({
       {/* RIGHT PANEL: MENU (full width on mobile, 65% on desktop) */}
       <div className="flex-1 flex flex-col h-full bg-white overflow-hidden">
         {/* Header - responsive padding */}
-        <header className="bg-white border-b border-stone-200 px-3 py-2 md:px-6 md:py-4 flex justify-between items-center z-20 shadow-sm">
+        <header className="bg-white border-b border-stone-200 px-3 pb-2 pt-[calc(0.5rem+var(--safe-area-top))] md:px-6 md:pb-4 md:pt-[calc(1rem+var(--safe-area-top))] flex justify-between items-center z-20 shadow-sm">
           <div className="flex items-center gap-2 md:gap-4">
             {/* Logo - smaller on mobile */}
             <div className="w-10 h-10 md:w-16 md:h-16 rounded-full bg-white border-2 border-yellow-500 flex flex-col items-center justify-center shadow-lg relative overflow-hidden group p-0.5 md:p-1 shrink-0">
