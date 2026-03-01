@@ -34,6 +34,7 @@ const ReceiptModal: React.FC<ReceiptModalProps> = ({
   const [amountTendered, setAmountTendered] = useState<string>('');
   const [paymentMethod, setPaymentMethod] = useState<'CASH' | 'GCASH' | 'MAYA'>('CASH');
   const [referenceNo, setReferenceNo] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Stable Order Details per session
   const [orderNo, setOrderNo] = useState('');
@@ -67,6 +68,7 @@ const ReceiptModal: React.FC<ReceiptModalProps> = ({
         setPaymentMethod('CASH');
         setReferenceNo('');
       }
+      setIsSubmitting(false); // Reset submitting state when modal reopened
     }
   }, [isOpen, orderCount, existingOrder]);
 
@@ -138,26 +140,31 @@ const ReceiptModal: React.FC<ReceiptModalProps> = ({
     window.print();
   };
 
-  const handleConfirmOrder = () => {
-    if (!isPaid) return;
+  const handleConfirmOrder = async () => {
+    if (!isPaid || isSubmitting) return;
 
-    const newOrder: Order = {
-      id: orderNo,
-      date: date,
-      items: cart,
-      subtotal,
-      discount: discount || null,
-      total,
-      cash: paymentMethod === 'CASH' ? cash : total, // Record full amount as 'cash' equivalent for digital or distinct?
-      // Better: Keep cash as tendered amount.
-      change,
-      paymentMethod,
-      paymentReference: referenceNo,
-      tableNumber: existingOrder?.tableNumber || tableNumber,
-      serverName: existingOrder?.serverName || server?.name,
-    };
+    setIsSubmitting(true);
+    try {
+      const newOrder: Order = {
+        id: orderNo,
+        date: date,
+        items: cart,
+        subtotal,
+        discount: discount || null,
+        total,
+        cash: paymentMethod === 'CASH' ? cash : total, // Record full amount as 'cash' equivalent for digital or distinct?
+        // Better: Keep cash as tendered amount.
+        change,
+        paymentMethod,
+        paymentReference: referenceNo,
+        tableNumber: existingOrder?.tableNumber || tableNumber,
+        serverName: existingOrder?.serverName || server?.name,
+      };
 
-    onSaveOrder(newOrder);
+      await onSaveOrder(newOrder);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const dateTime = formatDate(date);
@@ -421,10 +428,19 @@ const ReceiptModal: React.FC<ReceiptModalProps> = ({
             {isPaid && (
               <button
                 onClick={handleConfirmOrder}
-                className="w-full bg-green-600 hover:bg-green-500 text-white py-4 rounded-lg font-bold text-lg shadow-lg flex items-center justify-center gap-2 animate-in slide-in-from-top-2 duration-300"
+                disabled={isSubmitting}
+                className={`w-full py-4 rounded-lg font-bold text-lg shadow-lg flex items-center justify-center gap-2 animate-in slide-in-from-top-2 duration-300 transition-colors ${
+                  isSubmitting
+                    ? 'bg-stone-600 text-stone-300 cursor-not-allowed'
+                    : 'bg-green-600 hover:bg-green-500 text-white'
+                }`}
               >
-                <CheckCircle size={24} />
-                CONFIRM & SAVE ORDER
+                {isSubmitting ? (
+                  <Loader2 size={24} className="animate-spin" />
+                ) : (
+                  <CheckCircle size={24} />
+                )}
+                {isSubmitting ? 'SAVING...' : 'CONFIRM & SAVE ORDER'}
               </button>
             )}
           </div>
