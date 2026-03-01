@@ -62,14 +62,14 @@ const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
       {/* More Drawer Backdrop */}
       {isMoreMenuOpen && (
         <div 
-          className="fixed inset-0 bg-black/60 z-[50] lg:hidden animate-in fade-in duration-200"
+          className="fixed inset-0 bg-black/60 z-[75] lg:hidden animate-in fade-in duration-200"
           onClick={() => setIsMoreMenuOpen(false)}
         />
       )}
 
       {/* More Drawer Panel */}
       <div 
-        className={`fixed left-0 right-0 z-[55] bg-stone-950 border-t border-stone-800 lg:hidden transition-transform duration-300 ease-out shadow-[0_-8px_30px_rgba(0,0,0,0.6)] flex flex-col items-center py-4 px-2 space-y-4 rounded-t-3xl ${isMoreMenuOpen ? 'translate-y-0' : 'translate-y-full'}`}
+        className={`fixed left-0 right-0 z-[80] bg-stone-950 border-t border-stone-800 lg:hidden transition-transform duration-300 ease-out shadow-[0_-8px_30px_rgba(0,0,0,0.6)] flex flex-col items-center py-4 px-2 space-y-4 rounded-t-3xl ${isMoreMenuOpen ? 'translate-y-0' : 'translate-y-full'}`}
         style={{ bottom: 'calc(var(--mobile-nav-height, 4rem) + var(--safe-area-bottom, 0px))' }}
       >
         <div className="w-12 h-1.5 bg-stone-800 rounded-full mb-1" />
