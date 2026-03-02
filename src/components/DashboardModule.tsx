@@ -308,7 +308,7 @@ const DashboardModule: React.FC<DashboardModuleProps> = ({
           <h3 className="font-bold text-stone-800 text-lg">Sales Overview</h3>
         </div>
         <div className="h-64 w-full">
-          <ResponsiveContainer width="100%" height="100%">
+          <ResponsiveContainer width="99%" height="100%" minWidth={1} minHeight={1}>
             <LineChart data={salesChartData}>
               <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e5e7eb" />
               <XAxis

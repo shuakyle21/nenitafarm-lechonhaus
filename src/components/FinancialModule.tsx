@@ -767,7 +767,7 @@ const FinancialModule: React.FC<FinancialModuleProps> = ({
               </span>
             </div>
             <div className="h-48 sm:h-64 w-full">
-              <ResponsiveContainer width="100%" height="100%">
+              <ResponsiveContainer width="99%" height="100%" minWidth={1} minHeight={1}>
                 <LineChart data={salesTrendData}>
                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f3f4f6" />
                   <XAxis
@@ -812,7 +812,7 @@ const FinancialModule: React.FC<FinancialModuleProps> = ({
               <h3 className="font-bold text-stone-800 text-lg">Sales by Category</h3>
             </div>
             <div className="h-48 sm:h-64 w-full flex">
-              <ResponsiveContainer width="100%" height="100%">
+              <ResponsiveContainer width="99%" height="100%" minWidth={1} minHeight={1}>
                 <PieChart>
                   <Pie
                     data={categoryData}
