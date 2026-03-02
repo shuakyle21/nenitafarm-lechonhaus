@@ -780,7 +780,7 @@ const PosModule: React.FC<PosModuleProps> = ({
           )}
 
           {/* Floating Action Button (FAB) - When closed */}
-          {!isCartOpen && (
+          {!isCartOpen && !isReceiptModalOpen && (
             <button
               onClick={() => setIsCartOpen(true)}
               className={`lg:hidden fixed z-[70] flex items-center gap-3 px-5 py-3 rounded-full shadow-[0_8px_30px_rgb(0,0,0,0.25)] transition-all duration-300 right-4 animate-in slide-in-from-bottom-8 ${
