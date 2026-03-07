@@ -54,6 +54,7 @@ const MainSidebar: React.FC<MainSidebarProps> = ({
                 : 'hover:bg-stone-900 hover:text-stone-200 hover:scale-105'
             }`}
             title="Dashboard"
+            aria-label="Dashboard"
           >
             <LayoutDashboard
               size={22}
@@ -74,6 +75,7 @@ const MainSidebar: React.FC<MainSidebarProps> = ({
               : 'hover:bg-stone-900 hover:text-stone-200 hover:scale-105'
           }`}
           title="Point of Sale"
+          aria-label="Point of Sale"
         >
           <Store
             size={22}
@@ -93,6 +95,7 @@ const MainSidebar: React.FC<MainSidebarProps> = ({
               : 'hover:bg-stone-900 hover:text-stone-200 hover:scale-105'
           }`}
           title="Bookings & Reservations"
+          aria-label="Bookings & Reservations"
         >
           <Calendar
             size={22}
@@ -113,6 +116,7 @@ const MainSidebar: React.FC<MainSidebarProps> = ({
                 : 'hover:bg-stone-900 hover:text-stone-200 hover:scale-105'
             }`}
             title="Staff Management"
+            aria-label="Staff Management"
           >
             <Users
               size={22}
@@ -134,6 +138,7 @@ const MainSidebar: React.FC<MainSidebarProps> = ({
                 : 'hover:bg-stone-900 hover:text-stone-200 hover:scale-105'
             }`}
             title="Financial Analysis"
+            aria-label="Financial Analysis"
           >
             <PieChart
               size={22}
@@ -155,6 +160,7 @@ const MainSidebar: React.FC<MainSidebarProps> = ({
                 : 'hover:bg-stone-900 hover:text-stone-200 hover:scale-105'
             }`}
             title="System Audit"
+            aria-label="System Audit"
           >
             <ClipboardList
               size={22}
@@ -176,6 +182,7 @@ const MainSidebar: React.FC<MainSidebarProps> = ({
                 : 'hover:bg-stone-900 hover:text-stone-200 hover:scale-105'
             }`}
             title="Inventory Management"
+            aria-label="Inventory Management"
           >
             <Package
               size={22}
@@ -217,6 +224,7 @@ const MainSidebar: React.FC<MainSidebarProps> = ({
           onClick={onLogout}
           className="w-full aspect-square rounded-2xl flex flex-col items-center justify-center gap-1.5 transition-all text-red-500/70 hover:text-red-500 hover:bg-red-950/30 border border-transparent hover:border-red-900/50 group"
           title="Logout"
+          aria-label="Logout"
         >
           <LogOut size={22} className="group-hover:-translate-x-1 transition-transform" />
         </button>

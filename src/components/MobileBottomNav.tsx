@@ -115,6 +115,7 @@ const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
             <button
               key={item.id}
               onClick={() => handleModuleChange(item.id)}
+              aria-label={item.id === 'DASHBOARD' ? 'Dashboard' : item.id === 'POS' ? 'Point of Sale' : item.id === 'FINANCE' ? 'Financial Analysis' : item.label}
               className={`
                 relative flex flex-col items-center justify-center min-w-[4.5rem] flex-1 px-1 transition-all duration-200 group
                 ${isActive ? 'bg-white/5' : 'hover:bg-white/5'}
@@ -150,6 +151,7 @@ const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
         {secondaryItems.length > 0 && (
           <button
             onClick={() => setIsMoreMenuOpen(!isMoreMenuOpen)}
+            aria-label="More modules"
             className={`
               relative flex flex-col items-center justify-center min-w-[4.5rem] flex-1 px-1 transition-all duration-200 group
               ${isMoreMenuOpen || isMoreActive ? 'bg-white/5' : 'hover:bg-white/5'}
@@ -183,6 +185,7 @@ const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
         {/* Improved Logout button */}
         <button
           onClick={onLogout}
+          aria-label="Logout"
           className="relative flex flex-col items-center justify-center min-w-[4.5rem] px-1 group active:bg-red-950/20 transition-colors"
         >
           <div className="flex flex-col items-center gap-1.5 transition-transform duration-200 group-active:scale-95">
