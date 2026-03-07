@@ -540,9 +540,11 @@ export default function PaperPosImportModal({
                     {isExpanded && (
                       <div className="px-4 pb-4 space-y-3 border-t border-stone-100">
                         {/* Record Type Toggle */}
-                        <div className="pt-3 flex items-center gap-1 bg-stone-100 rounded-lg p-1">
+                        <div className="pt-3 flex items-center gap-1 bg-stone-100 rounded-lg p-1" role="radiogroup" aria-label="Record type">
                           <button
                             type="button"
+                            role="radio"
+                            aria-checked={record.record_type === 'SALE'}
                             onClick={() => handleRecordChange(index, 'record_type', 'SALE')}
                             className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-md text-xs font-bold uppercase tracking-wide transition-all ${
                               record.record_type === 'SALE'
@@ -555,6 +557,8 @@ export default function PaperPosImportModal({
                           </button>
                           <button
                             type="button"
+                            role="radio"
+                            aria-checked={record.record_type === 'EXPENSE'}
                             onClick={() => handleRecordChange(index, 'record_type', 'EXPENSE')}
                             className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-md text-xs font-bold uppercase tracking-wide transition-all ${
                               record.record_type === 'EXPENSE'
