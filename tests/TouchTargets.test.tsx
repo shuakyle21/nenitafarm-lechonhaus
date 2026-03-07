@@ -34,8 +34,8 @@ describe('PaperPosImportModal - Touch Targets', () => {
 
   it('record type toggle buttons have sufficient min-height for touch (py-2.5)', () => {
     render(<PaperPosImportModal {...defaultProps} />);
-    const saleBtn = screen.getByRole('button', { name: /^sale$/i });
-    const expenseBtn = screen.getByRole('button', { name: /^expense$/i });
+    const saleBtn = screen.getByRole('radio', { name: /^sale$/i });
+    const expenseBtn = screen.getByRole('radio', { name: /^expense$/i });
 
     expect(saleBtn.className).toMatch(/py-2\.5/);
     expect(expenseBtn.className).toMatch(/py-2\.5/);
