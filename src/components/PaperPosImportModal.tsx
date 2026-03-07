@@ -15,6 +15,9 @@ import {
   StickyNote,
   ChevronDown,
   ChevronUp,
+  DollarSign,
+  User,
+  ReceiptText,
 } from 'lucide-react';
 import { PaperPosRecord, OrderType } from '@/types';
 
@@ -22,16 +25,22 @@ interface PaperPosImportModalProps {
   isOpen: boolean;
   onClose: () => void;
   onImport: (records: Omit<PaperPosRecord, 'id' | 'imported_at'>[]) => Promise<void>;
+  onImportExpenses?: (expenses: { date: string; amount: number; reason: string; requested_by: string }[]) => Promise<void>;
   importedBy: string;
 }
 
+type RecordType = 'SALE' | 'EXPENSE';
+
 interface FormRecord {
+  record_type: RecordType;
   date: string;
   items: string;
   total_amount: string;
   payment_method: string;
   order_type: OrderType;
   notes: string;
+  reason: string;
+  requested_by: string;
 }
 
 interface ParsedItem {
@@ -60,18 +69,22 @@ function parseItemsPreview(itemsStr: string): ParsedItem[] {
 }
 
 const createEmptyRecord = (): FormRecord => ({
+  record_type: 'SALE',
   date: new Date().toISOString().split('T')[0],
   items: '',
   total_amount: '',
   payment_method: 'CASH',
   order_type: 'DINE_IN',
   notes: '',
+  reason: '',
+  requested_by: '',
 });
 
 export default function PaperPosImportModal({
   isOpen,
   onClose,
   onImport,
+  onImportExpenses,
   importedBy,
 }: PaperPosImportModalProps) {
   const [records, setRecords] = useState<FormRecord[]>([createEmptyRecord()]);
@@ -163,15 +176,22 @@ export default function PaperPosImportModal({
 
     records.forEach((r, i) => {
       if (!r.date) newErrors[`${i}.date`] = 'Required';
-      if (!r.items.trim()) newErrors[`${i}.items`] = 'Required';
-      if (!r.total_amount || parseFloat(r.total_amount) <= 0)
-        newErrors[`${i}.total_amount`] = 'Must be greater than 0';
+
+      if (r.record_type === 'SALE') {
+        if (!r.items.trim()) newErrors[`${i}.items`] = 'Required';
+        if (!r.total_amount || parseFloat(r.total_amount) <= 0)
+          newErrors[`${i}.total_amount`] = 'Must be greater than 0';
+      } else {
+        // EXPENSE validation
+        if (!r.total_amount || parseFloat(r.total_amount) <= 0)
+          newErrors[`${i}.total_amount`] = 'Must be greater than 0';
+        if (!r.reason.trim()) newErrors[`${i}.reason`] = 'Required';
+      }
     });
 
     setErrors(newErrors);
 
     if (Object.keys(newErrors).length > 0) {
-      // Expand the first record with an error
       const firstErrorRecord = parseInt(Object.keys(newErrors)[0].split('.')[0]);
       setExpandedRecords((prev) => new Set([...prev, firstErrorRecord]));
     }
@@ -185,21 +205,38 @@ export default function PaperPosImportModal({
     try {
       setImporting(true);
 
-      const validRecords = records.filter(
-        (r) => r.date && r.items.trim() && r.total_amount && parseFloat(r.total_amount) > 0
+      // Partition records by type
+      const saleRecords = records.filter(
+        (r) => r.record_type === 'SALE' && r.date && r.items.trim() && r.total_amount && parseFloat(r.total_amount) > 0
+      );
+      const expenseRecords = records.filter(
+        (r) => r.record_type === 'EXPENSE' && r.date && r.total_amount && parseFloat(r.total_amount) > 0 && r.reason.trim()
       );
 
-      const recordsToImport = validRecords.map((r) => ({
-        date: r.date,
-        items: r.items,
-        total_amount: parseFloat(r.total_amount),
-        payment_method: r.payment_method,
-        order_type: r.order_type,
-        notes: r.notes,
-        imported_by: importedBy,
-      }));
+      // Import sales
+      if (saleRecords.length > 0) {
+        const recordsToImport = saleRecords.map((r) => ({
+          date: r.date,
+          items: r.items,
+          total_amount: parseFloat(r.total_amount),
+          payment_method: r.payment_method,
+          order_type: r.order_type,
+          notes: r.notes,
+          imported_by: importedBy,
+        }));
+        await onImport(recordsToImport);
+      }
 
-      await onImport(recordsToImport);
+      // Import expenses
+      if (expenseRecords.length > 0 && onImportExpenses) {
+        const expensesToImport = expenseRecords.map((r) => ({
+          date: r.date,
+          amount: parseFloat(r.total_amount),
+          reason: r.reason,
+          requested_by: r.requested_by || importedBy,
+        }));
+        await onImportExpenses(expensesToImport);
+      }
 
       // Reset form
       setRecords([createEmptyRecord()]);
@@ -368,8 +405,12 @@ export default function PaperPosImportModal({
                   0
                 );
                 const hasErrors = Object.keys(errors).some((k) => k.startsWith(`${index}.`));
-                const recordSummary =
-                  record.items.trim() && parsedItems.length > 0
+                const isExpense = record.record_type === 'EXPENSE';
+                const recordSummary = isExpense
+                  ? record.total_amount
+                    ? `₱${parseFloat(record.total_amount).toLocaleString()}`
+                    : 'Empty expense'
+                  : record.items.trim() && parsedItems.length > 0
                     ? `${parsedItems.length} item${parsedItems.length > 1 ? 's' : ''} · ₱${calculatedTotal.toLocaleString()}`
                     : record.total_amount
                       ? `₱${parseFloat(record.total_amount).toLocaleString()}`
@@ -413,6 +454,11 @@ export default function PaperPosImportModal({
                               : 'No date'}
                           </span>
                           <span className="text-xs text-stone-400 ml-2">{recordSummary}</span>
+                          {isExpense && (
+                            <span className="ml-2 text-[10px] font-bold uppercase px-1.5 py-0.5 rounded-full bg-red-100 text-red-600">
+                              Expense
+                            </span>
+                          )}
                         </div>
                       </div>
                       <div className="flex items-center gap-2">
@@ -440,7 +486,35 @@ export default function PaperPosImportModal({
                     {/* Record Form (expanded) */}
                     {isExpanded && (
                       <div className="px-4 pb-4 space-y-3 border-t border-stone-100">
-                        <div className="pt-3 grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        {/* Record Type Toggle */}
+                        <div className="pt-3 flex items-center gap-1 bg-stone-100 rounded-lg p-1">
+                          <button
+                            type="button"
+                            onClick={() => handleRecordChange(index, 'record_type', 'SALE')}
+                            className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-md text-xs font-bold uppercase tracking-wide transition-all ${
+                              record.record_type === 'SALE'
+                                ? 'bg-white text-orange-600 shadow-sm'
+                                : 'text-stone-400 hover:text-stone-600'
+                            }`}
+                          >
+                            <ShoppingBag size={13} />
+                            Sale
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleRecordChange(index, 'record_type', 'EXPENSE')}
+                            className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-md text-xs font-bold uppercase tracking-wide transition-all ${
+                              record.record_type === 'EXPENSE'
+                                ? 'bg-white text-red-600 shadow-sm'
+                                : 'text-stone-400 hover:text-stone-600'
+                            }`}
+                          >
+                            <ReceiptText size={13} />
+                            Expense
+                          </button>
+                        </div>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                           {/* Date */}
                           <div>
                             <label className={labelBase}>
@@ -496,111 +570,156 @@ export default function PaperPosImportModal({
                               )}
                           </div>
 
-                          {/* Payment Method */}
-                          <div>
-                            <label className={labelBase}>Payment Method</label>
-                            <select
-                              value={record.payment_method}
-                              onChange={(e) =>
-                                handleRecordChange(index, 'payment_method', e.target.value)
-                              }
-                              className={inputBase}
-                            >
-                              <option value="CASH">Cash</option>
-                              <option value="GCASH">GCash</option>
-                              <option value="MAYA">Maya</option>
-                            </select>
-                          </div>
+                          {/* Sale-only fields */}
+                          {record.record_type === 'SALE' && (
+                            <>
+                              {/* Payment Method */}
+                              <div>
+                                <label className={labelBase}>Payment Method</label>
+                                <select
+                                  value={record.payment_method}
+                                  onChange={(e) =>
+                                    handleRecordChange(index, 'payment_method', e.target.value)
+                                  }
+                                  className={inputBase}
+                                >
+                                  <option value="CASH">Cash</option>
+                                  <option value="GCASH">GCash</option>
+                                  <option value="MAYA">Maya</option>
+                                </select>
+                              </div>
 
-                          {/* Order Type */}
+                              {/* Order Type */}
+                              <div>
+                                <label className={labelBase}>
+                                  <ShoppingBag size={10} className="inline mr-1 mb-0.5" />
+                                  Order Type
+                                </label>
+                                <select
+                                  value={record.order_type}
+                                  onChange={(e) =>
+                                    handleRecordChange(
+                                      index,
+                                      'order_type',
+                                      e.target.value as OrderType
+                                    )
+                                  }
+                                  className={inputBase}
+                                >
+                                  <option value="DINE_IN">Dine In</option>
+                                  <option value="TAKEOUT">Takeout</option>
+                                  <option value="DELIVERY">Delivery</option>
+                                </select>
+                              </div>
+                            </>
+                          )}
+
+                          {/* Expense-only fields */}
+                          {record.record_type === 'EXPENSE' && (
+                            <>
+                              {/* Reason */}
+                              <div>
+                                <label className={labelBase}>
+                                  <ReceiptText size={10} className="inline mr-1 mb-0.5" />
+                                  Reason *
+                                </label>
+                                <input
+                                  type="text"
+                                  value={record.reason}
+                                  onChange={(e) => handleRecordChange(index, 'reason', e.target.value)}
+                                  placeholder="e.g. Supplies, Gas, Groceries"
+                                  className={`${inputBase} ${errors[`${index}.reason`] ? inputError : ''}`}
+                                />
+                                {errors[`${index}.reason`] && (
+                                  <p className="text-red-500 text-xs mt-1">{errors[`${index}.reason`]}</p>
+                                )}
+                              </div>
+
+                              {/* Requested By */}
+                              <div>
+                                <label className={labelBase}>
+                                  <User size={10} className="inline mr-1 mb-0.5" />
+                                  Requested By
+                                </label>
+                                <input
+                                  type="text"
+                                  value={record.requested_by}
+                                  onChange={(e) => handleRecordChange(index, 'requested_by', e.target.value)}
+                                  placeholder={importedBy}
+                                  className={inputBase}
+                                />
+                              </div>
+                            </>
+                          )}
+                        </div>
+
+                        {/* Sale-specific: Items */}
+                        {record.record_type === 'SALE' && (
                           <div>
                             <label className={labelBase}>
-                              <ShoppingBag size={10} className="inline mr-1 mb-0.5" />
-                              Order Type
+                              <Package size={10} className="inline mr-1 mb-0.5" />
+                              Items *
                             </label>
-                            <select
-                              value={record.order_type}
-                              onChange={(e) =>
-                                handleRecordChange(
-                                  index,
-                                  'order_type',
-                                  e.target.value as OrderType
-                                )
-                              }
-                              className={inputBase}
-                            >
-                              <option value="DINE_IN">Dine In</option>
-                              <option value="TAKEOUT">Takeout</option>
-                              <option value="DELIVERY">Delivery</option>
-                            </select>
-                          </div>
-                        </div>
-
-                        {/* Items */}
-                        <div>
-                          <label className={labelBase}>
-                            <Package size={10} className="inline mr-1 mb-0.5" />
-                            Items *
-                          </label>
-                          <textarea
-                            value={record.items}
-                            onChange={(e) => handleRecordChange(index, 'items', e.target.value)}
-                            placeholder='e.g. Lechon Baboy x 2 @ 150, Pork BBQ x 3 @ 50'
-                            rows={2}
-                            className={`${inputBase} resize-none ${errors[`${index}.items`] ? inputError : ''}`}
-                          />
-                          {errors[`${index}.items`] && (
-                            <p className="text-red-500 text-xs mt-1">
-                              {errors[`${index}.items`]}
-                            </p>
-                          )}
-
-                          {/* Live Parse Preview */}
-                          {parsedItems.length > 0 && (
-                            <div className="mt-2 bg-green-50 border border-green-200 rounded-lg p-3">
-                              <p className="text-xs font-bold uppercase text-green-700 mb-2 flex items-center gap-1">
-                                <Check size={12} />
-                                Parsed {parsedItems.length} item
-                                {parsedItems.length > 1 ? 's' : ''}
+                            <textarea
+                              value={record.items}
+                              onChange={(e) => handleRecordChange(index, 'items', e.target.value)}
+                              placeholder='e.g. Lechon Baboy x 2 @ 150, Pork BBQ x 3 @ 50'
+                              rows={2}
+                              className={`${inputBase} resize-none ${errors[`${index}.items`] ? inputError : ''}`}
+                            />
+                            {errors[`${index}.items`] && (
+                              <p className="text-red-500 text-xs mt-1">
+                                {errors[`${index}.items`]}
                               </p>
-                              <div className="space-y-1">
-                                {parsedItems.map((item, i) => (
-                                  <div
-                                    key={i}
-                                    className="flex items-center justify-between text-xs text-green-800"
-                                  >
-                                    <span>
-                                      {item.name}{' '}
-                                      <span className="text-green-600">
-                                        x{item.qty} @ ₱{item.price}
+                            )}
+
+                            {/* Live Parse Preview */}
+                            {parsedItems.length > 0 && (
+                              <div className="mt-2 bg-green-50 border border-green-200 rounded-lg p-3">
+                                <p className="text-xs font-bold uppercase text-green-700 mb-2 flex items-center gap-1">
+                                  <Check size={12} />
+                                  Parsed {parsedItems.length} item
+                                  {parsedItems.length > 1 ? 's' : ''}
+                                </p>
+                                <div className="space-y-1">
+                                  {parsedItems.map((item, i) => (
+                                    <div
+                                      key={i}
+                                      className="flex items-center justify-between text-xs text-green-800"
+                                    >
+                                      <span>
+                                        {item.name}{' '}
+                                        <span className="text-green-600">
+                                          x{item.qty} @ ₱{item.price}
+                                        </span>
                                       </span>
-                                    </span>
-                                    <span className="font-semibold">
-                                      ₱{(item.qty * item.price).toLocaleString()}
-                                    </span>
+                                      <span className="font-semibold">
+                                        ₱{(item.qty * item.price).toLocaleString()}
+                                      </span>
+                                    </div>
+                                  ))}
+                                  <div className="border-t border-green-200 pt-1 mt-1 flex justify-between text-xs font-bold text-green-800">
+                                    <span>Subtotal</span>
+                                    <span>₱{calculatedTotal.toLocaleString()}</span>
                                   </div>
-                                ))}
-                                <div className="border-t border-green-200 pt-1 mt-1 flex justify-between text-xs font-bold text-green-800">
-                                  <span>Subtotal</span>
-                                  <span>₱{calculatedTotal.toLocaleString()}</span>
                                 </div>
                               </div>
-                            </div>
-                          )}
+                            )}
 
-                          {/* Hint when items field has text but nothing parsed */}
-                          {record.items.trim() && parsedItems.length === 0 && (
-                            <div className="mt-2 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 flex items-start gap-2">
-                              <AlertCircle size={14} className="text-amber-500 shrink-0 mt-0.5" />
-                              <p className="text-xs text-amber-700">
-                                Could not parse items. Use format:{' '}
-                                <span className="font-mono font-semibold">
-                                  Item Name x Qty @ Price
-                                </span>
-                              </p>
-                            </div>
-                          )}
-                        </div>
+                            {/* Hint when items field has text but nothing parsed */}
+                            {record.items.trim() && parsedItems.length === 0 && (
+                              <div className="mt-2 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 flex items-start gap-2">
+                                <AlertCircle size={14} className="text-amber-500 shrink-0 mt-0.5" />
+                                <p className="text-xs text-amber-700">
+                                  Could not parse items. Use format:{' '}
+                                  <span className="font-mono font-semibold">
+                                    Item Name x Qty @ Price
+                                  </span>
+                                </p>
+                              </div>
+                            )}
+                          </div>
+                        )}
 
                         {/* Notes */}
                         <div>
@@ -657,6 +776,11 @@ export default function PaperPosImportModal({
                 <>
                   <Check size={18} />
                   IMPORT {records.length} RECORD{records.length > 1 ? 'S' : ''}
+                  {records.some((r) => r.record_type === 'EXPENSE') && records.some((r) => r.record_type === 'SALE')
+                    ? ` (${records.filter((r) => r.record_type === 'SALE').length} Sale, ${records.filter((r) => r.record_type === 'EXPENSE').length} Expense)`
+                    : records.every((r) => r.record_type === 'EXPENSE')
+                      ? ' (Expenses)'
+                      : ''}
                 </>
               )}
             </button>

@@ -80,6 +80,17 @@ export function usePaperPosImport(isAuthenticated: boolean) {
     }
   };
 
+  const importExpenses = async (
+    expenses: { date: string; amount: number; reason: string; requested_by: string }[]
+  ) => {
+    try {
+      await paperPosImportService.importExpenses(expenses);
+    } catch (error) {
+      console.error('Error importing expenses:', error);
+      throw error;
+    }
+  };
+
   const deleteRecord = async (id: string) => {
     try {
       await paperPosImportService.deleteRecord(id);
@@ -98,6 +109,7 @@ export function usePaperPosImport(isAuthenticated: boolean) {
     syncing,
     importRecord,
     importRecords,
+    importExpenses,
     syncRecord,
     syncAllRecords,
     deleteRecord,

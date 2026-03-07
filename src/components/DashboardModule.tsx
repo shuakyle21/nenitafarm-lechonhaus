@@ -36,6 +36,7 @@ interface DashboardModuleProps {
   username?: string;
   paperPosImport?: {
     importRecords: (records: any[]) => Promise<any>;
+    importExpenses?: (expenses: { date: string; amount: number; reason: string; requested_by: string }[]) => Promise<void>;
   };
   onRefresh?: () => void;
 }
@@ -517,6 +518,10 @@ const DashboardModule: React.FC<DashboardModuleProps> = ({
             setIsPaperPosModalOpen(false);
             if (onRefresh) onRefresh();
           }}
+          onImportExpenses={paperPosImport.importExpenses ? async (expenses) => {
+            await paperPosImport.importExpenses!(expenses);
+            if (onRefresh) onRefresh();
+          } : undefined}
           importedBy={username}
         />
       )}

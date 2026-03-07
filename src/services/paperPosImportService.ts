@@ -238,6 +238,28 @@ export const paperPosImportService = {
   },
 
   /**
+   * Import expenses from paper records (batch insert into expenses table)
+   */
+  async importExpenses(
+    expenses: { date: string; amount: number; reason: string; requested_by: string }[]
+  ): Promise<void> {
+    if (expenses.length === 0) return;
+
+    const { error } = await supabase
+      .from('expenses')
+      .insert(
+        expenses.map((e) => ({
+          date: e.date,
+          amount: e.amount,
+          reason: e.reason,
+          requested_by: e.requested_by,
+        }))
+      );
+
+    if (error) throw error;
+  },
+
+  /**
    * Delete a paper POS record
    */
   async deleteRecord(id: string): Promise<void> {

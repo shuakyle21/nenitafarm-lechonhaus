@@ -1038,6 +1038,10 @@ const FinancialModule: React.FC<FinancialModuleProps> = ({
               setIsPaperPosImportModalOpen(false);
               onRefresh();
             }}
+            onImportExpenses={async (expenses) => {
+              await paperPosImport.importExpenses(expenses);
+              onRefresh();
+            }}
             importedBy={username}
           />
 
