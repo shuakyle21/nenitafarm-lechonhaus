@@ -123,12 +123,12 @@ const OrderHistoryModal: React.FC<OrderHistoryModalProps> = ({
         {/* Toolbar */}
         <div className="p-4 bg-white border-b border-stone-200 flex flex-col gap-4">
           {/* Filter Buttons */}
-          <div className="flex gap-2 overflow-x-auto pb-2 md:pb-0">
+          <div className="flex gap-2 w-full overflow-x-auto pb-3 -mx-4 px-4 md:mx-0 md:px-0 hide-scrollbar scroll-smooth snap-x">
             {(['TODAY', 'YESTERDAY', 'WEEK', 'MONTH', 'ALL'] as const).map((filter) => (
               <button
                 key={filter}
                 onClick={() => setTimeFilter(filter)}
-                className={`px-4 py-2 text-sm font-bold rounded-lg transition-all whitespace-nowrap ${
+                className={`px-4 py-2 text-sm font-bold rounded-lg transition-all whitespace-nowrap shrink-0 snap-start ${
                   timeFilter === filter
                     ? 'bg-stone-800 text-white shadow-md'
                     : 'bg-stone-100 text-stone-600 hover:bg-stone-200'
@@ -147,8 +147,8 @@ const OrderHistoryModal: React.FC<OrderHistoryModalProps> = ({
             ))}
           </div>
 
-          <div className="flex justify-between items-center gap-4">
-            <div className="relative flex-1 max-w-md">
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+            <div className="relative w-full md:flex-1 md:max-w-md">
               <Search
                 className="absolute left-3 top-1/2 -translate-y-1/2 text-stone-400"
                 size={20}
@@ -161,12 +161,17 @@ const OrderHistoryModal: React.FC<OrderHistoryModalProps> = ({
                 className="w-full pl-10 pr-4 py-3 bg-stone-100 border border-stone-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-stone-500"
               />
             </div>
-            <div className="text-right">
-              <div className="text-xs font-bold text-stone-500 uppercase tracking-wider">
+            <div className="w-full md:w-auto flex justify-between md:justify-end items-end md:text-right border-t md:border-t-0 border-stone-100 pt-3 md:pt-0">
+              <div className="md:hidden text-sm font-bold text-stone-500 uppercase tracking-wider">
                 Total Revenue
               </div>
-              <div className="text-2xl font-brand font-black text-green-700">
-                {formatCurrency(filteredOrders.reduce((acc, o) => acc + o.total, 0))}
+              <div>
+                <div className="hidden md:block text-xs font-bold text-stone-500 uppercase tracking-wider">
+                  Total Revenue
+                </div>
+                <div className="text-2xl font-brand font-black text-green-700 leading-none">
+                  {formatCurrency(filteredOrders.reduce((acc, o) => acc + o.total, 0))}
+                </div>
               </div>
             </div>
           </div>
@@ -174,7 +179,8 @@ const OrderHistoryModal: React.FC<OrderHistoryModalProps> = ({
 
         {/* Table Content */}
         <div className="flex-1 overflow-auto bg-stone-50 p-4">
-          <div className="bg-white rounded-xl shadow-sm border border-stone-200 overflow-hidden">
+          {/* Desktop Table */}
+          <div className="hidden md:block bg-white rounded-xl shadow-sm border border-stone-200 overflow-hidden">
             <table className="w-full text-left border-collapse">
               <thead className="bg-stone-100 text-stone-600 text-xs uppercase tracking-wider font-bold">
                 <tr>
@@ -303,6 +309,89 @@ const OrderHistoryModal: React.FC<OrderHistoryModalProps> = ({
                 )}
               </tbody>
             </table>
+          </div>
+
+          {/* Mobile Cards View */}
+          <div className="md:hidden space-y-4">
+            {filteredOrders.length === 0 ? (
+              <div className="p-8 text-center text-stone-400 bg-white rounded-xl shadow-sm border border-stone-200">
+                No transactions found.
+              </div>
+            ) : (
+              filteredOrders.map((order) => (
+                <div key={order.id} className="bg-white rounded-xl shadow-sm border border-stone-200 p-4 flex flex-col gap-3">
+                  <div className="flex justify-between items-start border-b border-stone-100 pb-3">
+                    <div>
+                      <div className="font-mono font-bold text-stone-800 text-lg">
+                        #{order.orderNumber || order.id.substring(0, 8)}
+                      </div>
+                      <div className="flex items-center gap-2 mt-1">
+                         {order.orderType === 'TAKEOUT' ? (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-orange-100 text-orange-700 text-[10px] font-bold uppercase tracking-wider">
+                              <ShoppingBag size={10} /> Takeout
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 text-[10px] font-bold uppercase tracking-wider">
+                              <Utensils size={10} /> Dine-in
+                            </span>
+                          )}
+                          {order.tableNumber && (
+                            <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-black uppercase tracking-wider bg-red-100 text-red-800 border border-red-200">
+                              T-{order.tableNumber}
+                            </span>
+                          )}
+                      </div>
+                    </div>
+                    <div className="text-right text-xs text-stone-500">
+                      <div className="flex items-center justify-end gap-1 font-bold text-stone-700">
+                         {new Date(order.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                      </div>
+                      <div className="flex items-center justify-end gap-1 mt-0.5">
+                         {new Date(order.date).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="text-sm text-stone-600 font-medium line-clamp-2">
+                    {order.items.map(formatItemString).join(', ')}
+                  </div>
+
+                  <div className="flex justify-between items-end pt-2 border-t border-stone-100">
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => setSelectedOrder(order)}
+                        className="p-2.5 bg-stone-100 hover:bg-stone-200 text-stone-600 rounded-lg transition-colors flex items-center justify-center shadow-sm"
+                        title="View Receipt"
+                      >
+                        <Printer size={18} />
+                      </button>
+                      {onDeleteOrder && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onDeleteOrder(order.id);
+                          }}
+                          className="p-2.5 bg-red-50 hover:bg-red-100 text-red-600 rounded-lg transition-colors flex items-center justify-center border border-red-100 shadow-sm"
+                          title="Delete Order"
+                        >
+                          <X size={18} />
+                        </button>
+                      )}
+                    </div>
+                    <div className="text-right">
+                       {order.discount && (
+                          <div className="text-[10px] font-bold text-red-500 mb-0.5">
+                            -20% {order.discount.type}
+                          </div>
+                       )}
+                       <div className="font-brand font-black text-stone-800 text-xl leading-none">
+                         {formatCurrency(order.total)}
+                       </div>
+                    </div>
+                  </div>
+                </div>
+              ))
+            )}
           </div>
         </div>
       </div>
