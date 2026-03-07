@@ -37,6 +37,7 @@ import { saveAs } from 'file-saver';
 import FinancialReportPDF from './FinancialReportPDF';
 import SalesAdjustmentModal from './SalesAdjustmentModal';
 import ExpenseModal from './ExpenseModal';
+import ExpenseCard from './ExpenseCard';
 import CashDropModal from './CashDropModal';
 import PaperPosImportModal from './PaperPosImportModal';
 import PaperPosRecordsList from './PaperPosRecordsList';
@@ -935,6 +936,22 @@ const FinancialModule: React.FC<FinancialModuleProps> = ({
                 </div>
               ) : (
                 <div className="divide-y divide-stone-100">
+                  {/* Mobile: Card layout */}
+                  <div className="md:hidden space-y-3 p-3">
+                    {recentTransactions.map((trans, idx) => (
+                      <ExpenseCard
+                        key={trans.id || idx}
+                        reason={trans.reason}
+                        amount={trans.amount}
+                        person={trans.person}
+                        date={trans.date}
+                        type={trans.type}
+                        onDelete={() => handleDeleteTransaction(trans.id, trans.type)}
+                      />
+                    ))}
+                  </div>
+                  {/* Desktop: Row layout */}
+                  <div className="hidden md:block">
                   {recentTransactions.map((trans, idx) => (
                     <div
                       key={trans.id || idx}
@@ -988,6 +1005,7 @@ const FinancialModule: React.FC<FinancialModuleProps> = ({
                       </div>
                     </div>
                   ))}
+                  </div>
                 </div>
               )}
             </div>
