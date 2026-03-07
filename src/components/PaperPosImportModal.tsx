@@ -1,5 +1,21 @@
-import React, { useState } from 'react';
-import { X, Upload, FileText, Plus, Trash2, Check } from 'lucide-react';
+import React, { useState, useMemo, useCallback } from 'react';
+import {
+  X,
+  Upload,
+  FileText,
+  Plus,
+  Trash2,
+  Check,
+  AlertCircle,
+  Keyboard,
+  Package,
+  Calendar,
+  Wallet,
+  ShoppingBag,
+  StickyNote,
+  ChevronDown,
+  ChevronUp,
+} from 'lucide-react';
 import { PaperPosRecord, OrderType } from '@/types';
 
 interface PaperPosImportModalProps {
@@ -18,45 +34,104 @@ interface FormRecord {
   notes: string;
 }
 
+interface ParsedItem {
+  name: string;
+  qty: number;
+  price: number;
+}
+
+function parseItemsPreview(itemsStr: string): ParsedItem[] {
+  if (!itemsStr.trim()) return [];
+  const items: ParsedItem[] = [];
+  const parts = itemsStr.split(',');
+  for (const part of parts) {
+    const match = part
+      .trim()
+      .match(/^(.+?)\s*x\s*(\d+(?:\.\d+)?)\s*@\s*(\d+(?:\.\d+)?)$/i);
+    if (match) {
+      items.push({
+        name: match[1].trim(),
+        qty: parseFloat(match[2]),
+        price: parseFloat(match[3]),
+      });
+    }
+  }
+  return items;
+}
+
+const createEmptyRecord = (): FormRecord => ({
+  date: new Date().toISOString().split('T')[0],
+  items: '',
+  total_amount: '',
+  payment_method: 'CASH',
+  order_type: 'DINE_IN',
+  notes: '',
+});
+
 export default function PaperPosImportModal({
   isOpen,
   onClose,
   onImport,
   importedBy,
 }: PaperPosImportModalProps) {
-  const [records, setRecords] = useState<FormRecord[]>([
-    {
-      date: new Date().toISOString().split('T')[0],
-      items: '',
-      total_amount: '',
-      payment_method: 'CASH', 
-      order_type: 'DINE_IN',
-      notes: '',
-    },
-  ]);
+  const [records, setRecords] = useState<FormRecord[]>([createEmptyRecord()]);
   const [importing, setImporting] = useState(false);
   const [csvInput, setCsvInput] = useState('');
-  const [showCsvImport, setShowCsvImport] = useState(false);
+  const [mode, setMode] = useState<'manual' | 'csv'>('manual');
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [expandedRecords, setExpandedRecords] = useState<Set<number>>(new Set([0]));
 
   if (!isOpen) return null;
 
+  const toggleRecord = (index: number) => {
+    setExpandedRecords((prev) => {
+      const next = new Set(prev);
+      if (next.has(index)) {
+        next.delete(index);
+      } else {
+        next.add(index);
+      }
+      return next;
+    });
+  };
+
+  const clearError = (key: string) => {
+    if (errors[key]) {
+      setErrors((prev) => {
+        const next = { ...prev };
+        delete next[key];
+        return next;
+      });
+    }
+  };
+
   const handleAddRecord = () => {
-    setRecords([
-      ...records,
-      {
-        date: new Date().toISOString().split('T')[0],
-        items: '',
-        total_amount: '',
-        payment_method: 'CASH',
-        order_type: 'DINE_IN',
-        notes: '',
-      },
-    ]);
+    const newIndex = records.length;
+    setRecords([...records, createEmptyRecord()]);
+    setExpandedRecords((prev) => new Set([...prev, newIndex]));
   };
 
   const handleRemoveRecord = (index: number) => {
     if (records.length > 1) {
       setRecords(records.filter((_, i) => i !== index));
+      setExpandedRecords((prev) => {
+        const next = new Set<number>();
+        prev.forEach((i) => {
+          if (i < index) next.add(i);
+          else if (i > index) next.add(i - 1);
+        });
+        return next;
+      });
+      // Clear errors for this record
+      setErrors((prev) => {
+        const next: Record<string, string> = {};
+        Object.entries(prev).forEach(([key, val]) => {
+          if (!key.startsWith(`${index}.`)) {
+            next[key] = val;
+          }
+        });
+        return next;
+      });
     }
   };
 
@@ -64,23 +139,56 @@ export default function PaperPosImportModal({
     const newRecords = [...records];
     newRecords[index] = { ...newRecords[index], [field]: value };
     setRecords(newRecords);
+    clearError(`${index}.${field}`);
+  };
+
+  const getRecordPreview = (record: FormRecord) => {
+    return parseItemsPreview(record.items);
+  };
+
+  const getCalculatedTotal = (record: FormRecord): number => {
+    const items = parseItemsPreview(record.items);
+    return items.reduce((sum, item) => sum + item.qty * item.price, 0);
+  };
+
+  const handleAutoFillTotal = (index: number) => {
+    const total = getCalculatedTotal(records[index]);
+    if (total > 0) {
+      handleRecordChange(index, 'total_amount', total.toFixed(2));
+    }
+  };
+
+  const validate = (): boolean => {
+    const newErrors: Record<string, string> = {};
+
+    records.forEach((r, i) => {
+      if (!r.date) newErrors[`${i}.date`] = 'Required';
+      if (!r.items.trim()) newErrors[`${i}.items`] = 'Required';
+      if (!r.total_amount || parseFloat(r.total_amount) <= 0)
+        newErrors[`${i}.total_amount`] = 'Must be greater than 0';
+    });
+
+    setErrors(newErrors);
+
+    if (Object.keys(newErrors).length > 0) {
+      // Expand the first record with an error
+      const firstErrorRecord = parseInt(Object.keys(newErrors)[0].split('.')[0]);
+      setExpandedRecords((prev) => new Set([...prev, firstErrorRecord]));
+    }
+
+    return Object.keys(newErrors).length === 0;
   };
 
   const handleImport = async () => {
+    if (!validate()) return;
+
     try {
       setImporting(true);
 
-      // Validate records
       const validRecords = records.filter(
-        (r) => r.date && r.items && r.total_amount && parseFloat(r.total_amount) > 0
+        (r) => r.date && r.items.trim() && r.total_amount && parseFloat(r.total_amount) > 0
       );
 
-      if (validRecords.length === 0) {
-        alert('Please fill in at least one complete record with date, items, and total amount.');
-        return;
-      }
-
-      // Convert to PaperPosRecord format
       const recordsToImport = validRecords.map((r) => ({
         date: r.date,
         items: r.items,
@@ -94,21 +202,14 @@ export default function PaperPosImportModal({
       await onImport(recordsToImport);
 
       // Reset form
-      setRecords([
-        {
-          date: new Date().toISOString().split('T')[0],
-          items: '',
-          total_amount: '',
-          payment_method: 'CASH',
-          order_type: 'DINE_IN',
-          notes: '',
-        },
-      ]);
+      setRecords([createEmptyRecord()]);
+      setExpandedRecords(new Set([0]));
       setCsvInput('');
+      setErrors({});
       onClose();
     } catch (error) {
       console.error('Import failed:', error);
-      alert('Failed to import records. Please try again.');
+      setErrors({ _global: 'Failed to import records. Please try again.' });
     } finally {
       setImporting(false);
     }
@@ -116,18 +217,15 @@ export default function PaperPosImportModal({
 
   const handleCsvImport = () => {
     try {
-      // Parse CSV format: date,items,total_amount,payment_method,order_type,notes
       const lines = csvInput.trim().split('\n');
       const parsedRecords: FormRecord[] = [];
 
-      // Skip header if present
       const startIndex = lines[0].toLowerCase().includes('date') ? 1 : 0;
 
       for (let i = startIndex; i < lines.length; i++) {
         const line = lines[i].trim();
         if (!line) continue;
 
-        // Simple CSV parsing (doesn't handle quoted commas)
         const parts = line.split(',').map((p) => p.trim());
 
         if (parts.length >= 3) {
@@ -144,186 +242,393 @@ export default function PaperPosImportModal({
 
       if (parsedRecords.length > 0) {
         setRecords(parsedRecords);
-        setShowCsvImport(false);
+        setExpandedRecords(new Set([0]));
+        setMode('manual');
         setCsvInput('');
+        setErrors({});
       } else {
-        alert('No valid records found in CSV input.');
+        setErrors({ _csv: 'No valid records found. Check your CSV format.' });
       }
     } catch (error) {
       console.error('CSV parsing error:', error);
-      alert('Failed to parse CSV. Please check the format.');
+      setErrors({ _csv: 'Failed to parse CSV. Please check the format.' });
     }
   };
 
+  const inputBase =
+    'w-full px-4 py-3 font-medium text-stone-800 bg-stone-100 border-2 border-transparent focus:border-orange-500 focus:bg-white rounded-xl transition-all outline-none text-sm';
+  const inputError = 'border-red-400 bg-red-50 focus:border-red-500';
+  const labelBase = 'block text-xs font-bold uppercase text-stone-500 mb-1';
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-      <div className="w-full max-w-4xl bg-white rounded-lg shadow-2xl max-h-[90vh] flex flex-col">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden">
         {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-stone-200">
-          <div className="flex items-center gap-3">
-            <FileText className="w-6 h-6 text-orange-600" />
-            <h2 className="text-2xl font-bold text-stone-800">Import Records</h2>
-          </div>
+        <div className="bg-orange-600 text-white p-6 text-center relative shrink-0">
           <button
             onClick={onClose}
-            className="p-2 rounded-lg hover:bg-stone-100 transition-colors"
+            className="absolute top-4 right-4 p-1.5 rounded-lg hover:bg-orange-700/50 transition-colors"
+            aria-label="Close"
           >
-            <X className="w-6 h-6 text-stone-600" />
+            <X className="w-5 h-5" />
+          </button>
+          <div className="mx-auto bg-orange-700 w-12 h-12 rounded-full flex items-center justify-center mb-3">
+            <FileText size={24} className="text-white" />
+          </div>
+          <h2 className="text-xl font-brand font-black uppercase tracking-wide">
+            Import Records
+          </h2>
+          <p className="text-orange-100 text-xs mt-1">Add paper POS transactions to the system</p>
+        </div>
+
+        {/* Mode Tabs */}
+        <div className="flex border-b border-stone-200 shrink-0">
+          <button
+            onClick={() => setMode('manual')}
+            className={`flex-1 py-3 text-xs font-bold uppercase tracking-wide transition-all flex items-center justify-center gap-2 ${
+              mode === 'manual'
+                ? 'text-orange-600 border-b-2 border-orange-600 bg-orange-50/50'
+                : 'text-stone-400 hover:text-stone-600 hover:bg-stone-50'
+            }`}
+          >
+            <Keyboard size={14} />
+            Manual Entry
+          </button>
+          <button
+            onClick={() => setMode('csv')}
+            className={`flex-1 py-3 text-xs font-bold uppercase tracking-wide transition-all flex items-center justify-center gap-2 ${
+              mode === 'csv'
+                ? 'text-orange-600 border-b-2 border-orange-600 bg-orange-50/50'
+                : 'text-stone-400 hover:text-stone-600 hover:bg-stone-50'
+            }`}
+          >
+            <Upload size={14} />
+            CSV Import
           </button>
         </div>
 
+        {/* Global Error */}
+        {errors._global && (
+          <div className="mx-6 mt-4 flex items-center gap-2 text-red-600 bg-red-50 border border-red-200 rounded-xl px-4 py-3 text-sm">
+            <AlertCircle size={16} className="shrink-0" />
+            {errors._global}
+          </div>
+        )}
+
         {/* Content */}
         <div className="flex-1 overflow-y-auto p-6 space-y-4">
-          {/* Instructions */}
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-            <p className="text-sm text-blue-800">
-              <strong>Format for items:</strong> Use format "Item Name x Qty @ Price" separated by
-              commas.
-              <br />
-              Example: "Lechon Baboy x 2 @ 150, Pork BBQ x 3 @ 50"
-            </p>
-          </div>
+          {mode === 'csv' ? (
+            /* CSV Import Mode */
+            <div className="space-y-4">
+              <div className="bg-stone-50 rounded-xl p-4 text-xs text-stone-500 space-y-1">
+                <p className="font-bold text-stone-700">CSV Format:</p>
+                <p className="font-mono">date, items, total_amount, payment_method, order_type, notes</p>
+                <p className="font-mono text-stone-400">
+                  2024-01-01, Lechon Baboy x 2 @ 150, 300, CASH, DINE_IN, Notes
+                </p>
+              </div>
 
-          {/* CSV Import Toggle */}
-          <div className="flex gap-2">
-            <button
-              onClick={() => setShowCsvImport(!showCsvImport)}
-              className="px-4 py-2 bg-stone-200 hover:bg-stone-300 text-stone-700 rounded-lg transition-colors flex items-center gap-2"
-            >
-              <Upload className="w-4 h-4" />
-              {showCsvImport ? 'Manual Entry' : 'CSV Import'}
-            </button>
-          </div>
+              <div>
+                <label className={labelBase}>Paste CSV Data</label>
+                <textarea
+                  value={csvInput}
+                  onChange={(e) => {
+                    setCsvInput(e.target.value);
+                    clearError('_csv');
+                  }}
+                  placeholder="Paste your CSV rows here..."
+                  rows={8}
+                  className={`${inputBase} font-mono !text-xs h-48 resize-none ${errors._csv ? inputError : ''}`}
+                />
+                {errors._csv && (
+                  <p className="text-red-500 text-xs mt-1 flex items-center gap-1">
+                    <AlertCircle size={12} />
+                    {errors._csv}
+                  </p>
+                )}
+              </div>
 
-          {/* CSV Import Section */}
-          {showCsvImport && (
-            <div className="space-y-2">
-              <label className="block text-sm font-medium text-stone-700">
-                CSV Data (Format: date,items,total_amount,payment_method,order_type,notes)
-              </label>
-              <textarea
-                value={csvInput}
-                onChange={(e) => setCsvInput(e.target.value)}
-                placeholder="2024-01-01,Lechon Baboy x 2 @ 150,300,CASH,DINE_IN,Notes"
-                className="w-full h-40 px-3 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent font-mono text-sm"
-              />
               <button
                 onClick={handleCsvImport}
-                className="px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded-lg transition-colors"
+                disabled={!csvInput.trim()}
+                className="w-full bg-orange-600 hover:bg-orange-500 text-white font-bold py-3 rounded-xl shadow-lg transition-all flex items-center justify-center gap-2 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                Parse CSV
+                <Check size={18} />
+                PARSE & LOAD RECORDS
               </button>
             </div>
-          )}
+          ) : (
+            /* Manual Entry Mode */
+            <div className="space-y-3">
+              {records.map((record, index) => {
+                const isExpanded = expandedRecords.has(index);
+                const parsedItems = getRecordPreview(record);
+                const calculatedTotal = parsedItems.reduce(
+                  (sum, item) => sum + item.qty * item.price,
+                  0
+                );
+                const hasErrors = Object.keys(errors).some((k) => k.startsWith(`${index}.`));
+                const recordSummary =
+                  record.items.trim() && parsedItems.length > 0
+                    ? `${parsedItems.length} item${parsedItems.length > 1 ? 's' : ''} · ₱${calculatedTotal.toLocaleString()}`
+                    : record.total_amount
+                      ? `₱${parseFloat(record.total_amount).toLocaleString()}`
+                      : 'Empty record';
 
-          {/* Manual Entry Records */}
-          {!showCsvImport && (
-            <div className="space-y-4">
-              {records.map((record, index) => (
-                <div key={index} className="border border-stone-200 rounded-lg p-4 space-y-3">
-                  <div className="flex items-center justify-between">
-                    <h3 className="font-semibold text-stone-700">Record #{index + 1}</h3>
-                    {records.length > 1 && (
-                      <button
-                        onClick={() => handleRemoveRecord(index)}
-                        className="p-1 text-red-600 hover:bg-red-50 rounded"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
+                return (
+                  <div
+                    key={index}
+                    className={`border-2 rounded-xl overflow-hidden transition-all ${
+                      hasErrors
+                        ? 'border-red-300 bg-red-50/30'
+                        : isExpanded
+                          ? 'border-orange-200 bg-orange-50/20'
+                          : 'border-stone-200'
+                    }`}
+                  >
+                    {/* Record Header (collapsible) */}
+                    <button
+                      type="button"
+                      onClick={() => toggleRecord(index)}
+                      className="w-full flex items-center justify-between px-4 py-3 hover:bg-stone-50 transition-colors"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div
+                          className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold ${
+                            hasErrors
+                              ? 'bg-red-100 text-red-600'
+                              : 'bg-orange-100 text-orange-600'
+                          }`}
+                        >
+                          {index + 1}
+                        </div>
+                        <div className="text-left">
+                          <span className="text-sm font-semibold text-stone-700">
+                            {record.date
+                              ? new Date(record.date + 'T00:00:00').toLocaleDateString('en-US', {
+                                  month: 'short',
+                                  day: 'numeric',
+                                  year: 'numeric',
+                                })
+                              : 'No date'}
+                          </span>
+                          <span className="text-xs text-stone-400 ml-2">{recordSummary}</span>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        {records.length > 1 && (
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleRemoveRecord(index);
+                            }}
+                            className="p-1.5 text-stone-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                            aria-label={`Remove record ${index + 1}`}
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        )}
+                        {isExpanded ? (
+                          <ChevronUp size={16} className="text-stone-400" />
+                        ) : (
+                          <ChevronDown size={16} className="text-stone-400" />
+                        )}
+                      </div>
+                    </button>
+
+                    {/* Record Form (expanded) */}
+                    {isExpanded && (
+                      <div className="px-4 pb-4 space-y-3 border-t border-stone-100">
+                        <div className="pt-3 grid grid-cols-1 sm:grid-cols-2 gap-3">
+                          {/* Date */}
+                          <div>
+                            <label className={labelBase}>
+                              <Calendar size={10} className="inline mr-1 mb-0.5" />
+                              Date *
+                            </label>
+                            <input
+                              type="date"
+                              value={record.date}
+                              onChange={(e) => handleRecordChange(index, 'date', e.target.value)}
+                              className={`${inputBase} ${errors[`${index}.date`] ? inputError : ''}`}
+                            />
+                            {errors[`${index}.date`] && (
+                              <p className="text-red-500 text-xs mt-1">{errors[`${index}.date`]}</p>
+                            )}
+                          </div>
+
+                          {/* Total Amount */}
+                          <div>
+                            <label className={labelBase}>
+                              <Wallet size={10} className="inline mr-1 mb-0.5" />
+                              Total Amount *
+                            </label>
+                            <div className="relative">
+                              <span className="absolute left-4 top-1/2 -translate-y-1/2 font-bold text-stone-400 text-sm">
+                                ₱
+                              </span>
+                              <input
+                                type="number"
+                                value={record.total_amount}
+                                onChange={(e) =>
+                                  handleRecordChange(index, 'total_amount', e.target.value)
+                                }
+                                placeholder="0.00"
+                                step="0.01"
+                                className={`${inputBase} pl-9 font-bold ${errors[`${index}.total_amount`] ? inputError : ''}`}
+                              />
+                            </div>
+                            {errors[`${index}.total_amount`] && (
+                              <p className="text-red-500 text-xs mt-1">
+                                {errors[`${index}.total_amount`]}
+                              </p>
+                            )}
+                            {calculatedTotal > 0 &&
+                              record.total_amount !== calculatedTotal.toFixed(2) && (
+                                <button
+                                  type="button"
+                                  onClick={() => handleAutoFillTotal(index)}
+                                  className="text-orange-600 text-xs mt-1 hover:underline"
+                                >
+                                  Use calculated: ₱{calculatedTotal.toLocaleString()}
+                                </button>
+                              )}
+                          </div>
+
+                          {/* Payment Method */}
+                          <div>
+                            <label className={labelBase}>Payment Method</label>
+                            <select
+                              value={record.payment_method}
+                              onChange={(e) =>
+                                handleRecordChange(index, 'payment_method', e.target.value)
+                              }
+                              className={inputBase}
+                            >
+                              <option value="CASH">Cash</option>
+                              <option value="GCASH">GCash</option>
+                              <option value="MAYA">Maya</option>
+                            </select>
+                          </div>
+
+                          {/* Order Type */}
+                          <div>
+                            <label className={labelBase}>
+                              <ShoppingBag size={10} className="inline mr-1 mb-0.5" />
+                              Order Type
+                            </label>
+                            <select
+                              value={record.order_type}
+                              onChange={(e) =>
+                                handleRecordChange(
+                                  index,
+                                  'order_type',
+                                  e.target.value as OrderType
+                                )
+                              }
+                              className={inputBase}
+                            >
+                              <option value="DINE_IN">Dine In</option>
+                              <option value="TAKEOUT">Takeout</option>
+                              <option value="DELIVERY">Delivery</option>
+                            </select>
+                          </div>
+                        </div>
+
+                        {/* Items */}
+                        <div>
+                          <label className={labelBase}>
+                            <Package size={10} className="inline mr-1 mb-0.5" />
+                            Items *
+                          </label>
+                          <textarea
+                            value={record.items}
+                            onChange={(e) => handleRecordChange(index, 'items', e.target.value)}
+                            placeholder='e.g. Lechon Baboy x 2 @ 150, Pork BBQ x 3 @ 50'
+                            rows={2}
+                            className={`${inputBase} resize-none ${errors[`${index}.items`] ? inputError : ''}`}
+                          />
+                          {errors[`${index}.items`] && (
+                            <p className="text-red-500 text-xs mt-1">
+                              {errors[`${index}.items`]}
+                            </p>
+                          )}
+
+                          {/* Live Parse Preview */}
+                          {parsedItems.length > 0 && (
+                            <div className="mt-2 bg-green-50 border border-green-200 rounded-lg p-3">
+                              <p className="text-xs font-bold uppercase text-green-700 mb-2 flex items-center gap-1">
+                                <Check size={12} />
+                                Parsed {parsedItems.length} item
+                                {parsedItems.length > 1 ? 's' : ''}
+                              </p>
+                              <div className="space-y-1">
+                                {parsedItems.map((item, i) => (
+                                  <div
+                                    key={i}
+                                    className="flex items-center justify-between text-xs text-green-800"
+                                  >
+                                    <span>
+                                      {item.name}{' '}
+                                      <span className="text-green-600">
+                                        x{item.qty} @ ₱{item.price}
+                                      </span>
+                                    </span>
+                                    <span className="font-semibold">
+                                      ₱{(item.qty * item.price).toLocaleString()}
+                                    </span>
+                                  </div>
+                                ))}
+                                <div className="border-t border-green-200 pt-1 mt-1 flex justify-between text-xs font-bold text-green-800">
+                                  <span>Subtotal</span>
+                                  <span>₱{calculatedTotal.toLocaleString()}</span>
+                                </div>
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Hint when items field has text but nothing parsed */}
+                          {record.items.trim() && parsedItems.length === 0 && (
+                            <div className="mt-2 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 flex items-start gap-2">
+                              <AlertCircle size={14} className="text-amber-500 shrink-0 mt-0.5" />
+                              <p className="text-xs text-amber-700">
+                                Could not parse items. Use format:{' '}
+                                <span className="font-mono font-semibold">
+                                  Item Name x Qty @ Price
+                                </span>
+                              </p>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Notes */}
+                        <div>
+                          <label className={labelBase}>
+                            <StickyNote size={10} className="inline mr-1 mb-0.5" />
+                            Notes
+                          </label>
+                          <input
+                            type="text"
+                            value={record.notes}
+                            onChange={(e) => handleRecordChange(index, 'notes', e.target.value)}
+                            placeholder="Optional notes"
+                            className={inputBase}
+                          />
+                        </div>
+                      </div>
                     )}
                   </div>
+                );
+              })}
 
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <label className="block text-sm font-medium text-stone-700 mb-1">
-                        Date *
-                      </label>
-                      <input
-                        type="date"
-                        value={record.date}
-                        onChange={(e) => handleRecordChange(index, 'date', e.target.value)}
-                        className="w-full px-3 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-orange-500"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-stone-700 mb-1">
-                        Total Amount *
-                      </label>
-                      <input
-                        type="number"
-                        value={record.total_amount}
-                        onChange={(e) => handleRecordChange(index, 'total_amount', e.target.value)}
-                        placeholder="0.00"
-                        step="0.01"
-                        className="w-full px-3 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-orange-500"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-stone-700 mb-1">
-                        Payment Method
-                      </label>
-                      <select
-                        value={record.payment_method}
-                        onChange={(e) => handleRecordChange(index, 'payment_method', e.target.value)}
-                        className="w-full px-3 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-orange-500"
-                      >
-                        <option value="CASH">Cash</option>
-                        <option value="GCASH">GCash</option>
-                        <option value="MAYA">Maya</option>
-                      </select>
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-stone-700 mb-1">
-                        Order Type
-                      </label>
-                      <select
-                        value={record.order_type}
-                        onChange={(e) =>
-                          handleRecordChange(index, 'order_type', e.target.value as OrderType)
-                        }
-                        className="w-full px-3 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-orange-500"
-                      >
-                        <option value="DINE_IN">Dine In</option>
-                        <option value="TAKEOUT">Takeout</option>
-                        <option value="DELIVERY">Delivery</option>
-                      </select>
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-stone-700 mb-1">
-                      Items * (e.g., "Lechon Baboy x 2 @ 150, Pork BBQ x 3 @ 50")
-                    </label>
-                    <textarea
-                      value={record.items}
-                      onChange={(e) => handleRecordChange(index, 'items', e.target.value)}
-                      placeholder="Item Name x Qty @ Price, Item Name x Qty @ Price"
-                      rows={2}
-                      className="w-full px-3 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-orange-500"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-stone-700 mb-1">Notes</label>
-                    <input
-                      type="text"
-                      value={record.notes}
-                      onChange={(e) => handleRecordChange(index, 'notes', e.target.value)}
-                      placeholder="Optional notes"
-                      className="w-full px-3 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-orange-500"
-                    />
-                  </div>
-                </div>
-              ))}
-
+              {/* Add Record Button */}
               <button
+                type="button"
                 onClick={handleAddRecord}
-                className="w-full py-3 border-2 border-dashed border-stone-300 rounded-lg hover:border-orange-500 hover:bg-orange-50 transition-colors flex items-center justify-center gap-2 text-stone-600 hover:text-orange-600"
+                className="w-full py-3 border-2 border-dashed border-stone-300 rounded-xl hover:border-orange-400 hover:bg-orange-50 transition-all flex items-center justify-center gap-2 text-stone-500 hover:text-orange-600 text-sm font-semibold"
               >
-                <Plus className="w-5 h-5" />
+                <Plus size={16} />
                 Add Another Record
               </button>
             </div>
@@ -331,22 +636,31 @@ export default function PaperPosImportModal({
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-end gap-3 p-6 border-t border-stone-200">
+        <div className="flex gap-3 p-6 border-t border-stone-200 shrink-0">
           <button
+            type="button"
             onClick={onClose}
-            className="px-6 py-3 border border-stone-300 rounded-lg hover:bg-stone-50 transition-colors"
+            className="flex-1 bg-stone-200 hover:bg-stone-300 text-stone-800 font-bold py-3 rounded-xl transition-all text-sm"
             disabled={importing}
           >
-            Cancel
+            CANCEL
           </button>
-          <button
-            onClick={handleImport}
-            disabled={importing}
-            className="px-6 py-3 bg-orange-600 hover:bg-orange-700 text-white rounded-lg transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            <Check className="w-5 h-5" />
-            {importing ? 'Importing...' : `Import ${records.length} Record(s)`}
-          </button>
+          {mode === 'manual' && (
+            <button
+              onClick={handleImport}
+              disabled={importing}
+              className="flex-1 bg-orange-600 hover:bg-orange-500 text-white font-bold py-3 rounded-xl shadow-lg hover:shadow-xl transition-all flex items-center justify-center gap-2 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {importing ? (
+                'IMPORTING...'
+              ) : (
+                <>
+                  <Check size={18} />
+                  IMPORT {records.length} RECORD{records.length > 1 ? 'S' : ''}
+                </>
+              )}
+            </button>
+          )}
         </div>
       </div>
     </div>
