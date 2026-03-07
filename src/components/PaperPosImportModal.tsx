@@ -29,9 +29,9 @@ interface PaperPosImportModalProps {
   importedBy: string;
 }
 
-type RecordType = 'SALE' | 'EXPENSE';
+export type RecordType = 'SALE' | 'EXPENSE';
 
-interface FormRecord {
+export interface FormRecord {
   record_type: RecordType;
   date: string;
   items: string;
@@ -79,6 +79,61 @@ const createEmptyRecord = (): FormRecord => ({
   reason: '',
   requested_by: '',
 });
+
+/**
+ * Validate a single field based on the record type.
+ * Returns an error message string, or null if valid.
+ */
+export function validateField(
+  recordType: RecordType,
+  field: string,
+  value: string
+): string | null {
+  if (field === 'date') {
+    return !value ? 'Required' : null;
+  }
+
+  if (field === 'total_amount') {
+    return !value || parseFloat(value) <= 0 ? 'Must be greater than 0' : null;
+  }
+
+  if (recordType === 'SALE') {
+    if (field === 'items') {
+      return !value.trim() ? 'Required' : null;
+    }
+  }
+
+  if (recordType === 'EXPENSE') {
+    if (field === 'reason') {
+      return !value.trim() ? 'Required' : null;
+    }
+  }
+
+  return null;
+}
+
+/**
+ * Validate all fields of a single record.
+ * Returns an object of errors keyed by `${index}.${field}`.
+ */
+export function validateRecord(
+  record: FormRecord,
+  index: number
+): Record<string, string> {
+  const errors: Record<string, string> = {};
+  const fieldsToValidate = record.record_type === 'SALE'
+    ? ['date', 'items', 'total_amount'] as const
+    : ['date', 'total_amount', 'reason'] as const;
+
+  for (const field of fieldsToValidate) {
+    const error = validateField(record.record_type, field, record[field]);
+    if (error) {
+      errors[`${index}.${field}`] = error;
+    }
+  }
+
+  return errors;
+}
 
 export default function PaperPosImportModal({
   isOpen,
@@ -152,7 +207,15 @@ export default function PaperPosImportModal({
     const newRecords = [...records];
     newRecords[index] = { ...newRecords[index], [field]: value };
     setRecords(newRecords);
-    clearError(`${index}.${field}`);
+
+    // Inline validation: validate the field on change
+    const recordType = field === 'record_type' ? (value as RecordType) : newRecords[index].record_type;
+    const error = validateField(recordType, field, value);
+    if (error) {
+      setErrors((prev) => ({ ...prev, [`${index}.${field}`]: error }));
+    } else {
+      clearError(`${index}.${field}`);
+    }
   };
 
   const getRecordPreview = (record: FormRecord) => {
@@ -175,18 +238,8 @@ export default function PaperPosImportModal({
     const newErrors: Record<string, string> = {};
 
     records.forEach((r, i) => {
-      if (!r.date) newErrors[`${i}.date`] = 'Required';
-
-      if (r.record_type === 'SALE') {
-        if (!r.items.trim()) newErrors[`${i}.items`] = 'Required';
-        if (!r.total_amount || parseFloat(r.total_amount) <= 0)
-          newErrors[`${i}.total_amount`] = 'Must be greater than 0';
-      } else {
-        // EXPENSE validation
-        if (!r.total_amount || parseFloat(r.total_amount) <= 0)
-          newErrors[`${i}.total_amount`] = 'Must be greater than 0';
-        if (!r.reason.trim()) newErrors[`${i}.reason`] = 'Required';
-      }
+      const recordErrors = validateRecord(r, i);
+      Object.assign(newErrors, recordErrors);
     });
 
     setErrors(newErrors);
