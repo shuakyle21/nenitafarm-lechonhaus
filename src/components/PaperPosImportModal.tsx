@@ -522,7 +522,7 @@ export default function PaperPosImportModal({
                               e.stopPropagation();
                               handleRemoveRecord(index);
                             }}
-                            className="p-1.5 text-stone-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                            className="p-1.5 min-h-[44px] min-w-[44px] flex items-center justify-center text-stone-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
                             aria-label={`Remove record ${index + 1}`}
                           >
                             <Trash2 size={14} />
@@ -544,7 +544,7 @@ export default function PaperPosImportModal({
                           <button
                             type="button"
                             onClick={() => handleRecordChange(index, 'record_type', 'SALE')}
-                            className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-md text-xs font-bold uppercase tracking-wide transition-all ${
+                            className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-md text-xs font-bold uppercase tracking-wide transition-all ${
                               record.record_type === 'SALE'
                                 ? 'bg-white text-orange-600 shadow-sm'
                                 : 'text-stone-400 hover:text-stone-600'
@@ -556,7 +556,7 @@ export default function PaperPosImportModal({
                           <button
                             type="button"
                             onClick={() => handleRecordChange(index, 'record_type', 'EXPENSE')}
-                            className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-md text-xs font-bold uppercase tracking-wide transition-all ${
+                            className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-md text-xs font-bold uppercase tracking-wide transition-all ${
                               record.record_type === 'EXPENSE'
                                 ? 'bg-white text-red-600 shadow-sm'
                                 : 'text-stone-400 hover:text-stone-600'
