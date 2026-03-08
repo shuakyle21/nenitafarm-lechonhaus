@@ -428,7 +428,7 @@ export default function PaperPosImportModal({
                   }}
                   placeholder="Paste your CSV rows here..."
                   rows={8}
-                  className={`${inputBase} font-mono !text-xs h-48 resize-none ${errors._csv ? inputError : ''}`}
+                  className={`${inputBase} font-mono text-base h-48 resize-none ${errors._csv ? inputError : ''}`}
                 />
                 {errors._csv && (
                   <p className="text-red-500 text-xs mt-1 flex items-center gap-1">

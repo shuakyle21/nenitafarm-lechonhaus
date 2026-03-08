@@ -60,10 +60,13 @@ const App: React.FC = () => {
         pendingOrdersCount={pendingOrdersCount}
       />
 
-      {/* Main Content Area - with bottom padding on mobile for nav */}
-      <div 
+      {/* Main Content Area - with bottom padding on mobile for nav, top safe area for notch */}
+      <div
         className="flex-1 h-full overflow-hidden flex flex-col lg:pb-0"
-        style={{ paddingBottom: 'calc(var(--mobile-nav-height, 4rem) + var(--safe-area-bottom, 0px))' }}
+        style={{
+          paddingBottom: 'calc(var(--mobile-nav-height, 4rem) + var(--safe-area-bottom, 0px))',
+          paddingTop: 'var(--safe-area-top, 0px)',
+        }}
       >
         {/* Render modules based on access control */}
         {activeModule === 'POS' && (

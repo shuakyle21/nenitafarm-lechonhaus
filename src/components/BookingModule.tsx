@@ -281,7 +281,7 @@ const BookingModule: React.FC<BookingModuleProps> = ({ items }) => {
               <select
                 value={filterType}
                 onChange={(e) => setFilterType(e.target.value as any)}
-                className="flex-1 p-2 text-xs font-bold border border-stone-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-red-500"
+                className="flex-1 p-2 text-base font-bold border border-stone-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-red-500"
               >
                 <option value="ALL">All Types</option>
                 <option value="CATERING">Catering</option>
@@ -291,7 +291,7 @@ const BookingModule: React.FC<BookingModuleProps> = ({ items }) => {
               <select
                 value={filterStatus}
                 onChange={(e) => setFilterStatus(e.target.value as any)}
-                className="flex-1 p-2 text-xs font-bold border border-stone-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-red-500"
+                className="flex-1 p-2 text-base font-bold border border-stone-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-red-500"
               >
                 <option value="ALL">All Status</option>
                 <option value="PENDING">Pending</option>

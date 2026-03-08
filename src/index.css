@@ -45,6 +45,13 @@
   }
 }
 
+/* Prevent iOS Safari auto-zoom on input focus (requires font-size >= 16px) */
+@media screen and (-webkit-min-device-pixel-ratio: 0) {
+  select, textarea, input {
+    font-size: max(16px, 1em);
+  }
+}
+
 /* Mobile-first responsive utilities */
 @media (max-width: 767px) {
   :root {
