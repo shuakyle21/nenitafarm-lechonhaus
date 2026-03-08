@@ -369,6 +369,7 @@ const PosModule: React.FC<PosModuleProps> = ({
     if (success) {
       clearCart();
       setIsReceiptModalOpen(false);
+      setIsCartOpen(true); // reopen drawer to empty state for new order
     }
   }, [orderType, deliveryDetails, tableNumber, onSaveOrder, clearCart]);
 
@@ -769,73 +770,79 @@ const PosModule: React.FC<PosModuleProps> = ({
       />
 
       {/* MOBILE: Bottom Drawer Cart Panel */}
-      {cart.length > 0 && (
-        <>
-          {/* Backdrop - only when expanded */}
-          {isCartOpen && (
-            <div 
-              className="lg:hidden fixed inset-0 bg-black/60 z-[60] animate-in fade-in duration-300"
-              onClick={() => setIsCartOpen(false)}
-            />
-          )}
+      <>
+        {/* Backdrop - only when expanded */}
+        {isCartOpen && (
+          <div
+            className="lg:hidden fixed inset-0 bg-black/60 z-[60] animate-in fade-in duration-300"
+            onClick={() => setIsCartOpen(false)}
+          />
+        )}
 
-          {/* Floating Action Button (FAB) - When closed */}
-          {!isCartOpen && !isReceiptModalOpen && (
-            <button
-              onClick={() => setIsCartOpen(true)}
-              className={`lg:hidden fixed z-[70] flex items-center gap-3 px-5 py-3 rounded-full shadow-[0_8px_30px_rgb(0,0,0,0.25)] transition-all duration-300 right-4 animate-in slide-in-from-bottom-8 ${
-                itemAddedFlash 
-                  ? 'bg-white scale-110 shadow-[0_0_20px_rgba(220,38,38,0.4)] text-red-600' 
-                  : 'bg-red-600 hover:bg-red-700 active:scale-95 text-white'
-              }`}
-              style={{ bottom: 'calc(var(--mobile-nav-height, 4rem) + var(--safe-area-bottom, 0px) + 1.25rem)' }}
-            >
-              <div className="relative">
-                <ShoppingCart size={22} className={itemAddedFlash ? "text-red-600 animate-bounce" : "text-white"} />
-                <span className={`absolute -top-2 -right-2 text-[10px] font-black px-1.5 py-0.5 rounded-full min-w-[20px] text-center shadow-sm ${
-                  itemAddedFlash ? 'bg-red-600 text-white' : 'bg-white text-red-600'
-                }`}>
-                  {cart.reduce((sum, item) => sum + item.quantity, 0)}
-                </span>
-              </div>
-              <div className="flex flex-col items-start min-w-[4rem]">
-                <span className={`text-[10px] uppercase font-bold opacity-80 leading-none ${itemAddedFlash ? 'text-red-500' : 'text-red-100'}`}>
-                  View Cart
-                </span>
-                <span className={`font-brand font-black text-lg leading-none mt-0.5 ${itemAddedFlash ? 'text-red-600 underline decoration-wavy decoration-red-300 underline-offset-2' : 'text-white'}`}>
-                  ₱{cart.reduce((sum, item) => sum + item.finalPrice, 0).toLocaleString('en-PH', { minimumFractionDigits: 2 })}
-                </span>
-              </div>
-            </button>
-          )}
-          
-          {/* Drawer Panel - Sliding up when opened */}
-          <div 
-            className={`lg:hidden fixed inset-x-0 z-[70] transition-transform duration-500 ease-in-out overflow-hidden flex flex-col h-[85vh] bg-white rounded-t-3xl shadow-[0_-8px_30px_rgb(0,0,0,0.2)]
-              ${isCartOpen ? 'translate-y-0' : 'translate-y-full opacity-0 pointer-events-none'}`}
-            style={{ bottom: 'calc(var(--mobile-nav-height, 4rem) + var(--safe-area-bottom, 0px))' }}
+        {/* Floating Action Button (FAB) - Only when cart has items and drawer is closed */}
+        {cart.length > 0 && !isCartOpen && !isReceiptModalOpen && (
+          <button
+            onClick={() => setIsCartOpen(true)}
+            className={`lg:hidden fixed z-[70] flex items-center gap-3 px-5 py-3 rounded-full shadow-[0_8px_30px_rgb(0,0,0,0.25)] transition-all duration-300 right-4 animate-in slide-in-from-bottom-8 ${
+              itemAddedFlash
+                ? 'bg-white scale-110 shadow-[0_0_20px_rgba(220,38,38,0.4)] text-red-600'
+                : 'bg-red-600 hover:bg-red-700 active:scale-95 text-white'
+            }`}
+            style={{ bottom: 'calc(var(--mobile-nav-height, 4rem) + var(--safe-area-bottom, 0px) + 1.25rem)' }}
           >
-            {/* Header */}
-            <div className="flex-shrink-0 pt-4 pb-3 px-6 border-b border-stone-100 flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <h2 className="text-xl font-bold text-stone-800 font-brand tracking-tight">Your Order</h2>
-                <span className="bg-red-100 text-red-600 font-bold px-2 py-0.5 rounded-full text-xs">
-                  {cart.reduce((sum, item) => sum + item.quantity, 0)} items
-                </span>
-              </div>
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setIsCartOpen(false);
-                }}
-                className="w-10 h-10 flex items-center justify-center bg-stone-100 hover:bg-stone-200 text-stone-600 rounded-full transition-colors active:scale-95"
-              >
-                <X size={20} />
-              </button>
+            <div className="relative">
+              <ShoppingCart size={22} className={itemAddedFlash ? "text-red-600 animate-bounce" : "text-white"} />
+              <span className={`absolute -top-2 -right-2 text-[10px] font-black px-1.5 py-0.5 rounded-full min-w-[20px] text-center shadow-sm ${
+                itemAddedFlash ? 'bg-red-600 text-white' : 'bg-white text-red-600'
+              }`}>
+                {cart.reduce((sum, item) => sum + item.quantity, 0)}
+              </span>
             </div>
-            
-            {/* Cart content - scrollable area */}
-            <div className="flex-1 overflow-y-auto min-h-0 pb-20">
+            <div className="flex flex-col items-start min-w-[4rem]">
+              <span className={`text-[10px] uppercase font-bold opacity-80 leading-none ${itemAddedFlash ? 'text-red-500' : 'text-red-100'}`}>
+                View Cart
+              </span>
+              <span className={`font-brand font-black text-lg leading-none mt-0.5 ${itemAddedFlash ? 'text-red-600 underline decoration-wavy decoration-red-300 underline-offset-2' : 'text-white'}`}>
+                ₱{cart.reduce((sum, item) => sum + item.finalPrice, 0).toLocaleString('en-PH', { minimumFractionDigits: 2 })}
+              </span>
+            </div>
+          </button>
+        )}
+
+        {/* Drawer Panel - Sliding up when opened */}
+        <div
+          className={`lg:hidden fixed inset-x-0 z-[70] transition-transform duration-500 ease-in-out overflow-hidden flex flex-col h-[85vh] bg-white rounded-t-3xl shadow-[0_-8px_30px_rgb(0,0,0,0.2)]
+            ${isCartOpen ? 'translate-y-0' : 'translate-y-full opacity-0 pointer-events-none'}`}
+          style={{ bottom: 'calc(var(--mobile-nav-height, 4rem) + var(--safe-area-bottom, 0px))' }}
+        >
+          {/* Header */}
+          <div className="flex-shrink-0 pt-4 pb-3 px-6 border-b border-stone-100 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <h2 className="text-xl font-bold text-stone-800 font-brand tracking-tight">Your Order</h2>
+              <span className="bg-red-100 text-red-600 font-bold px-2 py-0.5 rounded-full text-xs">
+                {cart.reduce((sum, item) => sum + item.quantity, 0)} items
+              </span>
+            </div>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setIsCartOpen(false);
+              }}
+              className="w-10 h-10 flex items-center justify-center bg-stone-100 hover:bg-stone-200 text-stone-600 rounded-full transition-colors active:scale-95"
+            >
+              <X size={20} />
+            </button>
+          </div>
+
+          {/* Cart content - scrollable area */}
+          <div className="flex-1 overflow-y-auto min-h-0 pb-20">
+            {cart.length === 0 ? (
+              <div className="flex flex-col items-center justify-center h-full gap-3 text-stone-400">
+                <ShoppingCart size={48} className="opacity-30" />
+                <p className="font-medium text-lg">Cart is empty</p>
+                <p className="text-sm text-center px-8">Tap items from the menu to add them here</p>
+              </div>
+            ) : (
               <SidebarCart
                 cart={cart}
                 discount={discountDetails}
@@ -861,10 +868,10 @@ const PosModule: React.FC<PosModuleProps> = ({
                 tableNumber={tableNumber}
                 onSetTableNumber={setTableNumber}
               />
-            </div>
+            )}
           </div>
-        </>
-      )}
+        </div>
+      </>
 
       {/* Mobile Opening Fund Modal */}
       <div className="lg:hidden">
