@@ -177,6 +177,7 @@ export const paperPosImportService = {
     const orderItems = items.map((item) => ({
       order_id: orderId,
       menu_item_id: item.id.startsWith('paper-import') ? null : item.id, // Use null for paper imports
+      name: item.name, // Store name directly so it survives without a menu_items join
       quantity: item.quantity,
       price_at_time: item.price,
       weight: item.weight ?? null, // Use null if weight is undefined
