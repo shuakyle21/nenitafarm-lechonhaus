@@ -19,9 +19,10 @@ import SavedOrdersModal from './SavedOrdersModal';
 import ReceiptModal from './ReceiptModal';
 import MenuManagementModal from './MenuManagementModal';
 import { VariantSelector } from './VariantSelector';
-import { Search, Settings } from 'lucide-react';
+import { Search, Settings, ShoppingCart, X } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import OpeningFundModal from './OpeningFundModal';
+import { useBreakpoint } from '@/hooks/useBreakpoint';
 
 interface PosModuleProps {
   items: MenuItem[];
@@ -31,6 +32,7 @@ interface PosModuleProps {
   onDeleteItem: (id: string) => Promise<void>;
   onSaveOrder: (order: Order) => Promise<boolean>;
   staffList: Staff[];
+  isOnline: boolean;
 }
 
 const PosModule: React.FC<PosModuleProps> = ({
@@ -41,7 +43,10 @@ const PosModule: React.FC<PosModuleProps> = ({
   onDeleteItem,
   onSaveOrder,
   staffList,
+  isOnline,
 }) => {
+  const { isMobile, isTablet } = useBreakpoint();
+  const [isCartOpen, setIsCartOpen] = useState(false);
   const [activeCategory, setActiveCategory] = useState<Category>('Lechon & Grills');
 
   // Persistence: Load initial state from localStorage
@@ -56,6 +61,7 @@ const PosModule: React.FC<PosModuleProps> = ({
   });
 
   const [searchQuery, setSearchQuery] = useState('');
+  const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
 
   const [selectedServer, setSelectedServer] = useState<Staff | null>(() => {
     try {
@@ -119,6 +125,15 @@ const PosModule: React.FC<PosModuleProps> = ({
   // Opening Fund State
   const [isOpeningFundModalOpen, setIsOpeningFundModalOpen] = useState(false);
   const [openingFundLoading, setOpeningFundLoading] = useState(false);
+  const [itemAddedFlash, setItemAddedFlash] = useState(false);
+
+  // Helper to trigger a brief visual feedback when item added
+  const triggerAddedFlash = useCallback(() => {
+    if (!isCartOpen) {
+      setItemAddedFlash(true);
+      setTimeout(() => setItemAddedFlash(false), 800);
+    }
+  }, [isCartOpen]);
 
   // Check Opening Fund Status
   useEffect(() => {
@@ -255,7 +270,12 @@ const PosModule: React.FC<PosModuleProps> = ({
         },
       ];
     });
-  }, []);
+
+    // Visual feedback instead of auto-open
+    if (isMobile || isTablet) {
+      triggerAddedFlash();
+    }
+  }, [isMobile, isTablet, triggerAddedFlash]);
 
   const addVariantItemToCart = useCallback((variant: Variant) => {
     if (!selectedVariantItem) return;
@@ -286,7 +306,10 @@ const PosModule: React.FC<PosModuleProps> = ({
       ];
     });
     setSelectedVariantItem(null);
-  }, [selectedVariantItem]);
+    if (isMobile || isTablet) {
+      triggerAddedFlash();
+    }
+  }, [selectedVariantItem, isMobile, isTablet, triggerAddedFlash]);
 
   const addWeightedItemToCart = useCallback((weight: number, price: number) => {
     if (!selectedLechonItem) return;
@@ -301,7 +324,10 @@ const PosModule: React.FC<PosModuleProps> = ({
         finalPrice: price,
       },
     ]);
-  }, [selectedLechonItem]);
+    if (isMobile || isTablet) {
+      triggerAddedFlash();
+    }
+  }, [selectedLechonItem, isMobile, isTablet, triggerAddedFlash]);
 
   const removeFromCart = useCallback((cartId: string) => {
     setCart((prev) => prev.filter((i) => i.cartId !== cartId));
@@ -336,12 +362,14 @@ const PosModule: React.FC<PosModuleProps> = ({
       deliveryTime: orderType === 'DELIVERY' ? deliveryDetails.time : undefined,
       contactNumber: orderType === 'DELIVERY' ? deliveryDetails.contact : undefined,
       tableNumber: tableNumber,
+      serverName: selectedServer?.name,
     };
     
     const success = await onSaveOrder(finalOrder);
     if (success) {
       clearCart();
       setIsReceiptModalOpen(false);
+      setIsCartOpen(true); // reopen drawer to empty state for new order
     }
   }, [orderType, deliveryDetails, tableNumber, onSaveOrder, clearCart]);
 
@@ -461,9 +489,9 @@ const PosModule: React.FC<PosModuleProps> = ({
   };
 
   return (
-    <div className="flex h-full w-full bg-stone-100 overflow-hidden font-roboto animate-in fade-in duration-300">
-      {/* LEFT PANEL: CART (30%) */}
-      <div className="w-[30%] h-full shrink-0">
+    <div className="flex flex-col lg:flex-row h-full w-full bg-stone-100 overflow-hidden font-roboto animate-in fade-in duration-300">
+      {/* DESKTOP: LEFT PANEL CART (visible only on lg+) */}
+      <div className="hidden lg:block w-[35%] h-full shrink-0">
         <SidebarCart
           cart={cart}
           discount={discountDetails}
@@ -493,76 +521,135 @@ const PosModule: React.FC<PosModuleProps> = ({
         />
       </div>
 
-      {/* RIGHT PANEL: MENU (70%) */}
-      <div className="flex-1 flex flex-col h-full overflow-hidden relative">
-        {/* Top Branding Bar */}
-        <header className="bg-white border-b border-stone-200 px-6 py-4 flex justify-between items-center shadow-sm z-10">
-          <div className="flex items-center gap-5">
-            {/* Logo Representation */}
-            <div className="w-16 h-16 rounded-full bg-white border-2 border-yellow-500 flex flex-col items-center justify-center shadow-lg relative overflow-hidden group p-1">
+      {/* RIGHT PANEL: MENU (full width on mobile, 65% on desktop) */}
+      <div className="flex-1 flex flex-col h-full bg-white overflow-hidden">
+        {/* Header - responsive padding */}
+        <header className="bg-white border-b border-stone-200 px-3 pb-2 pt-2 md:px-6 md:pb-4 md:pt-4 flex justify-between items-center z-20 shadow-sm">
+          <div className="flex items-center gap-2 md:gap-4">
+            {/* Logo - smaller on mobile */}
+            <div className="w-10 h-10 md:w-16 md:h-16 rounded-full bg-white border-2 border-yellow-500 flex flex-col items-center justify-center shadow-lg relative overflow-hidden group p-0.5 md:p-1 shrink-0">
               <img
                 src="/assets/logo.png"
                 alt="Nenita Farm Logo"
                 className="w-full h-full object-contain"
               />
             </div>
-            <div>
-              <h1 className="text-2xl font-brand font-black text-red-800 tracking-tight leading-none drop-shadow-sm">
-                NENITA FARM Lechon Haus and Catering Services
+            <div className="min-w-0">
+              <h1 className="text-xs sm:text-lg md:text-2xl font-brand font-black text-red-800 tracking-tight leading-tight drop-shadow-sm">
+                NENITA FARM Lechon Haus
               </h1>
-              <div className="text-xs font-bold text-yellow-600 tracking-[0.2em] uppercase bg-black/5 px-2 py-0.5 rounded mt-0.5 inline-block">
+              <p className="text-[8px] sm:text-[10px] md:text-xs font-semibold text-stone-500 leading-tight">
+                & Catering Services
+              </p>
+              <div className="hidden sm:inline-block text-[10px] md:text-xs font-bold text-yellow-600 tracking-[0.2em] uppercase bg-black/5 px-2 py-0.5 rounded mt-0.5">
                 POS Terminal
               </div>
             </div>
           </div>
 
-          <div className="flex items-center gap-3">
-            <div className="relative">
+          <div className="flex items-center gap-2 md:gap-3 shrink-0">
+            {/* Search - full bar on sm+, icon button on mobile */}
+            <div className="relative hidden sm:block">
               <Search
                 className="absolute left-3 top-1/2 -translate-y-1/2 text-stone-400"
-                size={20}
+                size={18}
               />
               <input
                 id="menu-search"
                 name="menu-search"
                 type="text"
-                placeholder="Search menu..."
+                placeholder="Search..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10 pr-4 py-3 bg-stone-100 rounded-full border border-stone-200 focus:outline-none focus:ring-2 focus:ring-red-500 w-64 transition-all shadow-inner"
+                className="pl-9 pr-3 py-2.5 md:py-3 bg-stone-100 rounded-full border border-stone-200 focus:outline-none focus:ring-2 focus:ring-red-500 w-48 md:w-64 transition-all shadow-inner text-base"
               />
             </div>
+            {/* Mobile search icon button */}
+            <button
+              onClick={() => setMobileSearchOpen(!mobileSearchOpen)}
+              className={`sm:hidden p-2.5 rounded-full transition-colors shadow-sm ${
+                mobileSearchOpen ? 'bg-red-100 text-red-600' : 'bg-stone-100 text-stone-600 hover:bg-stone-200'
+              }`}
+              title="Search menu"
+            >
+              <Search size={18} />
+            </button>
 
+            {/* Mobile: Dynamic Cart Button (Removed per request, now opens on item selection) */}
+        <div className="lg:hidden flex items-center gap-3">
+          {isOnline ? (
+            <div className="w-2 h-2 rounded-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)] animate-pulse" />
+          ) : (
+            <div className="w-2 h-2 rounded-full bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.6)]" />
+          )}
+        </div>
             <button
               onClick={() => setIsMenuManagerOpen(true)}
-              className="p-3 bg-stone-900 text-white rounded-full hover:bg-stone-700 transition-colors shadow-lg"
+              className="p-2.5 md:p-3 bg-stone-900 text-white rounded-full hover:bg-stone-700 transition-colors shadow-lg"
               title="Manage Menu"
             >
-              <Settings size={20} />
+              <Settings size={18} />
             </button>
           </div>
         </header>
 
-        {/* Category Navigation */}
-        <nav className="bg-white border-b border-stone-200 px-6 pt-2 pb-0 flex gap-8 overflow-x-auto no-scrollbar shadow-sm z-10">
+        {/* Mobile expandable search bar */}
+        {mobileSearchOpen && (
+          <div className="sm:hidden bg-white border-b border-stone-200 px-3 py-2 animate-in slide-in-from-top-1 duration-200">
+            <div className="relative">
+              <Search
+                className="absolute left-3 top-1/2 -translate-y-1/2 text-stone-400"
+                size={16}
+              />
+              <input
+                type="text"
+                placeholder="Search menu items..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                autoFocus
+                className="w-full pl-9 pr-9 py-2.5 bg-stone-100 rounded-full border border-stone-200 focus:outline-none focus:ring-2 focus:ring-red-500 text-base"
+              />
+              {searchQuery && (
+                <button
+                  onClick={() => { setSearchQuery(''); setMobileSearchOpen(false); }}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-600"
+                >
+                  ✕
+                </button>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Category Navigation - Industrial/Tactile for Mobile, Clean Tabs for Desktop */}
+        <div className="bg-white border-b border-stone-200 sticky top-0 z-30">
+        <nav className="px-3 py-3 md:px-6 md:pt-3 md:pb-0 flex gap-2 md:gap-8 overflow-x-auto no-scrollbar shadow-sm snap-x snap-mandatory scroll-pl-3 items-center">
           {allCategories.map((cat) => (
             <button
               key={cat}
               onClick={() => setActiveCategory(cat)}
-              className={`pb-4 px-1 text-sm font-bold uppercase tracking-wide whitespace-nowrap border-b-4 transition-all ${
+              className={`
+                snap-start shrink-0 select-none
+                text-xs md:text-sm font-bold uppercase tracking-wide whitespace-nowrap transition-all duration-200
+                /* MOBILE: Tactile Pill Style - Industrial Utilitarian */
+                rounded-full px-4 py-2.5 border shadow-sm
+                /* DESKTOP: Clean Tab Style - Returns to Sleek Minimal */
+                md:rounded-none md:bg-transparent md:border-0 md:border-b-4 md:shadow-none md:px-1 md:pb-4 md:py-0
+                ${
                 activeCategory === cat
-                  ? 'border-red-600 text-red-800'
-                  : 'border-transparent text-stone-500 hover:text-stone-800 hover:border-stone-200'
+                  ? 'bg-red-800 text-white border-transparent shadow-md scale-105 md:scale-100 md:bg-transparent md:text-red-800 md:border-red-800 md:shadow-none ring-2 ring-transparent'
+                  : 'bg-stone-100 text-stone-600 border-stone-200 hover:bg-stone-200 md:bg-transparent md:text-stone-500 md:border-transparent md:hover:text-stone-800 md:hover:border-stone-200 active:scale-95 md:active:scale-100'
               }`}
             >
               {cat}
             </button>
           ))}
         </nav>
+        </div>
 
-        {/* Menu Grid */}
-        <main className="flex-1 overflow-y-auto p-6 bg-stone-100">
-          <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-6 pb-20">
+        {/* Menu Grid - responsive columns and padding */}
+        <main className="flex-1 overflow-y-auto p-3 md:p-6 lg:p-8 bg-stone-100">
+          <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3 md:gap-6 lg:gap-8 pb-20">
             {filteredItems.map((item) => (
               <div
                 key={item.id}
@@ -681,6 +768,119 @@ const PosModule: React.FC<PosModuleProps> = ({
         onRestore={handleRestoreSavedOrder}
         onDelete={handleDeleteSavedOrder}
       />
+
+      {/* MOBILE: Bottom Drawer Cart Panel */}
+      <>
+        {/* Backdrop - only when expanded */}
+        {isCartOpen && (
+          <div
+            className="lg:hidden fixed inset-0 bg-black/60 z-[60] animate-in fade-in duration-300"
+            onClick={() => setIsCartOpen(false)}
+          />
+        )}
+
+        {/* Floating Action Button (FAB) - Only when cart has items and drawer is closed */}
+        {cart.length > 0 && !isCartOpen && !isReceiptModalOpen && (
+          <button
+            onClick={() => setIsCartOpen(true)}
+            className={`lg:hidden fixed z-[70] flex items-center gap-3 px-5 py-3 rounded-full shadow-[0_8px_30px_rgb(0,0,0,0.25)] transition-all duration-300 right-4 animate-in slide-in-from-bottom-8 ${
+              itemAddedFlash
+                ? 'bg-white scale-110 shadow-[0_0_20px_rgba(220,38,38,0.4)] text-red-600'
+                : 'bg-red-600 hover:bg-red-700 active:scale-95 text-white'
+            }`}
+            style={{ bottom: 'calc(var(--mobile-nav-height, 4rem) + var(--safe-area-bottom, 0px) + 1.25rem)' }}
+          >
+            <div className="relative">
+              <ShoppingCart size={22} className={itemAddedFlash ? "text-red-600 animate-bounce" : "text-white"} />
+              <span className={`absolute -top-2 -right-2 text-[10px] font-black px-1.5 py-0.5 rounded-full min-w-[20px] text-center shadow-sm ${
+                itemAddedFlash ? 'bg-red-600 text-white' : 'bg-white text-red-600'
+              }`}>
+                {cart.reduce((sum, item) => sum + item.quantity, 0)}
+              </span>
+            </div>
+            <div className="flex flex-col items-start min-w-[4rem]">
+              <span className={`text-[10px] uppercase font-bold opacity-80 leading-none ${itemAddedFlash ? 'text-red-500' : 'text-red-100'}`}>
+                View Cart
+              </span>
+              <span className={`font-brand font-black text-lg leading-none mt-0.5 ${itemAddedFlash ? 'text-red-600 underline decoration-wavy decoration-red-300 underline-offset-2' : 'text-white'}`}>
+                ₱{cart.reduce((sum, item) => sum + item.finalPrice, 0).toLocaleString('en-PH', { minimumFractionDigits: 2 })}
+              </span>
+            </div>
+          </button>
+        )}
+
+        {/* Drawer Panel - Sliding up when opened */}
+        <div
+          className={`lg:hidden fixed inset-x-0 z-[70] transition-transform duration-500 ease-in-out overflow-hidden flex flex-col h-[85vh] bg-white rounded-t-3xl shadow-[0_-8px_30px_rgb(0,0,0,0.2)]
+            ${isCartOpen ? 'translate-y-0' : 'translate-y-full opacity-0 pointer-events-none'}`}
+          style={{ bottom: 'calc(var(--mobile-nav-height, 4rem) + var(--safe-area-bottom, 0px))' }}
+        >
+          {/* Header */}
+          <div className="flex-shrink-0 pt-4 pb-3 px-6 border-b border-stone-100 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <h2 className="text-xl font-bold text-stone-800 font-brand tracking-tight">Your Order</h2>
+              <span className="bg-red-100 text-red-600 font-bold px-2 py-0.5 rounded-full text-xs">
+                {cart.reduce((sum, item) => sum + item.quantity, 0)} items
+              </span>
+            </div>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setIsCartOpen(false);
+              }}
+              className="w-10 h-10 flex items-center justify-center bg-stone-100 hover:bg-stone-200 text-stone-600 rounded-full transition-colors active:scale-95"
+            >
+              <X size={20} />
+            </button>
+          </div>
+
+          {/* Cart content - scrollable area */}
+          <div className="flex-1 overflow-y-auto min-h-0 pb-20">
+            {cart.length === 0 ? (
+              <div className="flex flex-col items-center justify-center h-full gap-3 text-stone-400">
+                <ShoppingCart size={48} className="opacity-30" />
+                <p className="font-medium text-lg">Cart is empty</p>
+                <p className="text-sm text-center px-8">Tap items from the menu to add them here</p>
+              </div>
+            ) : (
+              <SidebarCart
+                cart={cart}
+                discount={discountDetails}
+                onRemove={removeFromCart}
+                onUpdateQuantity={updateQuantity}
+                onClear={() => setCart([])}
+                onOpenDiscount={() => setIsDiscountModalOpen(true)}
+                onConfirmOrder={() => {
+                  setIsReceiptModalOpen(true);
+                  setIsCartOpen(false);
+                }}
+                staffList={staffList}
+                selectedServer={selectedServer}
+                onSelectServer={setSelectedServer}
+                orderType={orderType}
+                onSetOrderType={setOrderType}
+                orderCount={orderCount}
+                deliveryDetails={deliveryDetails}
+                onUpdateDeliveryDetails={setDeliveryDetails}
+                onSaveForLater={handleSaveForLater}
+                savedOrdersCount={savedOrders.length}
+                onOpenSavedOrders={() => setIsSavedOrdersModalOpen(true)}
+                tableNumber={tableNumber}
+                onSetTableNumber={setTableNumber}
+              />
+            )}
+          </div>
+        </div>
+      </>
+
+      {/* Mobile Opening Fund Modal */}
+      <div className="lg:hidden">
+        <OpeningFundModal
+          isOpen={isOpeningFundModalOpen}
+          onSubmit={handleOpeningFundSubmit}
+          isLoading={openingFundLoading}
+        />
+      </div>
     </div>
   );
 };

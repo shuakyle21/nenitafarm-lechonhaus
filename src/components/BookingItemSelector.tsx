@@ -147,6 +147,7 @@ const BookingItemSelector: React.FC<BookingItemSelectorProps> = ({
               placeholder="Search items..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
+              data-testid="item-search-input"
               className="w-full pl-10 pr-4 py-2.5 bg-white border border-stone-200 rounded-xl focus:ring-2 focus:ring-red-500 focus:outline-none transition-all text-sm shadow-sm"
             />
           </div>
@@ -219,6 +220,7 @@ const BookingItemSelector: React.FC<BookingItemSelectorProps> = ({
                     </div>
                     <button
                       type="button"
+                      data-testid={`add-item-${item.id}`}
                       onClick={() => handleUpdateQty(item.id, 1)}
                       className="bg-red-600 text-white px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider hover:bg-red-700 transition-colors shadow-sm"
                     >
@@ -263,6 +265,7 @@ const BookingItemSelector: React.FC<BookingItemSelectorProps> = ({
             <button 
               onClick={handleConfirm}
               disabled={selectedCount === 0}
+              data-testid="confirm-add-items"
               className="px-8 py-3 bg-stone-800 text-white font-black uppercase text-xs tracking-widest rounded-xl hover:bg-black transition-all shadow-lg active:scale-95 disabled:opacity-30 disabled:pointer-events-none"
             >
               Add to Order

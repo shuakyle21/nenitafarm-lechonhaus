@@ -39,7 +39,7 @@ export const orderService = {
 
           return {
             id: item.menu_item_id,
-            name: item.menu_items?.name || 'Unknown Item',
+            name: item.menu_items?.name || item.name || 'Unknown Item',
             price: priceAtTime,
             quantity: quantity,
             finalPrice: weight 
@@ -59,6 +59,8 @@ export const orderService = {
         orderType: order.order_type as OrderType,
         orderNumber: order.order_number,
         paymentMethod: order.payment_method,
+        tableNumber: order.table_number,
+        serverName: order.server_name,
       };
     });
     return mappedOrders;

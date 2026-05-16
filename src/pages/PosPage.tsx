@@ -9,9 +9,10 @@ interface PosPageProps {
   onSaveOrder: (
     order: Order
   ) => Promise<{ success: boolean; mode: 'ONLINE' | 'OFFLINE'; data?: any }>;
+  isOnline: boolean;
 }
 
-const PosPage: React.FC<PosPageProps> = ({ onSaveOrder }) => {
+const PosPage: React.FC<PosPageProps> = ({ onSaveOrder, isOnline }) => {
   const { menuItems, addItem, updateItem, deleteItem } = useMenu(true);
   const { orders, setOrders } = useOrders(true);
   const { staffList } = useStaff(true);
@@ -60,6 +61,7 @@ const PosPage: React.FC<PosPageProps> = ({ onSaveOrder }) => {
       onDeleteItem={deleteItem}
       onSaveOrder={handleSaveOrderWrapper}
       staffList={staffList}
+      isOnline={isOnline}
     />
   );
 };

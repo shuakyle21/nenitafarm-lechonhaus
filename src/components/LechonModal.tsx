@@ -107,7 +107,7 @@ const LechonModal: React.FC<LechonModalProps> = ({ isOpen, onClose, onConfirm, i
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
-      <div className="bg-white rounded-2xl shadow-2xl w-[500px] overflow-hidden flex flex-col animate-in zoom-in-95 duration-200">
+      <div className="bg-white rounded-2xl shadow-2xl w-[95%] max-w-[500px] max-h-[90vh] overflow-hidden flex flex-col animate-in zoom-in-95 duration-200">
         {/* Header */}
         <div className="bg-red-800 text-white p-4 flex justify-between items-center">
           <h2 className="text-xl font-brand font-bold">Select Lechon Quantity</h2>
@@ -116,8 +116,8 @@ const LechonModal: React.FC<LechonModalProps> = ({ isOpen, onClose, onConfirm, i
           </button>
         </div>
 
-        {/* Content */}
-        <div className="p-6 flex-1 bg-stone-50">
+        {/* Content - Scrollable on small screens */}
+        <div className="p-4 sm:p-6 flex-1 bg-stone-50 overflow-y-auto min-h-0">
           {/* Toggles */}
           <div className="flex gap-4 mb-6">
             <button
@@ -151,6 +151,27 @@ const LechonModal: React.FC<LechonModalProps> = ({ isOpen, onClose, onConfirm, i
               <span className="font-bold">By Price</span>
               <span className="text-xs opacity-75">e.g., ₱500</span>
             </button>
+          </div>
+          
+          {/* Quick Select Buttons */}
+          <div className="mb-6">
+            <div className="text-xs text-stone-500 font-bold uppercase tracking-wider mb-2 px-1">
+              Quick Select (By Price)
+            </div>
+            <div className="grid grid-cols-4 gap-2">
+              {[100, 175, 350, 700].map((preset) => (
+                <button
+                  key={preset}
+                  onClick={() => {
+                    setMode('price');
+                    setInputValue(preset.toString());
+                  }}
+                  className="py-2.5 rounded-lg border-b-4 border-stone-200 bg-white text-stone-700 font-bold text-sm hover:bg-red-50 hover:text-red-700 hover:border-red-200 active:border-b-0 active:mt-1 active:mb-[3px] transition-all shadow-sm"
+                >
+                  ₱{preset}
+                </button>
+              ))}
+            </div>
           </div>
 
           {/* Display Preview */}
@@ -195,8 +216,8 @@ const LechonModal: React.FC<LechonModalProps> = ({ isOpen, onClose, onConfirm, i
           </div>
         </div>
 
-        {/* Footer Actions */}
-        <div className="p-4 bg-white border-t border-stone-200 flex gap-4">
+        {/* Footer Actions - Extra bottom padding for mobile safe areas */}
+        <div className="p-4 pb-8 sm:pb-4 bg-white border-t border-stone-200 flex gap-4">
           <button
             onClick={handleClear}
             className="flex-1 py-4 font-bold text-stone-500 hover:text-red-600 transition-colors"

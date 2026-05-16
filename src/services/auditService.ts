@@ -18,14 +18,23 @@ export interface AuditLog {
 }
 
 export const auditService = {
-  async getLogs(): Promise<AuditLog[]> {
-    const { data, error } = await supabase
+  async getLogs(startDate?: string, endDate?: string): Promise<AuditLog[]> {
+    let query = supabase
       .from('audit_logs')
       .select(`
         *,
         users:changed_by (username)
-      `)
-      .order('changed_at', { ascending: false });
+      `);
+
+    // Apply date range filters if provided
+    if (startDate) {
+      query = query.gte('changed_at', startDate);
+    }
+    if (endDate) {
+      query = query.lte('changed_at', endDate);
+    }
+
+    const { data, error } = await query.order('changed_at', { ascending: false });
 
     if (error) throw error;
     

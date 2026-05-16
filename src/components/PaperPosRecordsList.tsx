@@ -142,7 +142,7 @@ export default function PaperPosRecordsList({
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
-                        handleSyncRecord(record.id!);
+                        handleSyncRecord(record.id);
                       }}
                       disabled={syncing}
                       className="px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors text-sm flex items-center gap-1 disabled:opacity-50"
@@ -154,7 +154,7 @@ export default function PaperPosRecordsList({
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
-                      handleDelete(record.id!);
+                      handleDelete(record.id);
                     }}
                     className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
                   >

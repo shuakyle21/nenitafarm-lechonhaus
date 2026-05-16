@@ -2,6 +2,10 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import './index.css';
 import App from './App';
+import { initializeAppInsights } from './services/appInsights';
+
+// Initialize Azure Application Insights
+initializeAppInsights();
 
 const rootElement = document.getElementById('root');
 if (!rootElement) {

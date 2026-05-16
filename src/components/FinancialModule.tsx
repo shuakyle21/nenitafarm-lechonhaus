@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { supabase } from '../lib/supabase';
-import { Order, Expense, SalesAdjustment, CashTransaction, PaperPosRecord } from '../types';
+import { Order, Expense, SalesAdjustment, CashTransaction, PaperPosRecord, StaffTransaction } from '../types';
 import {
   LineChart,
   Line,
@@ -37,6 +37,7 @@ import { saveAs } from 'file-saver';
 import FinancialReportPDF from './FinancialReportPDF';
 import SalesAdjustmentModal from './SalesAdjustmentModal';
 import ExpenseModal from './ExpenseModal';
+import ExpenseCard from './ExpenseCard';
 import CashDropModal from './CashDropModal';
 import PaperPosImportModal from './PaperPosImportModal';
 import PaperPosRecordsList from './PaperPosRecordsList';
@@ -93,6 +94,9 @@ const FinancialModule: React.FC<FinancialModuleProps> = ({
   const [isPaperPosImportModalOpen, setIsPaperPosImportModalOpen] = useState(false);
   const [showPaperPosRecords, setShowPaperPosRecords] = useState(false);
 
+  // Internal State for Staff Transactions
+  const [staffTransactions, setStaffTransactions] = useState<StaffTransaction[]>([]);
+
   // Date Range State
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
@@ -108,7 +112,18 @@ const FinancialModule: React.FC<FinancialModuleProps> = ({
       if (data) setCashTransactions(data);
       if (error) console.error('Error fetching cash transactions:', error);
     };
+    const fetchStaffTransactions = async () => {
+      const { data, error } = await supabase
+        .from('staff_transactions')
+        .select(`*, staff:staff_id(id, name, role)`)
+        .order('date', { ascending: false });
+
+      if (data) setStaffTransactions(data);
+      if (error) console.error('Error fetching staff transactions:', error);
+    };
+
     fetchCashTransactions();
+    fetchStaffTransactions();
   }, [onRefresh]); // Refetch when parent refreshes
 
   const handleTransaction = useCallback(async (e: React.FormEvent) => {
@@ -228,13 +243,18 @@ const FinancialModule: React.FC<FinancialModuleProps> = ({
       dateMatcher.isToday(ct.created_at)
     );
 
+    const todayStaffTransactions = staffTransactions.filter((st) =>
+      dateMatcher.isToday(st.date)
+    );
+
     return {
       orders: todayOrders,
       expenses: todayExpenses,
       salesAdjustments: todaySalesAdjustments,
       cashTransactions: todayCashTransactions,
+      staffTransactions: todayStaffTransactions,
     };
-  }, [orders, expenses, salesAdjustments, cashTransactions, dateMatcher]);
+  }, [orders, expenses, salesAdjustments, cashTransactions, staffTransactions, dateMatcher]);
 
   // Format Currency
   const formatCurrency = useCallback((value: number) => {
@@ -262,6 +282,14 @@ const FinancialModule: React.FC<FinancialModuleProps> = ({
       0
     );
     const expensesTotal = todayData.expenses.reduce((sum, exp) => sum + exp.amount, 0);
+    const staffExpensesTotal = todayData.staffTransactions
+      .filter(st => st.type === 'SALARY_PAYOUT' || st.type === 'BONUS')
+      .reduce((sum, st) => sum + Number(st.amount), 0);
+    const totalDeductionsApplied = todayData.staffTransactions
+      .filter(st => st.type === 'DEDUCTION' || st.type === 'PAYMENT')
+      .reduce((sum, st) => sum + Number(st.amount), 0);
+    
+    const combinedExpensesTotal = expensesTotal + staffExpensesTotal;
 
     // Cash Flow - Single pass for transactions
     const cashFlow = todayData.cashTransactions.reduce(
@@ -281,8 +309,9 @@ const FinancialModule: React.FC<FinancialModuleProps> = ({
     const netCash =
       cashFlow.opening +
       salesBreakdown.cash +
-      adjustmentsTotal -
-      expensesTotal -
+      adjustmentsTotal +
+      totalDeductionsApplied -
+      combinedExpensesTotal -
       cashFlow.drops;
 
     return {
@@ -290,7 +319,10 @@ const FinancialModule: React.FC<FinancialModuleProps> = ({
       digitalSales: salesBreakdown.digital,
       totalSales,
       adjustmentsTotal,
-      expensesTotal,
+      expensesTotal: combinedExpensesTotal,
+      staffExpensesTotal,
+      directExpensesTotal: expensesTotal,
+      deductionsTotal: totalDeductionsApplied,
       openingFund: cashFlow.opening,
       cashDrops: cashFlow.drops,
       totalRevenue,
@@ -495,56 +527,65 @@ const FinancialModule: React.FC<FinancialModuleProps> = ({
           type: 'CASH_DROP' as const,
           person: t.performed_by,
         })),
+      ...todayData.staffTransactions.map((st) => ({
+        id: st.id,
+        date: st.date,
+        amount: Number(st.amount),
+        reason: `${st.type}: ${st.description || st.notes || 'Staff Transaction'}`,
+        type: (st.type === 'SALARY_PAYOUT' || st.type === 'BONUS' ? 'EXPENSE' : 'SALES') as any,
+        person: st.staff?.name || 'Staff',
+      })),
     ];
     return combined.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
   }, [todayData]);
 
   return (
-    <div className="h-full w-full bg-stone-100 overflow-y-auto p-6 font-roboto animate-in fade-in duration-300">
-      {/* Header */}
-      <div className="flex flex-col xl:flex-row xl:items-end justify-between mb-8 gap-6">
+    <div className="h-full w-full bg-stone-100 overflow-y-auto overflow-x-hidden p-3 md:p-6 lg:p-8 font-roboto animate-in fade-in duration-300">
+      {/* Header - responsive */}
+      <div className="flex flex-col lg:flex-row lg:items-end justify-between mb-4 md:mb-8 gap-4 lg:gap-6">
         <div className="flex items-center gap-3">
-          <div className="p-3 bg-blue-600 text-white rounded-xl shadow-lg shadow-blue-200">
-            <Wallet size={24} />
+          <div className="p-2.5 md:p-3 bg-blue-600 text-white rounded-xl shadow-lg shadow-blue-200">
+            <Wallet size={20} />
           </div>
           <div className="font-roboto animate-in fade-in duration-300">
-            <h1 className="text-3xl font-brand font-black text-stone-800 tracking-tight">
+            <h1 className="text-xl md:text-3xl font-brand font-black text-stone-800 tracking-tight">
               Financial Analysis
             </h1>
-            <p className="text-stone-500 font-medium">Cash Management & Sales Analytics</p>
+            <p className="text-stone-500 font-medium text-sm hidden sm:block">Cash Management & Sales Analytics</p>
           </div>
         </div>
 
         {/* Report Generation Buttons */}
-        <div className="flex flex-wrap items-center gap-3">
-          <div className="flex items-center gap-2 bg-white border border-stone-200 rounded-lg px-3 py-1.5 shadow-sm">
-            <div className="flex items-center gap-2">
-              <span className="text-xs font-bold text-stone-500 uppercase">From:</span>
+        <div className="flex flex-col sm:flex-row sm:flex-wrap items-stretch sm:items-center gap-2 sm:gap-3 w-full sm:w-auto">
+          {/* Date Range Picker */}
+          <div className="flex flex-wrap items-center gap-2 bg-white border border-stone-200 rounded-lg px-3 py-1.5 shadow-sm w-full sm:w-auto">
+            <div className="flex items-center gap-1 flex-1 min-w-0">
+              <span className="text-[10px] sm:text-xs font-bold text-stone-500 uppercase shrink-0">From:</span>
               <input
                 type="date"
                 value={startDate}
                 onChange={(e) => setStartDate(e.target.value)}
-                className="bg-transparent text-sm font-bold text-stone-700 focus:outline-none w-auto"
+                className="bg-transparent text-sm font-bold text-stone-700 focus:outline-none min-w-0 w-full"
               />
             </div>
-            <div className="flex items-center gap-2">
-              <span className="text-xs font-bold text-stone-500 uppercase">To:</span>
+            <div className="flex items-center gap-1 flex-1 min-w-0">
+              <span className="text-[10px] sm:text-xs font-bold text-stone-500 uppercase shrink-0">To:</span>
               <input
                 type="date"
                 value={endDate}
                 onChange={(e) => setEndDate(e.target.value)}
-                className="bg-transparent text-sm font-bold text-stone-700 focus:outline-none w-auto"
+                className="bg-transparent text-sm font-bold text-stone-700 focus:outline-none min-w-0 w-full"
               />
             </div>
 
-            <div className="flex items-center gap-1 border-l border-stone-200 pl-2 ml-2">
+            <div className="flex items-center gap-1 border-l border-stone-200 pl-2 ml-auto shrink-0">
               <button
                 onClick={() => generateReport('CUSTOM')}
                 disabled={!startDate || !endDate}
                 className="p-1.5 hover:bg-stone-100 rounded-md text-blue-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                 title="Generate PDF Report"
               >
-                <FileText size={18} />
+                <FileText size={16} />
               </button>
               <button
                 onClick={() => handleExport('CUSTOM')}
@@ -552,95 +593,93 @@ const FinancialModule: React.FC<FinancialModuleProps> = ({
                 className="p-1.5 hover:bg-stone-100 rounded-md text-green-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                 title="Export CSV Data"
               >
-                <Download size={18} />
+                <Download size={16} />
               </button>
             </div>
           </div>
 
-          <div className="flex gap-2">
-            {/* Period Buttons */}
-            <div className="flex bg-white rounded-lg shadow-sm border border-stone-200 p-1">
-              {/* Today */}
-              <div className="flex items-center">
-                <button
-                  onClick={() => generateReport('TODAY')}
-                  className="px-3 py-1.5 text-xs font-bold text-stone-600 hover:text-stone-900 hover:bg-stone-50 rounded-l-md transition-colors"
-                >
-                  Today
-                </button>
-                <button
-                  onClick={() => handleExport('TODAY')}
-                  className="px-2 py-1.5 text-green-600 hover:bg-green-50 rounded-r-md transition-colors border-l border-stone-100"
-                  title="Export Today"
-                >
-                  <Download size={14} />
-                </button>
-              </div>
+          {/* Period Buttons */}
+          <div className="flex bg-white rounded-lg shadow-sm border border-stone-200 p-1 w-full sm:w-auto">
+            {/* Today */}
+            <div className="flex items-center flex-1 sm:flex-initial">
+              <button
+                onClick={() => generateReport('TODAY')}
+                className="px-3 py-1.5 text-xs font-bold text-stone-600 hover:text-stone-900 hover:bg-stone-50 rounded-l-md transition-colors flex-1 sm:flex-initial"
+              >
+                Today
+              </button>
+              <button
+                onClick={() => handleExport('TODAY')}
+                className="px-2 py-1.5 text-green-600 hover:bg-green-50 rounded-r-md transition-colors border-l border-stone-100"
+                title="Export Today"
+              >
+                <Download size={14} />
+              </button>
+            </div>
 
-              {/* Week */}
-              <div className="flex items-center border-l border-stone-200 pl-1 ml-1">
-                <button
-                  onClick={() => generateReport('WEEK')}
-                  disabled={!isSunday()}
-                  className="px-3 py-1.5 text-xs font-bold text-stone-600 hover:text-stone-900 hover:bg-stone-50 rounded-l-md transition-colors disabled:opacity-40"
-                >
-                  Week
-                </button>
-                <button
-                  onClick={() => handleExport('WEEK')}
-                  disabled={!isSunday()}
-                  className="px-2 py-1.5 text-green-600 hover:bg-green-50 rounded-r-md transition-colors border-l border-stone-100 disabled:opacity-40"
-                  title="Export Week"
-                >
-                  <Download size={14} />
-                </button>
-              </div>
+            {/* Week */}
+            <div className="flex items-center border-l border-stone-200 pl-1 ml-1 flex-1 sm:flex-initial">
+              <button
+                onClick={() => generateReport('WEEK')}
+                disabled={!isSunday()}
+                className="px-3 py-1.5 text-xs font-bold text-stone-600 hover:text-stone-900 hover:bg-stone-50 rounded-l-md transition-colors disabled:opacity-40 flex-1 sm:flex-initial"
+              >
+                Week
+              </button>
+              <button
+                onClick={() => handleExport('WEEK')}
+                disabled={!isSunday()}
+                className="px-2 py-1.5 text-green-600 hover:bg-green-50 rounded-r-md transition-colors border-l border-stone-100 disabled:opacity-40"
+                title="Export Week"
+              >
+                <Download size={14} />
+              </button>
+            </div>
 
-              {/* Month */}
-              <div className="flex items-center border-l border-stone-200 pl-1 ml-1">
-                <button
-                  onClick={() => generateReport('MONTH')}
-                  disabled={!isLastDayOfMonth()}
-                  className="px-3 py-1.5 text-xs font-bold text-stone-600 hover:text-stone-900 hover:bg-stone-50 rounded-l-md transition-colors disabled:opacity-40"
-                >
-                  Month
-                </button>
-                <button
-                  onClick={() => handleExport('MONTH')}
-                  disabled={!isLastDayOfMonth()}
-                  className="px-2 py-1.5 text-green-600 hover:bg-green-50 rounded-r-md transition-colors border-l border-stone-100 disabled:opacity-40"
-                  title="Export Month"
-                >
-                  <Download size={14} />
-                </button>
-              </div>
+            {/* Month */}
+            <div className="flex items-center border-l border-stone-200 pl-1 ml-1 flex-1 sm:flex-initial">
+              <button
+                onClick={() => generateReport('MONTH')}
+                disabled={!isLastDayOfMonth()}
+                className="px-3 py-1.5 text-xs font-bold text-stone-600 hover:text-stone-900 hover:bg-stone-50 rounded-l-md transition-colors disabled:opacity-40 flex-1 sm:flex-initial"
+              >
+                Month
+              </button>
+              <button
+                onClick={() => handleExport('MONTH')}
+                disabled={!isLastDayOfMonth()}
+                className="px-2 py-1.5 text-green-600 hover:bg-green-50 rounded-r-md transition-colors border-l border-stone-100 disabled:opacity-40"
+                title="Export Month"
+              >
+                <Download size={14} />
+              </button>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+      {/* Summary Cards - responsive grid */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4 lg:gap-6 mb-4 md:mb-8">
         {/* Net Cash Card */}
-        <div className="bg-white p-6 rounded-2xl shadow-sm border border-stone-200">
-          <div className="flex justify-between items-start mb-4">
-            <div className="bg-green-100 p-3 rounded-xl">
-              <Wallet className="text-green-600" size={24} />
+        <div className="bg-white p-3 sm:p-6 rounded-2xl shadow-sm border border-stone-200">
+          <div className="flex justify-between items-start mb-2 sm:mb-4">
+            <div className="bg-green-100 p-2 sm:p-3 rounded-xl">
+              <Wallet className="text-green-600" size={20} />
             </div>
             <span
-              className={`text-xs font-bold px-2 py-1 rounded-full ${financialMetrics.netCash >= 0 ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}
+              className={`text-[10px] sm:text-xs font-bold px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-full ${financialMetrics.netCash >= 0 ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}
             >
               Actual Cash
             </span>
           </div>
-          <p className="text-stone-500 text-xs font-bold uppercase tracking-wider">
+          <p className="text-stone-500 text-[10px] sm:text-xs font-bold uppercase tracking-wider">
             Net Cash on Hand
           </p>
-          <h3 className="text-2xl font-black text-stone-900 mt-1">
+          <h3 className="text-lg sm:text-2xl font-black text-stone-900 mt-1">
             {formatCurrency(financialMetrics.netCash)}
           </h3>
           {/* Breakdown */}
-          <div className="mt-2 pt-2 border-t border-stone-100 text-[10px] text-stone-400 space-y-1">
+          <div className="mt-2 pt-2 border-t border-stone-100 text-[9px] sm:text-[10px] text-stone-400 space-y-1">
             <div className="flex justify-between">
               <span>Opening:</span>
               <span>{formatCurrency(financialMetrics.openingFund)}</span>
@@ -659,19 +698,19 @@ const FinancialModule: React.FC<FinancialModuleProps> = ({
         </div>
 
         {/* Total Revenue Card */}
-        <div className="bg-white p-6 rounded-2xl shadow-sm border border-stone-200">
-          <div className="flex justify-between items-start mb-4">
-            <div className="bg-blue-100 p-3 rounded-xl">
-              <CreditCard className="text-blue-600" size={24} />
+        <div className="bg-white p-3 sm:p-6 rounded-2xl shadow-sm border border-stone-200">
+          <div className="flex justify-between items-start mb-2 sm:mb-4">
+            <div className="bg-blue-100 p-2 sm:p-3 rounded-xl">
+              <CreditCard className="text-blue-600" size={20} />
             </div>
           </div>
-          <p className="text-stone-500 text-xs font-bold uppercase tracking-wider">
+          <p className="text-stone-500 text-[10px] sm:text-xs font-bold uppercase tracking-wider">
             Total Revenue
           </p>
-          <h3 className="text-2xl font-black text-stone-900 mt-1">
+          <h3 className="text-lg sm:text-2xl font-black text-stone-900 mt-1">
             {formatCurrency(financialMetrics.totalRevenue)}
           </h3>
-          <div className="mt-2 pt-2 border-t border-stone-100 text-[10px] text-stone-400 space-y-1">
+          <div className="mt-2 pt-2 border-t border-stone-100 text-[9px] sm:text-[10px] text-stone-400 space-y-1">
             <div className="flex justify-between">
               <span>Digital:</span>
               <span>{formatCurrency(financialMetrics.digitalSales)}</span>
@@ -684,41 +723,41 @@ const FinancialModule: React.FC<FinancialModuleProps> = ({
         </div>
 
         {/* Expenses Card */}
-        <div className="bg-white p-6 rounded-2xl shadow-sm border border-stone-200">
-          <div className="flex justify-between items-start mb-4">
-            <div className="bg-red-50 p-3 rounded-xl">
-              <TrendingDown className="text-red-600" size={24} />
+        <div className="bg-white p-3 sm:p-6 rounded-2xl shadow-sm border border-stone-200">
+          <div className="flex justify-between items-start mb-2 sm:mb-4">
+            <div className="bg-red-50 p-2 sm:p-3 rounded-xl">
+              <TrendingDown className="text-red-600" size={20} />
             </div>
           </div>
-          <p className="text-stone-500 text-xs font-bold uppercase tracking-wider">
+          <p className="text-stone-500 text-[10px] sm:text-xs font-bold uppercase tracking-wider">
             Total Expenses
           </p>
-          <h3 className="text-2xl font-black text-red-600 mt-1">
+          <h3 className="text-lg sm:text-2xl font-black text-red-600 mt-1">
             {formatCurrency(financialMetrics.expensesTotal)}
           </h3>
         </div>
 
         {/* Adjustments Card */}
-        <div className="bg-white p-6 rounded-2xl shadow-sm border border-stone-200">
-          <div className="flex justify-between items-start mb-4">
-            <div className="bg-yellow-50 p-3 rounded-xl">
-              <TrendingUp className="text-yellow-600" size={24} />
+        <div className="bg-white p-3 sm:p-6 rounded-2xl shadow-sm border border-stone-200">
+          <div className="flex justify-between items-start mb-2 sm:mb-4">
+            <div className="bg-yellow-50 p-2 sm:p-3 rounded-xl">
+              <TrendingUp className="text-yellow-600" size={20} />
             </div>
           </div>
-          <p className="text-stone-500 text-xs font-bold uppercase tracking-wider">
+          <p className="text-stone-500 text-[10px] sm:text-xs font-bold uppercase tracking-wider">
             Total Adjustments
           </p>
-          <h3 className="text-2xl font-black text-stone-800 mt-1">
+          <h3 className="text-lg sm:text-2xl font-black text-stone-800 mt-1">
             {formatCurrency(financialMetrics.adjustmentsTotal)}
           </h3>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
         {/* Left Column: Charts (2/3 width) */}
         <div className="lg:col-span-2 space-y-6">
           {/* Sales Trend Chart */}
-          <div className="bg-white p-6 rounded-2xl shadow-sm border border-stone-200">
+          <div className="bg-white p-3 sm:p-6 rounded-2xl shadow-sm border border-stone-200">
             <div className="flex items-center justify-between mb-6">
               <div className="flex items-center gap-2">
                 <TrendingUp className="text-blue-600" size={20} />
@@ -728,8 +767,8 @@ const FinancialModule: React.FC<FinancialModuleProps> = ({
                 Last 7 Days
               </span>
             </div>
-            <div className="h-64 w-full">
-              <ResponsiveContainer width="100%" height="100%">
+            <div className="h-48 sm:h-64 w-full">
+              <ResponsiveContainer width="99%" height="100%" minWidth={1} minHeight={1}>
                 <LineChart data={salesTrendData}>
                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f3f4f6" />
                   <XAxis
@@ -768,13 +807,13 @@ const FinancialModule: React.FC<FinancialModuleProps> = ({
           </div>
 
           {/* Category Pie Chart */}
-          <div className="bg-white p-6 rounded-2xl shadow-sm border border-stone-200">
+          <div className="bg-white p-3 sm:p-6 rounded-2xl shadow-sm border border-stone-200">
             <div className="flex items-center gap-2 mb-6">
               <PieChartIcon className="text-purple-600" size={20} />
               <h3 className="font-bold text-stone-800 text-lg">Sales by Category</h3>
             </div>
-            <div className="h-64 w-full flex">
-              <ResponsiveContainer width="100%" height="100%">
+            <div className="h-48 sm:h-64 w-full flex">
+              <ResponsiveContainer width="99%" height="100%" minWidth={1} minHeight={1}>
                 <PieChart>
                   <Pie
                     data={categoryData}
@@ -815,7 +854,7 @@ const FinancialModule: React.FC<FinancialModuleProps> = ({
 
         {/* Right Column: Cash Management (1/3 width) */}
         <div className="space-y-6">
-          <div className="bg-white p-6 rounded-2xl shadow-sm border border-stone-200">
+          <div className="bg-white p-3 sm:p-6 rounded-2xl shadow-sm border border-stone-200">
             <h3 className="font-bold text-stone-800 text-lg mb-4 flex items-center gap-2">
               <Plus className="text-stone-600" size={20} />
               Quick Actions
@@ -897,6 +936,22 @@ const FinancialModule: React.FC<FinancialModuleProps> = ({
                 </div>
               ) : (
                 <div className="divide-y divide-stone-100">
+                  {/* Mobile: Card layout */}
+                  <div className="md:hidden space-y-3 p-3">
+                    {recentTransactions.map((trans, idx) => (
+                      <ExpenseCard
+                        key={trans.id || idx}
+                        reason={trans.reason}
+                        amount={trans.amount}
+                        person={trans.person}
+                        date={trans.date}
+                        type={trans.type}
+                        onDelete={() => handleDeleteTransaction(trans.id, trans.type)}
+                      />
+                    ))}
+                  </div>
+                  {/* Desktop: Row layout */}
+                  <div className="hidden md:block">
                   {recentTransactions.map((trans, idx) => (
                     <div
                       key={trans.id || idx}
@@ -950,6 +1005,7 @@ const FinancialModule: React.FC<FinancialModuleProps> = ({
                       </div>
                     </div>
                   ))}
+                  </div>
                 </div>
               )}
             </div>
@@ -998,6 +1054,10 @@ const FinancialModule: React.FC<FinancialModuleProps> = ({
             onImport={async (records) => {
               await paperPosImport.importRecords(records);
               setIsPaperPosImportModalOpen(false);
+              onRefresh();
+            }}
+            onImportExpenses={async (expenses) => {
+              await paperPosImport.importExpenses(expenses);
               onRefresh();
             }}
             importedBy={username}

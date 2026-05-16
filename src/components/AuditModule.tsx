@@ -7,16 +7,20 @@ import {
   AlertCircle, 
   ChevronDown, 
   ChevronUp,
-  Filter as FilterIcon,
   Search,
-  CheckCircle2
+  CheckCircle2,
+  Calendar
 } from 'lucide-react';
 import { orderService } from '@/services/orderService';
 import { financeService } from '@/services/financeService';
-import { createDateMatcher } from '@/utils/dateUtils';
+import { createDateMatcher, getDateRangeForFilter } from '@/utils/dateUtils';
+import { menuService } from '@/services/menuService';
+import { MenuItem } from '@/types';
 import { pdf } from '@react-pdf/renderer';
 import { saveAs } from 'file-saver';
 import DailyReconciliationPDF from './DailyReconciliationPDF';
+
+type DateFilterType = 'today' | 'yesterday' | 'last7days' | 'all';
 
 const AuditModule: React.FC = () => {
   const [logs, setLogs] = useState<AuditLog[]>([]);
@@ -25,7 +29,10 @@ const AuditModule: React.FC = () => {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [activeTab, setActiveTab] = useState<'LOGS' | 'RECONCILIATION'>('LOGS');
+  const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
   const [actualCash, setActualCash] = useState<string>('');
+  const [dateFilter, setDateFilter] = useState<DateFilterType>('today');
+  const [showFilters, setShowFilters] = useState(false);
   const [reconciliation, setReconciliation] = useState({
     openingFund: 0,
     cashSales: 0,
@@ -38,7 +45,17 @@ const AuditModule: React.FC = () => {
   useEffect(() => {
     fetchLogs();
     fetchReconciliation();
-  }, []);
+    fetchMenuItems();
+  }, [dateFilter]);
+
+  const fetchMenuItems = async () => {
+    try {
+      const items = await menuService.getMenuItems();
+      setMenuItems(items);
+    } catch (err) {
+      console.error('Failed to fetch menu items:', err);
+    }
+  };
 
   const fetchReconciliation = async () => {
     try {
@@ -52,7 +69,18 @@ const AuditModule: React.FC = () => {
   const fetchLogs = async () => {
     try {
       setLoading(true);
-      const data = await auditService.getLogs();
+      
+      // Get date range based on filter
+      let startDate: string | undefined;
+      let endDate: string | undefined;
+      
+      if (dateFilter !== 'all') {
+        const range = getDateRangeForFilter(dateFilter);
+        startDate = range.startDate;
+        endDate = range.endDate;
+      }
+      
+      const data = await auditService.getLogs(startDate, endDate);
       setLogs(data);
     } catch (err) {
       console.error('Error fetching logs:', err);
@@ -119,8 +147,29 @@ const AuditModule: React.FC = () => {
   const filteredLogs = logs.filter(log => 
     log.table_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     log.action.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    log.user?.username.toLowerCase().includes(searchTerm.toLowerCase())
+    log.user?.username.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    getItemName(log).toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+  function getItemName(log: AuditLog) {
+    const data = log.new_data || log.old_data || {};
+    
+    if (log.table_name === 'order_items') {
+      const menuId = data.menu_item_id;
+      const menuItem = menuItems.find(item => item.id === menuId);
+      return menuItem ? menuItem.name : `Item #${menuId?.substring(0, 5)}`;
+    }
+    
+    if (log.table_name === 'orders') {
+      return `Order #${data.order_number || data.id?.substring(0, 8)}`;
+    }
+
+    if (log.table_name === 'expenses') {
+      return data.description || 'Expense';
+    }
+
+    return 'N/A';
+  }
 
   if (loading) {
     return (
@@ -131,15 +180,16 @@ const AuditModule: React.FC = () => {
   }
 
   return (
-    <div className="flex flex-col h-full bg-stone-50 p-6 overflow-hidden">
+    <div className="flex flex-col h-full bg-stone-50 p-3 md:p-6 lg:p-8 overflow-hidden">
       {/* Header */}
-      <div className="flex items-center justify-between mb-8">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4 md:mb-8 gap-4">
         <div>
-          <h1 className="text-3xl font-black text-stone-800 uppercase tracking-tighter flex items-center gap-3">
-            <ClipboardList className="text-red-800" size={32} />
-            System Audit Trail
+          <h1 className="text-xl md:text-3xl font-black text-stone-800 uppercase tracking-tighter flex items-center gap-2 md:gap-3">
+            <ClipboardList className="text-red-800" size={24} />
+            <span className="hidden sm:inline">System Audit Trail</span>
+            <span className="sm:hidden">Audit Trail</span>
           </h1>
-          <p className="text-stone-500 font-medium mt-1">
+          <p className="text-xs md:text-sm text-stone-500 font-medium mt-1 hidden sm:block">
             Historical record of all system mutations and staff actions.
           </p>
         </div>
@@ -169,8 +219,8 @@ const AuditModule: React.FC = () => {
 
       {activeTab === 'LOGS' ? (
         <>
-          {/* Stats Bar */}
-      <div className="grid grid-cols-4 gap-4 mb-6">
+          {/* Stats Bar - responsive grid */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 md:gap-4 lg:gap-6 mb-4 md:mb-6">
         {[
           { label: 'Total Events', value: logs.length, color: 'border-stone-200' },
           { label: 'Inserts', value: logs.filter(l => l.action === 'INSERT').length, color: 'border-green-200' },
@@ -185,21 +235,58 @@ const AuditModule: React.FC = () => {
       </div>
 
       {/* Filters */}
-      <div className="bg-white p-4 rounded-2xl shadow-sm border border-stone-100 mb-6 flex gap-4">
-        <div className="flex-1 relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-stone-400" size={18} />
-          <input 
-            type="text"
-            placeholder="Search by table, action, or user..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 bg-stone-50 border border-stone-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-800/20"
-          />
+      <div className="bg-white p-4 rounded-2xl shadow-sm border border-stone-100 mb-6">
+        <div className="flex gap-4 mb-4">
+          <div className="flex-1 relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-stone-400" size={18} />
+            <input 
+              type="text"
+              placeholder="Search by table, action, or user..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full pl-10 pr-4 py-2 bg-stone-50 border border-stone-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-800/20"
+            />
+          </div>
+          <button 
+            onClick={() => setShowFilters(!showFilters)}
+            className={`px-4 py-2 border rounded-xl text-stone-600 flex items-center gap-2 font-bold transition-colors ${showFilters ? 'bg-red-800 text-white border-red-800' : 'border-stone-200 hover:bg-stone-50'}`}
+          >
+            <Calendar size={18} />
+            Date Filters
+          </button>
         </div>
-        <button className="px-4 py-2 border border-stone-200 rounded-xl text-stone-600 flex items-center gap-2 font-bold hover:bg-stone-50 transition-colors">
-          <FilterIcon size={18} />
-          Filters
-        </button>
+        
+        {showFilters && (
+          <div className="pt-4 border-t border-stone-100">
+            <p className="text-xs font-bold text-stone-400 uppercase tracking-widest mb-3">Quick Select</p>
+            <div className="flex gap-2">
+              <button 
+                onClick={() => setDateFilter('today')}
+                className={`px-4 py-2 rounded-lg font-bold text-sm transition-all ${dateFilter === 'today' ? 'bg-red-800 text-white shadow-lg' : 'bg-stone-100 text-stone-600 hover:bg-stone-200'}`}
+              >
+                Today
+              </button>
+              <button 
+                onClick={() => setDateFilter('yesterday')}
+                className={`px-4 py-2 rounded-lg font-bold text-sm transition-all ${dateFilter === 'yesterday' ? 'bg-red-800 text-white shadow-lg' : 'bg-stone-100 text-stone-600 hover:bg-stone-200'}`}
+              >
+                Yesterday
+              </button>
+              <button 
+                onClick={() => setDateFilter('last7days')}
+                className={`px-4 py-2 rounded-lg font-bold text-sm transition-all ${dateFilter === 'last7days' ? 'bg-red-800 text-white shadow-lg' : 'bg-stone-100 text-stone-600 hover:bg-stone-200'}`}
+              >
+                Last 7 Days
+              </button>
+              <button 
+                onClick={() => setDateFilter('all')}
+                className={`px-4 py-2 rounded-lg font-bold text-sm transition-all ${dateFilter === 'all' ? 'bg-red-800 text-white shadow-lg' : 'bg-stone-100 text-stone-600 hover:bg-stone-200'}`}
+              >
+                All Time
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Log Table */}
@@ -211,6 +298,7 @@ const AuditModule: React.FC = () => {
                 <th className="px-6 py-4 text-xs font-bold text-stone-400 uppercase tracking-widest">Time</th>
                 <th className="px-6 py-4 text-xs font-bold text-stone-400 uppercase tracking-widest">User</th>
                 <th className="px-6 py-4 text-xs font-bold text-stone-400 uppercase tracking-widest">Table</th>
+                <th className="px-6 py-4 text-xs font-bold text-stone-400 uppercase tracking-widest">Detail</th>
                 <th className="px-6 py-4 text-xs font-bold text-stone-400 uppercase tracking-widest">Action</th>
                 <th className="px-6 py-4 text-xs font-bold text-stone-400 uppercase tracking-widest">Record ID</th>
                 <th className="px-6 py-4"></th>
@@ -245,6 +333,9 @@ const AuditModule: React.FC = () => {
                     </td>
                     <td className="px-6 py-4 font-bold text-stone-700 uppercase text-xs tracking-tight">
                       {log.table_name}
+                    </td>
+                    <td className="px-6 py-4 font-medium text-stone-800">
+                      {getItemName(log)}
                     </td>
                     <td className="px-6 py-4">
                       <span className={`px-3 py-1 rounded-full text-[10px] font-black border uppercase tracking-wider ${getActionColor(log.action)}`}>
@@ -298,7 +389,7 @@ const AuditModule: React.FC = () => {
       </div>
     </>
       ) : (
-        <div className="flex-1 bg-white rounded-3xl shadow-xl border border-stone-100 p-8 overflow-y-auto">
+        <div className="flex-1 bg-white rounded-3xl shadow-xl border border-stone-100 p-4 md:p-8 lg:p-12 overflow-y-auto">
           <div className="max-w-4xl mx-auto">
             <h2 className="text-2xl font-black text-stone-800 uppercase mb-6 flex items-center gap-3">
               <HistoryIcon className="text-amber-600" />

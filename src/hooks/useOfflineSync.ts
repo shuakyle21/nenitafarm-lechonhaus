@@ -38,6 +38,8 @@ export const useOfflineSync = (userId: string | null) => {
           delivery_address: order.deliveryAddress,
           delivery_time: order.deliveryTime,
           contact_number: order.contactNumber,
+          table_number: order.tableNumber,
+          server_name: order.serverName,
           created_at: order.date, // Preserve the original creation date
         },
       ])

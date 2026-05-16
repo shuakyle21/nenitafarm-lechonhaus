@@ -37,7 +37,7 @@ describe('CashDropModal', () => {
 
     const form = submitButton.closest('form');
     expect(form).toBeInTheDocument();
-    fireEvent.submit(form!);
+    fireEvent.submit(form);
 
     expect(mockSubmit).toHaveBeenCalledWith(1000, 'Bank Deposit', 'Admin');
   });

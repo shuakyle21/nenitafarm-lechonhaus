@@ -7,6 +7,39 @@ interface LoginModuleProps {
   onLogin: (user: { id: string; username: string; role: 'ADMIN' | 'CASHIER' }) => void;
 }
 
+/**
+ * Map login error scenarios to user-friendly messages.
+ * Exported for testing.
+ */
+export function getLoginErrorMessage(
+  type: 'NO_DATA' | 'RPC_ERROR' | 'UNKNOWN',
+  error?: any
+): string {
+  if (type === 'NO_DATA') {
+    return 'Invalid username or password';
+  }
+
+  if (type === 'RPC_ERROR' && error) {
+    const message = error?.message || '';
+
+    // Network / fetch errors
+    if (
+      error instanceof TypeError ||
+      message.toLowerCase().includes('fetch') ||
+      message.toLowerCase().includes('network')
+    ) {
+      return 'Connection error. Please check your internet and try again.';
+    }
+
+    // Timeout
+    if (error?.code === 'PGRST301' || message.toLowerCase().includes('timeout')) {
+      return 'Request timed out. Please try again.';
+    }
+  }
+
+  return 'An error occurred during login. Please try again.';
+}
+
 const LoginModule: React.FC<LoginModuleProps> = ({ onLogin }) => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -30,12 +63,12 @@ const LoginModule: React.FC<LoginModuleProps> = ({ onLogin }) => {
         const user = data[0];
         onLogin({ id: user.id, username: user.username, role: user.role as 'ADMIN' | 'CASHIER' });
       } else {
-        setError('Invalid username or password');
+        setError(getLoginErrorMessage('NO_DATA'));
       }
 
     } catch (err) {
       console.error('Login error:', err);
-      setError('An error occurred during login');
+      setError(getLoginErrorMessage('RPC_ERROR', err));
     } finally {
       setLoading(false);
     }

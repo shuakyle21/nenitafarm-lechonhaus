@@ -54,6 +54,63 @@ describe('Audit Service', () => {
       expect(supabase.from).toHaveBeenCalledWith('audit_logs');
     });
 
+    it('should fetch logs with date range filters', async () => {
+      const mockData = [
+        {
+          id: '1',
+          table_name: 'orders',
+          record_id: 'rec-1',
+          action: 'INSERT',
+          users: { username: 'admin' },
+          changed_at: new Date().toISOString(),
+        },
+      ];
+
+      const mockQuery = {
+        select: vi.fn().mockReturnThis(),
+        gte: vi.fn().mockReturnThis(),
+        lte: vi.fn().mockReturnThis(),
+        order: vi.fn().mockResolvedValue({ data: mockData, error: null }),
+      };
+
+      (supabase.from as any).mockReturnValue(mockQuery);
+
+      const startDate = '2026-01-01T00:00:00.000Z';
+      const endDate = '2026-01-31T23:59:59.999Z';
+      
+      const logs = await auditService.getLogs(startDate, endDate);
+
+      expect(logs).toHaveLength(1);
+      expect(mockQuery.gte).toHaveBeenCalledWith('changed_at', startDate);
+      expect(mockQuery.lte).toHaveBeenCalledWith('changed_at', endDate);
+      expect(supabase.from).toHaveBeenCalledWith('audit_logs');
+    });
+
+    it('should fetch logs without date filters when not provided', async () => {
+      const mockData = [
+        {
+          id: '1',
+          table_name: 'orders',
+          record_id: 'rec-1',
+          action: 'INSERT',
+          users: { username: 'admin' },
+          changed_at: new Date().toISOString(),
+        },
+      ];
+
+      const mockQuery = {
+        select: vi.fn().mockReturnThis(),
+        order: vi.fn().mockResolvedValue({ data: mockData, error: null }),
+      };
+
+      (supabase.from as any).mockReturnValue(mockQuery);
+
+      const logs = await auditService.getLogs();
+
+      expect(logs).toHaveLength(1);
+      expect(mockQuery.order).toHaveBeenCalledWith('changed_at', { ascending: false });
+    });
+
     it('should throw error if supabase fetch fails', async () => {
       (supabase.from as any).mockReturnValue({
         select: vi.fn().mockReturnThis(),

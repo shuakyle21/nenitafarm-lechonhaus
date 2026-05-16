@@ -136,4 +136,50 @@ describe('paperPosImportService', () => {
       expect(result[0].image).toBe('');
     });
   });
+
+  describe('importExpenses', () => {
+    it('should call supabase insert with expense records', async () => {
+      const { supabase } = await import('../src/lib/supabase');
+      const mockInsert = vi.fn().mockResolvedValue({ error: null });
+      (supabase.from as any).mockReturnValue({
+        insert: mockInsert,
+      });
+
+      const expenses = [
+        { date: '2026-02-04', amount: 500, reason: 'Gas', requested_by: 'Nenita' },
+        { date: '2026-02-04', amount: 200, reason: 'Supplies', requested_by: 'Staff' },
+      ];
+
+      await paperPosImportService.importExpenses(expenses);
+
+      expect(supabase.from).toHaveBeenCalledWith('expenses');
+      expect(mockInsert).toHaveBeenCalledWith([
+        { date: '2026-02-04', amount: 500, reason: 'Gas', requested_by: 'Nenita' },
+        { date: '2026-02-04', amount: 200, reason: 'Supplies', requested_by: 'Staff' },
+      ]);
+    });
+
+    it('should not call supabase when expenses array is empty', async () => {
+      const { supabase } = await import('../src/lib/supabase');
+      (supabase.from as any).mockClear();
+
+      await paperPosImportService.importExpenses([]);
+
+      expect(supabase.from).not.toHaveBeenCalled();
+    });
+
+    it('should throw when supabase returns an error', async () => {
+      const { supabase } = await import('../src/lib/supabase');
+      const mockInsert = vi.fn().mockResolvedValue({ error: new Error('DB error') });
+      (supabase.from as any).mockReturnValue({
+        insert: mockInsert,
+      });
+
+      await expect(
+        paperPosImportService.importExpenses([
+          { date: '2026-02-04', amount: 100, reason: 'Test', requested_by: 'User' },
+        ])
+      ).rejects.toThrow('DB error');
+    });
+  });
 });

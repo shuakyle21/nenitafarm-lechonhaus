@@ -177,6 +177,7 @@ export const paperPosImportService = {
     const orderItems = items.map((item) => ({
       order_id: orderId,
       menu_item_id: item.id.startsWith('paper-import') ? null : item.id, // Use null for paper imports
+      name: item.name, // Store name directly so it survives without a menu_items join
       quantity: item.quantity,
       price_at_time: item.price,
       weight: item.weight ?? null, // Use null if weight is undefined
@@ -223,7 +224,7 @@ export const paperPosImportService = {
 
     for (const record of unsyncedRecords) {
       try {
-        await this.syncRecordToOrder(record.id!);
+        await this.syncRecordToOrder(record.id);
         results.success++;
       } catch (error) {
         results.failed++;
@@ -235,6 +236,28 @@ export const paperPosImportService = {
     }
 
     return results;
+  },
+
+  /**
+   * Import expenses from paper records (batch insert into expenses table)
+   */
+  async importExpenses(
+    expenses: { date: string; amount: number; reason: string; requested_by: string }[]
+  ): Promise<void> {
+    if (expenses.length === 0) return;
+
+    const { error } = await supabase
+      .from('expenses')
+      .insert(
+        expenses.map((e) => ({
+          date: e.date,
+          amount: e.amount,
+          reason: e.reason,
+          requested_by: e.requested_by,
+        }))
+      );
+
+    if (error) throw error;
   },
 
   /**
