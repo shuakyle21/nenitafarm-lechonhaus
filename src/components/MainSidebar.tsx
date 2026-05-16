@@ -2,20 +2,18 @@ import * as React from 'react';
 import {
   LayoutDashboard,
   Store,
-  Package,
   Settings,
   LogOut,
   Users,
   PieChart,
   Calendar,
   Wifi,
-  WifiOff,
-  ClipboardList
+  WifiOff
 } from 'lucide-react';
 
 interface MainSidebarProps {
-  activeModule: 'DASHBOARD' | 'POS' | 'STAFF' | 'FINANCE' | 'BOOKING' | 'INVENTORY' | 'AUDIT';
-  onModuleChange: (module: 'DASHBOARD' | 'POS' | 'STAFF' | 'FINANCE' | 'BOOKING' | 'INVENTORY' | 'AUDIT') => void;
+  activeModule: 'DASHBOARD' | 'POS' | 'STAFF' | 'FINANCE' | 'BOOKING';
+  onModuleChange: (module: 'DASHBOARD' | 'POS' | 'STAFF' | 'FINANCE' | 'BOOKING') => void;
   userRole: 'ADMIN' | 'CASHIER' | null;
   onLogout: () => void;
   isOnline?: boolean;
@@ -151,49 +149,6 @@ const MainSidebar: React.FC<MainSidebarProps> = ({
           </button>
         )}
 
-        {userRole === 'ADMIN' && (
-          <button
-            onClick={() => onModuleChange('AUDIT')}
-            className={`w-full aspect-square rounded-2xl flex flex-col items-center justify-center gap-1.5 transition-all duration-300 group relative overflow-hidden ${
-              activeModule === 'AUDIT'
-                ? 'bg-gradient-to-br from-amber-600 to-amber-700 text-white shadow-lg shadow-amber-900/40 scale-105 ring-2 ring-amber-500/50'
-                : 'hover:bg-stone-900 hover:text-stone-200 hover:scale-105'
-            }`}
-            title="System Audit"
-            aria-label="System Audit"
-          >
-            <ClipboardList
-              size={22}
-              className={`transition-transform duration-300 ${activeModule === 'AUDIT' ? 'scale-110' : 'group-hover:scale-110'}`}
-            />
-            <span className="text-[10px] font-bold tracking-wide">Audit</span>
-            {activeModule === 'AUDIT' && (
-              <div className="absolute inset-0 bg-white/10 animate-pulse"></div>
-            )}
-          </button>
-        )}
-
-        {userRole === 'ADMIN' && (
-          <button
-            onClick={() => onModuleChange('INVENTORY')}
-            className={`w-full aspect-square rounded-2xl flex flex-col items-center justify-center gap-1.5 transition-all duration-300 group relative overflow-hidden ${
-              activeModule === 'INVENTORY'
-                ? 'bg-gradient-to-br from-indigo-600 to-indigo-700 text-white shadow-lg shadow-indigo-900/40 scale-105 ring-2 ring-indigo-500/50'
-                : 'hover:bg-stone-900 hover:text-stone-200 hover:scale-105'
-            }`}
-            title="Inventory Management"
-            aria-label="Inventory Management"
-          >
-            <Package
-              size={22}
-              className={`transition-transform duration-300 ${activeModule === 'INVENTORY' ? 'scale-110' : 'group-hover:scale-110'}`}
-            />
-            <span className="text-[10px] font-bold tracking-wide">Stock</span>
-            {activeModule === 'INVENTORY' && (
-              <div className="absolute inset-0 bg-white/10 animate-pulse"></div>
-            )}
-          </button>
-        )}
       </div>
 
       {/* Bottom Actions */}

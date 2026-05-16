@@ -11,8 +11,6 @@ import PosPage from '@/pages/PosPage';
 import StaffPage from '@/pages/StaffPage';
 import FinancePage from '@/pages/FinancePage';
 import BookingPage from '@/pages/BookingPage';
-import InventoryPage from '@/pages/InventoryPage';
-import AuditPage from '@/pages/AuditPage';
 
 const App: React.FC = () => {
   // Auth State - Default to false for security (requires login)
@@ -22,7 +20,7 @@ const App: React.FC = () => {
   const [userId, setUserId] = useState<string | null>(null);
 
   const [activeModule, setActiveModule] = useState<
-    'DASHBOARD' | 'POS' | 'STAFF' | 'FINANCE' | 'BOOKING' | 'INVENTORY' | 'AUDIT'
+    'DASHBOARD' | 'POS' | 'STAFF' | 'FINANCE' | 'BOOKING'
   >('POS');
 
   // Offline Sync Hook - Kept at App level to persist sync state across page changes
@@ -83,8 +81,6 @@ const App: React.FC = () => {
             {activeModule === 'DASHBOARD' && <DashboardPage username={username} />}
             {activeModule === 'STAFF' && <StaffPage />}
             {activeModule === 'FINANCE' && <FinancePage username={username} userId={userId} />}
-            {activeModule === 'INVENTORY' && <InventoryPage userId={userId} />}
-            {activeModule === 'AUDIT' && <AuditPage />}
           </>
         )}
 
