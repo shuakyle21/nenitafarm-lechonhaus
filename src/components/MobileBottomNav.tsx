@@ -6,22 +6,20 @@ import {
   Users,
   PieChart,
   Calendar,
-  Package,
-  ClipboardList,
   LogOut,
   MoreHorizontal,
   X
 } from 'lucide-react';
 
 interface MobileBottomNavProps {
-  activeModule: 'DASHBOARD' | 'POS' | 'STAFF' | 'FINANCE' | 'BOOKING' | 'INVENTORY' | 'AUDIT';
-  onModuleChange: (module: 'DASHBOARD' | 'POS' | 'STAFF' | 'FINANCE' | 'BOOKING' | 'INVENTORY' | 'AUDIT') => void;
+  activeModule: 'DASHBOARD' | 'POS' | 'STAFF' | 'FINANCE' | 'BOOKING';
+  onModuleChange: (module: 'DASHBOARD' | 'POS' | 'STAFF' | 'FINANCE' | 'BOOKING') => void;
   userRole: 'ADMIN' | 'CASHIER' | null;
   onLogout: () => void;
 }
 
 interface NavItem {
-  id: 'DASHBOARD' | 'POS' | 'STAFF' | 'FINANCE' | 'BOOKING' | 'INVENTORY' | 'AUDIT';
+  id: 'DASHBOARD' | 'POS' | 'STAFF' | 'FINANCE' | 'BOOKING';
   icon: React.ElementType;
   label: string;
   color: string;
@@ -34,7 +32,6 @@ const navItems: NavItem[] = [
   { id: 'BOOKING', icon: Calendar, label: 'Book', color: 'from-purple-600 to-purple-700' },
   { id: 'STAFF', icon: Users, label: 'Staff', color: 'from-blue-600 to-blue-700', adminOnly: true },
   { id: 'FINANCE', icon: PieChart, label: 'Finance', color: 'from-green-600 to-green-700', adminOnly: true },
-  { id: 'INVENTORY', icon: Package, label: 'Stock', color: 'from-indigo-600 to-indigo-700', adminOnly: true },
 ];
 
 const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
