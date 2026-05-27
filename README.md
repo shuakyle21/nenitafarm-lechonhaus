@@ -45,10 +45,6 @@ graph TD
     Lib -->|Query| DB
 ```
 
-## ⚠️ SECURITY NOTICE
-
-**IMPORTANT**: Before running this application, please read [SECURITY_NOTICE.md](SECURITY_NOTICE.md) for critical security information.
-
 ## 🚀 Features
 
 ### 🛒 Point of Sale (POS)
