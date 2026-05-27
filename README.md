@@ -3,7 +3,7 @@
 ![Status](https://img.shields.io/badge/Status-Active_Development-green)
 ![Stack](https://img.shields.io/badge/Stack-React_|_Vite_|_Supabase-blue)
 ![License](https://img.shields.io/badge/License-Private-red)
-
+[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/shuakyle21/nenitafarm-lechonhaus)
 A comprehensive, all-in-one Restaurant Management System (RMS) tailored for **Nenita Farm Lechon Haus and Catering Services**. This application streamlines operations from order taking to financial reporting, ensuring data accuracy and operational efficiency.
 
 ## 🚀 Features
