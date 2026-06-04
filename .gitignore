@@ -33,3 +33,13 @@ dist-ssr
 
 # Copilot local worktrees
 .claude/worktrees/
+
+# Agent skills & tooling
+.agents/skills/
+.claude/skills/
+.nogic/
+.react-doctor/
+
+# macOS / cloud-sync conflict copies
+* 2.*
+* 2/
