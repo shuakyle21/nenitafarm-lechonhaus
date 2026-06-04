@@ -83,15 +83,14 @@ describe('OrderHistoryModal', () => {
     // 2025-12-02T10:00:00Z -> 12/02/2025 (depending on timezone, but let's check for the parts)
     // Since we use toLocaleDateString('en-US'), it should be MM/DD/YYYY
     // Check Date Format (MM/DD/YYYY)
-    // Check Order Type
-    screen.debug();
-    expect(screen.getByText(/Dine-in/i)).toBeInTheDocument();
+    // Check Order Type (shown in both the list row and the detail view)
+    expect(screen.getAllByText(/Dine-in/i).length).toBeGreaterThanOrEqual(1);
 
-    // Check Weighted Item Formatting
-    // The component formats it as "1x Lechon (500g)" or similar.
-    const lechonItem = screen.getByText(/Lechon/);
-    expect(lechonItem).toBeInTheDocument();
-    expect(lechonItem.textContent).toMatch(/250g|0.25kg/);
+    // Check Weighted Item Formatting (rendered in both responsive layouts).
+    // The component formats it as "1x Lechon (250g)" or similar.
+    const lechonItems = screen.getAllByText(/Lechon/);
+    expect(lechonItems.length).toBeGreaterThanOrEqual(1);
+    expect(lechonItems.some((el) => /250g|0.25kg/.test(el.textContent ?? ''))).toBe(true);
 
     // Check Receipt Modal Opening
     const receiptBtn = screen.getByTestId('view-receipt-order-80');
@@ -106,6 +105,6 @@ describe('OrderHistoryModal', () => {
     await screen.findByText('175.00'); // Lechon price
     const totals = await screen.findAllByText(/385\.00/); // Subtotal and Total
     expect(totals.length).toBeGreaterThanOrEqual(1);
-    expect(screen.getByText(/1x Lechon.*\(250g\)/)).toBeInTheDocument();
+    expect(screen.getAllByText(/1x Lechon.*\(250g\)/).length).toBeGreaterThanOrEqual(1);
   });
 });

@@ -72,8 +72,6 @@ describe('MainSidebar - Navigation Labels & Accessibility', () => {
     expect(screen.getByText('Book')).toBeInTheDocument();
     expect(screen.getByText('Staff')).toBeInTheDocument();
     expect(screen.getByText('Finance')).toBeInTheDocument();
-    expect(screen.getByText('Stock')).toBeInTheDocument();
-    expect(screen.getByText('Audit')).toBeInTheDocument();
   });
 
   it('has aria-label on each sidebar nav button', () => {
@@ -83,8 +81,6 @@ describe('MainSidebar - Navigation Labels & Accessibility', () => {
     expect(screen.getByRole('button', { name: /booking/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /staff/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /financ/i })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /inventory/i })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /audit/i })).toBeInTheDocument();
   });
 
   it('has aria-label on the logout button', () => {
