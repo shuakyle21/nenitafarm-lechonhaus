@@ -10,6 +10,25 @@ interface BookingItemSelectorProps {
   onAddSelectedItems: (selectedItems: CartItem[]) => void;
 }
 
+const BOOKING_TABS: ('All' | 'Mains' | 'Drinks' | 'Sides' | 'Desserts')[] = [
+  'All', 'Mains', 'Drinks', 'Sides', 'Desserts',
+];
+
+const CATEGORY_MAPPING: Record<Category, 'Mains' | 'Drinks' | 'Sides' | 'Desserts' | 'Other'> = {
+  'Lechon & Grills': 'Mains',
+  'Pork Dishes': 'Mains',
+  'Beef Dishes': 'Mains',
+  'Chicken Dishes': 'Mains',
+  'Seafood': 'Mains',
+  "Today's Menu": 'Mains',
+  'Short Orders': 'Sides',
+  'Vegetables': 'Sides',
+  'Soup': 'Sides',
+  'Desserts': 'Desserts',
+  'Extras': 'Drinks',
+  'Party Trays': 'Mains',
+};
+
 const BookingItemSelector: React.FC<BookingItemSelectorProps> = ({
   items,
   isOpen,
@@ -18,34 +37,11 @@ const BookingItemSelector: React.FC<BookingItemSelectorProps> = ({
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [activeTab, setActiveTab] = useState<'All' | 'Mains' | 'Drinks' | 'Sides' | 'Desserts'>('All');
-  
+
   // Local state for quantities and variant selection
   // Key is itemId-variantName (if any)
   const [selection, setSelection] = useState<Record<string, number>>({});
   const [selectedVariants, setSelectedVariants] = useState<Record<string, string>>({});
-
-  const tabs: ('All' | 'Mains' | 'Drinks' | 'Sides' | 'Desserts')[] = [
-    'All',
-    'Mains',
-    'Drinks',
-    'Sides',
-    'Desserts',
-  ];
-
-  const categoryMapping: Record<Category, 'Mains' | 'Drinks' | 'Sides' | 'Desserts' | 'Other'> = {
-    'Lechon & Grills': 'Mains',
-    'Pork Dishes': 'Mains',
-    'Beef Dishes': 'Mains',
-    'Chicken Dishes': 'Mains',
-    'Seafood': 'Mains',
-    "Today's Menu": 'Mains',
-    'Short Orders': 'Sides',
-    'Vegetables': 'Sides',
-    'Soup': 'Sides',
-    'Desserts': 'Desserts',
-    'Extras': 'Drinks',
-    'Party Trays': 'Mains',
-  };
 
   // Flatten items that have variants for the grid, as seen in the user's reference image
   // (e.g. Bulalo Family, Bulalo Medium shown as separate cards)
@@ -72,7 +68,7 @@ const BookingItemSelector: React.FC<BookingItemSelectorProps> = ({
   const filteredItems = useMemo(() => {
     return flattenedItems.filter((item) => {
       const matchesSearch = item.name.toLowerCase().includes(searchQuery.toLowerCase());
-      const mappedCat = categoryMapping[item.category] || 'Other';
+      const mappedCat = CATEGORY_MAPPING[item.category] || 'Other';
       const matchesTab = activeTab === 'All' || mappedCat === activeTab;
       return matchesSearch && matchesTab;
     });
@@ -130,7 +126,7 @@ const BookingItemSelector: React.FC<BookingItemSelectorProps> = ({
             <h2 className="text-2xl font-black text-stone-800 tracking-tight">Select Menu Items</h2>
             <p className="text-stone-400 text-sm mt-1">Search and add items to your pre-order</p>
           </div>
-          <button 
+          <button type="button"
             onClick={onClose}
             className="p-2 hover:bg-stone-100 rounded-full transition-colors"
           >
@@ -142,8 +138,9 @@ const BookingItemSelector: React.FC<BookingItemSelectorProps> = ({
         <div className="px-6 py-4 flex flex-col md:flex-row gap-4 bg-stone-50/50">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-stone-400" size={18} />
-            <input 
+            <input
               type="text"
+              aria-label="Search menu items"
               placeholder="Search items..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
@@ -152,8 +149,8 @@ const BookingItemSelector: React.FC<BookingItemSelectorProps> = ({
             />
           </div>
           <div className="flex gap-2 p-1 bg-stone-200/50 rounded-xl">
-             {tabs.map((tab) => (
-                <button
+             {BOOKING_TABS.map((tab) => (
+                <button type="button"
                   key={tab}
                   onClick={() => setActiveTab(tab)}
                   className={`px-4 py-2 text-xs font-black uppercase tracking-wider rounded-lg transition-all ${
@@ -180,10 +177,10 @@ const BookingItemSelector: React.FC<BookingItemSelectorProps> = ({
                   <img 
                     src={item.image || 'https://via.placeholder.com/400x300?text=No+Image'} 
                     alt={item.name}
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                    className="size-full object-cover group-hover:scale-105 transition-transform duration-500"
                   />
                   {selection[item.id] > 0 && (
-                    <div className="absolute top-2 right-2 bg-red-600 text-white text-[10px] font-black w-6 h-6 rounded-full flex items-center justify-center shadow-lg">
+                    <div className="absolute top-2 right-2 bg-red-600 text-white text-[10px] font-black size-6 rounded-full flex items-center justify-center shadow-lg">
                       {selection[item.id]}
                     </div>
                   )}
@@ -203,9 +200,10 @@ const BookingItemSelector: React.FC<BookingItemSelectorProps> = ({
                       >
                         <Minus size={12} className="text-stone-500" />
                       </button>
-                      <input 
+                      <input
                         type="number"
                         min="0"
+                        aria-label={`Quantity for ${item.name}`}
                         value={selection[item.id] || 0}
                         onChange={(e) => setSelection(prev => ({ ...prev, [item.id]: Math.max(0, parseInt(e.target.value) || 0) }))}
                         className="w-full bg-transparent text-center text-xs font-bold focus:outline-none"
@@ -236,7 +234,7 @@ const BookingItemSelector: React.FC<BookingItemSelectorProps> = ({
             <div className="h-full flex flex-col items-center justify-center text-stone-400 py-12">
                <ShoppingBag size={48} className="mb-4 opacity-20" />
                <p className="font-bold">No items match your criteria</p>
-               <button 
+               <button type="button"
                 onClick={() => { setSearchQuery(''); setActiveTab('All'); }}
                 className="text-red-600 text-sm font-bold mt-2 hover:underline"
                >
@@ -256,17 +254,17 @@ const BookingItemSelector: React.FC<BookingItemSelectorProps> = ({
             </div>
           </div>
           <div className="flex gap-3">
-            <button 
+            <button type="button"
               onClick={onClose}
               className="px-6 py-3 text-stone-500 font-black uppercase text-xs tracking-widest hover:bg-stone-200/50 rounded-xl transition-colors"
             >
               Cancel
             </button>
-            <button 
+            <button type="button"
               onClick={handleConfirm}
               disabled={selectedCount === 0}
               data-testid="confirm-add-items"
-              className="px-8 py-3 bg-stone-800 text-white font-black uppercase text-xs tracking-widest rounded-xl hover:bg-black transition-all shadow-lg active:scale-95 disabled:opacity-30 disabled:pointer-events-none"
+              className="px-8 py-3 bg-stone-800 text-white font-black uppercase text-xs tracking-widest rounded-xl hover:bg-stone-950 transition-all shadow-lg active:scale-95 disabled:opacity-30 disabled:pointer-events-none"
             >
               Add to Order
             </button>

@@ -28,7 +28,7 @@ const CashDropModal: React.FC<CashDropModalProps> = ({ isOpen, onClose, onSubmit
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden relative">
         {/* Header */}
         <div className="bg-red-900 text-white p-6 text-center">
-          <div className="mx-auto bg-red-800 w-12 h-12 rounded-full flex items-center justify-center mb-3">
+          <div className="mx-auto bg-red-800 size-12 rounded-full flex items-center justify-center mb-3">
             <ArrowDownCircle size={24} className="text-white" />
           </div>
           <h2 className="text-xl font-brand font-black uppercase tracking-wide">Cash Drop</h2>
@@ -38,7 +38,7 @@ const CashDropModal: React.FC<CashDropModalProps> = ({ isOpen, onClose, onSubmit
         {/* Form */}
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
           <div>
-            <label className="block text-xs font-bold uppercase text-stone-500 mb-1">
+            <label htmlFor="cash-drop-amount" className="block text-xs font-bold uppercase text-stone-500 mb-1">
               Amount to Drop
             </label>
             <div className="relative">
@@ -46,6 +46,7 @@ const CashDropModal: React.FC<CashDropModalProps> = ({ isOpen, onClose, onSubmit
                 ₱
               </span>
               <input
+                id="cash-drop-amount"
                 type="number"
                 min="0"
                 step="0.01"
@@ -60,10 +61,11 @@ const CashDropModal: React.FC<CashDropModalProps> = ({ isOpen, onClose, onSubmit
           </div>
 
           <div>
-            <label className="block text-xs font-bold uppercase text-stone-500 mb-1">
+            <label htmlFor="cash-drop-reason" className="block text-xs font-bold uppercase text-stone-500 mb-1">
               Reason / Destination
             </label>
             <input
+              id="cash-drop-reason"
               type="text"
               required
               value={reason}
@@ -74,12 +76,13 @@ const CashDropModal: React.FC<CashDropModalProps> = ({ isOpen, onClose, onSubmit
           </div>
 
           <div>
-            <label className="block text-xs font-bold uppercase text-stone-500 mb-1">
+            <label htmlFor="cash-drop-performed-by" className="block text-xs font-bold uppercase text-stone-500 mb-1">
               Performed By
             </label>
             <div className="relative">
               <User className="absolute left-4 top-1/2 -translate-y-1/2 text-stone-400" size={18} />
               <input
+                id="cash-drop-performed-by"
                 type="text"
                 required
                 value={performedBy}

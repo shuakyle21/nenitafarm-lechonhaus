@@ -32,7 +32,7 @@ const ExpenseModal: React.FC<ExpenseModalProps> = ({
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-in fade-in duration-200">
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden relative">
         <div className="bg-red-600 text-white p-6 text-center">
-          <div className="mx-auto bg-red-700 w-12 h-12 rounded-full flex items-center justify-center mb-3">
+          <div className="mx-auto bg-red-700 size-12 rounded-full flex items-center justify-center mb-3">
             <TrendingDown size={24} className="text-white" />
           </div>
           <h2 className="text-xl font-brand font-black uppercase tracking-wide">Record Expense</h2>
@@ -41,12 +41,13 @@ const ExpenseModal: React.FC<ExpenseModalProps> = ({
 
         <form onSubmit={onSubmit} className="p-6 space-y-4">
           <div>
-            <label className="block text-xs font-bold uppercase text-stone-500 mb-1">Amount</label>
+            <label htmlFor="expense-amount" className="block text-xs font-bold uppercase text-stone-500 mb-1">Amount</label>
             <div className="relative">
               <span className="absolute left-4 top-1/2 -translate-y-1/2 font-bold text-stone-400">
                 ₱
               </span>
               <input
+                id="expense-amount"
                 type="number"
                 required
                 value={amount}
@@ -58,8 +59,9 @@ const ExpenseModal: React.FC<ExpenseModalProps> = ({
             </div>
           </div>
           <div>
-            <label className="block text-xs font-bold uppercase text-stone-500 mb-1">Reason</label>
+            <label htmlFor="expense-reason" className="block text-xs font-bold uppercase text-stone-500 mb-1">Reason</label>
             <input
+              id="expense-reason"
               type="text"
               required
               value={reason}
@@ -69,12 +71,13 @@ const ExpenseModal: React.FC<ExpenseModalProps> = ({
             />
           </div>
           <div>
-            <label className="block text-xs font-bold uppercase text-stone-500 mb-1">
+            <label htmlFor="expense-person" className="block text-xs font-bold uppercase text-stone-500 mb-1">
               Requested By
             </label>
             <div className="relative">
               <User className="absolute left-4 top-1/2 -translate-y-1/2 text-stone-400" size={18} />
               <input
+                id="expense-person"
                 type="text"
                 required
                 value={person}

@@ -69,7 +69,7 @@ const ExpenseCard: React.FC<ExpenseCardProps> = ({
           >
             {isOutflow ? '-' : '+'}{formatCurrency(amount)}
           </span>
-          <button
+          <button type="button"
             onClick={onDelete}
             className="p-2 text-stone-300 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
             aria-label="Delete transaction"

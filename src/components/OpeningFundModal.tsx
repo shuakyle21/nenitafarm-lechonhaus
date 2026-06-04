@@ -26,7 +26,7 @@ const OpeningFundModal: React.FC<OpeningFundModalProps> = ({ isOpen, onSubmit, i
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden relative">
         {/* Header */}
         <div className="bg-stone-900 text-white p-6 text-center">
-          <div className="mx-auto bg-stone-800 w-16 h-16 rounded-full flex items-center justify-center mb-4">
+          <div className="mx-auto bg-stone-800 size-16 rounded-full flex items-center justify-center mb-4">
             <Wallet size={32} className="text-yellow-500" />
           </div>
           <h2 className="text-2xl font-brand font-black uppercase tracking-wide">Start Shift</h2>
@@ -39,7 +39,7 @@ const OpeningFundModal: React.FC<OpeningFundModalProps> = ({ isOpen, onSubmit, i
         <form onSubmit={handleSubmit} className="p-8 space-y-6">
           <div className="space-y-4">
             <div>
-              <label className="block text-xs font-bold uppercase text-stone-500 mb-1">
+              <label htmlFor="opening-fund-amount" className="block text-xs font-bold uppercase text-stone-500 mb-1">
                 Opening Amount
               </label>
               <div className="relative">
@@ -47,6 +47,7 @@ const OpeningFundModal: React.FC<OpeningFundModalProps> = ({ isOpen, onSubmit, i
                   ₱
                 </span>
                 <input
+                  id="opening-fund-amount"
                   type="number"
                   min="0"
                   step="0.01"
@@ -61,7 +62,7 @@ const OpeningFundModal: React.FC<OpeningFundModalProps> = ({ isOpen, onSubmit, i
             </div>
 
             <div>
-              <label className="block text-xs font-bold uppercase text-stone-500 mb-1">
+              <label htmlFor="opening-fund-counted-by" className="block text-xs font-bold uppercase text-stone-500 mb-1">
                 Counted By
               </label>
               <div className="relative">
@@ -70,6 +71,7 @@ const OpeningFundModal: React.FC<OpeningFundModalProps> = ({ isOpen, onSubmit, i
                   size={18}
                 />
                 <input
+                  id="opening-fund-counted-by"
                   type="text"
                   required
                   value={performedBy}
@@ -87,7 +89,7 @@ const OpeningFundModal: React.FC<OpeningFundModalProps> = ({ isOpen, onSubmit, i
             className="w-full bg-yellow-500 hover:bg-yellow-400 text-stone-900 font-black py-4 rounded-xl shadow-lg hover:shadow-xl hover:-translate-y-1 active:scale-[0.98] transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {isLoading ? (
-              <span>Processing...</span>
+              <span>Processing…</span>
             ) : (
               <>
                 <CheckCircle size={20} />

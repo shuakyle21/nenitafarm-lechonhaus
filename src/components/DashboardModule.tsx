@@ -41,12 +41,163 @@ interface DashboardModuleProps {
   onRefresh?: () => void;
 }
 
+const EMPTY_ORDERS: Order[] = [];
+const EMPTY_ADJUSTMENTS: SalesAdjustment[] = [];
+const EMPTY_EXPENSES: Expense[] = [];
+const EMPTY_INVENTORY: InventoryItem[] = [];
+
+// --- Image Helper ---
+const getSafeImage = (url?: string) => {
+  if (!url || url.includes('placeholder.com')) {
+    return 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjY2NjY2NjIi8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxMiIgZmlsbD0iIzY2NjY2NiIgZG9taW5hbnQtYmFzZWxpbmU9Im1pZGRsZSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+Tm8gSW1hZ2U8L3RleHQ+PC9zdmc+';
+  }
+  return url;
+};
+
+// --- Sub-components ---
+
+interface StatCardProps {
+  title: string;
+  value: string;
+  icon: React.ElementType;
+  color: string;
+  bg: string;
+  change: string;
+}
+
+const StatCard: React.FC<StatCardProps> = ({ title, value, icon: Icon, color, bg, change }) => (
+  <div className="bg-white p-6 rounded-2xl shadow-sm border border-stone-200 hover:shadow-md transition-all">
+    <div className="flex justify-between items-start mb-4">
+      <div className={`p-3 rounded-xl ${bg} ${color}`}>
+        <Icon size={24} />
+      </div>
+      <span className="text-xs font-bold text-green-600 bg-green-50 px-2 py-1 rounded-full flex items-center gap-1">
+        <ArrowUpRight size={12} />
+        {change}
+      </span>
+    </div>
+    <div className="text-3xl font-brand font-bold text-stone-800 mb-1">
+      {value}
+    </div>
+    <div className="text-xs font-medium text-stone-400 uppercase tracking-wider">
+      {title}
+    </div>
+  </div>
+);
+
+interface SalesTrendChartProps {
+  data: { date: string; sales: number }[];
+}
+
+const SalesTrendChart: React.FC<SalesTrendChartProps> = ({ data }) => (
+  <div className="bg-white p-6 rounded-2xl shadow-sm border border-stone-200 mb-8">
+    <div className="flex items-center gap-2 mb-6">
+      <TrendingUp className="text-blue-600" size={20} />
+      <h3 className="font-bold text-stone-800 text-lg">Sales Overview</h3>
+    </div>
+    <div className="h-64 w-full">
+      <ResponsiveContainer width="99%" height="100%" minWidth={1} minHeight={1}>
+        <LineChart data={data}>
+          <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e5e7eb" />
+          <XAxis
+            dataKey="date"
+            axisLine={false}
+            tickLine={false}
+            tick={{ fill: '#6b7280', fontSize: 12 }}
+            dy={10}
+          />
+          <YAxis
+            axisLine={false}
+            tickLine={false}
+            tick={{ fill: '#6b7280', fontSize: 12 }}
+            tickFormatter={(value) => `₱${value / 1000}k`}
+          />
+          <Tooltip
+            contentStyle={{
+              borderRadius: '8px',
+              border: 'none',
+              boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
+            }}
+            formatter={(value: number) => [`₱${value.toLocaleString()}`, 'Sales']}
+          />
+          <Line
+            type="monotone"
+            dataKey="sales"
+            stroke="#2563eb"
+            strokeWidth={3}
+            dot={{ r: 4, fill: '#2563eb', strokeWidth: 2, stroke: '#fff' }}
+            activeDot={{ r: 6 }}
+          />
+        </LineChart>
+      </ResponsiveContainer>
+    </div>
+  </div>
+);
+
+interface RecentTransactionsSectionProps {
+  transactions: Order[];
+  onViewAll: () => void;
+}
+
+const RecentTransactionsSection: React.FC<RecentTransactionsSectionProps> = ({ transactions, onViewAll }) => (
+  <div className="bg-white rounded-2xl shadow-sm border border-stone-200 overflow-hidden flex flex-col h-[500px]">
+    <div className="p-6 border-b border-stone-100 flex justify-between items-center">
+      <h3 className="font-bold text-lg text-stone-800">Recent Transactions</h3>
+      <button type="button"
+        onClick={onViewAll}
+        className="text-xs bg-stone-100 hover:bg-stone-200 text-stone-600 font-bold px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1"
+      >
+        <List size={12} /> View All
+      </button>
+    </div>
+    <div className="flex-1 overflow-y-auto p-6 space-y-6">
+      {transactions.length === 0 ? (
+        <div className="text-center text-stone-400 mt-10">
+          <p>No transactions yet today.</p>
+        </div>
+      ) : (
+        transactions.slice(0, 10).map((order, i) => (
+          <div
+            key={order.id}
+            className="flex gap-4 animate-in slide-in-from-right-4 duration-300"
+            style={{ animationDelay: `${i * 50}ms` }}
+          >
+            <div className="flex flex-col items-center">
+              <div className="size-2 rounded-full bg-green-500 mb-1"></div>
+              <div className="w-0.5 h-full bg-stone-100"></div>
+            </div>
+            <div className="pb-2 flex-1">
+              <p className="text-sm font-bold text-stone-800">Order #{order.id}</p>
+              <p className="text-xs text-stone-500 mb-1">
+                {order.items.length} items •{' '}
+                {order.discount ? `Discounted (${order.discount.type})` : 'Regular'}
+              </p>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-1 text-[10px] text-stone-400">
+                  <Clock size={10} />
+                  <span>{order.date.split(',')[1]}</span>
+                </div>
+                <span className="font-black text-xl text-red-600">
+                  ₱
+                  {(order.total || 0).toLocaleString('en-PH', {
+                    minimumFractionDigits: 2,
+                  })}
+                </span>
+              </div>
+            </div>
+          </div>
+        ))
+      )}
+    </div>
+  </div>
+);
+
 const DashboardModule: React.FC<DashboardModuleProps> = ({
   items,
-  orders = [],
-  salesAdjustments = [],
-  expenses = [],
-  inventoryItems = [],
+  orders = EMPTY_ORDERS,
+  salesAdjustments = EMPTY_ADJUSTMENTS,
+  expenses = EMPTY_EXPENSES,
+  inventoryItems = EMPTY_INVENTORY,
   onDeleteOrder,
   username = 'Unknown',
   paperPosImport,
@@ -178,14 +329,6 @@ const DashboardModule: React.FC<DashboardModuleProps> = ({
     [todayData]
   );
 
-  // --- Image Helper ---
-  const getSafeImage = (url?: string) => {
-    if (!url || url.includes('placeholder.com')) {
-      return 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjY2NjY2NjIi8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxMiIgZmlsbD0iIzY2NjY2NiIgZG9taW5hbnQtYmFzZWxpbmU9Im1pZGRsZSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+Tm8gSW1hZ2U8L3RleHQ+PC9zdmc+';
-    }
-    return url;
-  };
-
   // Sales chart data - Memoized
   const salesChartData = useMemo(() => {
     const last7Days = [...Array(7)]
@@ -243,7 +386,7 @@ const DashboardModule: React.FC<DashboardModuleProps> = ({
         </div>
         <div className="flex items-center gap-2 sm:gap-3">
           {paperPosImport && (
-            <button
+            <button type="button"
               onClick={() => setIsPaperPosModalOpen(true)}
               className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-lg shadow-sm transition-colors text-sm font-bold"
             >
@@ -278,78 +421,18 @@ const DashboardModule: React.FC<DashboardModuleProps> = ({
 
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-        {stats.map((stat, i) => (
-          <div
-            key={i}
-            className="bg-white p-6 rounded-2xl shadow-sm border border-stone-200 hover:shadow-md transition-all"
-          >
-            <div className="flex justify-between items-start mb-4">
-              <div className={`p-3 rounded-xl ${stat.bg} ${stat.color}`}>
-                <stat.icon size={24} />
-              </div>
-              <span className="text-xs font-bold text-green-600 bg-green-50 px-2 py-1 rounded-full flex items-center gap-1">
-                <ArrowUpRight size={12} />
-                {stat.change}
-              </span>
-            </div>
-            <div className="text-3xl font-brand font-bold text-stone-800 mb-1">
-              {stat.value}
-            </div>
-            <div className="text-xs font-medium text-stone-400 uppercase tracking-wider">
-              {stat.title}
-            </div>
-          </div>
+        {stats.map((stat) => (
+          <StatCard key={stat.title} {...stat} />
         ))}
       </div>
 
       {/* Sales Trend Chart */}
-      <div className="bg-white p-6 rounded-2xl shadow-sm border border-stone-200 mb-8">
-        <div className="flex items-center gap-2 mb-6">
-          <TrendingUp className="text-blue-600" size={20} />
-          <h3 className="font-bold text-stone-800 text-lg">Sales Overview</h3>
-        </div>
-        <div className="h-64 w-full">
-          <ResponsiveContainer width="99%" height="100%" minWidth={1} minHeight={1}>
-            <LineChart data={salesChartData}>
-              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e5e7eb" />
-              <XAxis
-                dataKey="date"
-                axisLine={false}
-                tickLine={false}
-                tick={{ fill: '#6b7280', fontSize: 12 }}
-                dy={10}
-              />
-              <YAxis
-                axisLine={false}
-                tickLine={false}
-                tick={{ fill: '#6b7280', fontSize: 12 }}
-                tickFormatter={(value) => `₱${value / 1000}k`}
-              />
-              <Tooltip
-                contentStyle={{
-                  borderRadius: '8px',
-                  border: 'none',
-                  boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
-                }}
-                formatter={(value: number) => [`₱${value.toLocaleString()}`, 'Sales']}
-              />
-              <Line
-                type="monotone"
-                dataKey="sales"
-                stroke="#2563eb"
-                strokeWidth={3}
-                dot={{ r: 4, fill: '#2563eb', strokeWidth: 2, stroke: '#fff' }}
-                activeDot={{ r: 6 }}
-              />
-            </LineChart>
-          </ResponsiveContainer>
-        </div>
-      </div>
+      <SalesTrendChart data={salesChartData} />
 
       {lowStockItems.length > 0 && (
         <div className="bg-orange-50 border border-orange-200 p-6 rounded-2xl mb-8 flex items-center justify-between animate-bounce-subtle">
           <div className="flex items-center gap-4">
-            <div className="w-12 h-12 bg-orange-100 text-orange-600 rounded-xl flex items-center justify-center">
+            <div className="size-12 bg-orange-100 text-orange-600 rounded-xl flex items-center justify-center">
               <AlertTriangle size={24} />
             </div>
             <div>
@@ -360,13 +443,13 @@ const DashboardModule: React.FC<DashboardModuleProps> = ({
             </div>
           </div>
           <div className="flex -space-x-2">
-            {lowStockItems.slice(0, 3).map((item, i) => (
-              <div key={i} className="w-8 h-8 rounded-full bg-white border-2 border-orange-50 flex items-center justify-center text-[10px] font-bold text-orange-600 shadow-sm uppercase">
+            {lowStockItems.slice(0, 3).map((item) => (
+              <div key={item.id ?? item.name} className="size-8 rounded-full bg-white border-2 border-orange-50 flex items-center justify-center text-[10px] font-bold text-orange-600 shadow-sm uppercase">
                 {item.name.substring(0, 2)}
               </div>
             ))}
             {lowStockItems.length > 3 && (
-              <div className="w-8 h-8 rounded-full bg-stone-100 flex items-center justify-center text-[10px] font-bold text-stone-500 border-2 border-orange-50">
+              <div className="size-8 rounded-full bg-stone-100 flex items-center justify-center text-[10px] font-bold text-stone-500 border-2 border-orange-50">
                 +{lowStockItems.length - 3}
               </div>
             )}
@@ -381,7 +464,7 @@ const DashboardModule: React.FC<DashboardModuleProps> = ({
             <h3 className="font-bold text-lg text-stone-800">Top Menu Items</h3>
             <div className="flex bg-stone-100 p-1 rounded-lg">
               {(['TODAY', 'WEEK', 'MONTH'] as const).map((filter) => (
-                <button
+                <button type="button"
                   key={filter}
                   onClick={() => setTimeFilter(filter)}
                   className={`px-3 py-1 text-xs font-bold rounded-md transition-all ${
@@ -411,7 +494,7 @@ const DashboardModule: React.FC<DashboardModuleProps> = ({
                   className="flex items-center gap-4 p-4 hover:bg-stone-50 transition-colors border-b border-stone-100 last:border-0"
                 >
                   <div
-                    className={`w-8 h-8 rounded-full flex items-center justify-center font-black text-sm ${
+                    className={`size-8 rounded-full flex items-center justify-center font-black text-sm ${
                       index === 0
                         ? 'bg-yellow-100 text-yellow-700'
                         : index === 1
@@ -428,7 +511,7 @@ const DashboardModule: React.FC<DashboardModuleProps> = ({
                     alt={item.name}
                     loading="lazy"
                     decoding="async"
-                    className="w-12 h-12 rounded-lg object-cover bg-stone-200"
+                    className="size-12 rounded-lg object-cover bg-stone-200"
                     onError={(e) => {
                       (e.target as HTMLImageElement).src = getSafeImage();
                     }}
@@ -450,56 +533,10 @@ const DashboardModule: React.FC<DashboardModuleProps> = ({
         </div>
 
         {/* Recent Activity */}
-        <div className="bg-white rounded-2xl shadow-sm border border-stone-200 overflow-hidden flex flex-col h-[500px]">
-          <div className="p-6 border-b border-stone-100 flex justify-between items-center">
-            <h3 className="font-bold text-lg text-stone-800">Recent Transactions</h3>
-            <button
-              onClick={() => setIsHistoryOpen(true)}
-              className="text-xs bg-stone-100 hover:bg-stone-200 text-stone-600 font-bold px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1"
-            >
-              <List size={12} /> View All
-            </button>
-          </div>
-          <div className="flex-1 overflow-y-auto p-6 space-y-6">
-            {todayData.todayOrders.length === 0 ? (
-              <div className="text-center text-stone-400 mt-10">
-                <p>No transactions yet today.</p>
-              </div>
-            ) : (
-              todayData.todayOrders.slice(0, 10).map((order, i) => (
-                <div
-                  key={order.id}
-                  className="flex gap-4 animate-in slide-in-from-right-4 duration-300"
-                  style={{ animationDelay: `${i * 50}ms` }}
-                >
-                  <div className="flex flex-col items-center">
-                    <div className="w-2 h-2 rounded-full bg-green-500 mb-1"></div>
-                    <div className="w-0.5 h-full bg-stone-100"></div>
-                  </div>
-                  <div className="pb-2 flex-1">
-                    <p className="text-sm font-bold text-stone-800">Order #{order.id}</p>
-                    <p className="text-xs text-stone-500 mb-1">
-                      {order.items.length} items •{' '}
-                      {order.discount ? `Discounted (${order.discount.type})` : 'Regular'}
-                    </p>
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-1 text-[10px] text-stone-400">
-                        <Clock size={10} />
-                        <span>{order.date.split(',')[1]}</span>
-                      </div>
-                      <span className="font-black text-xl text-red-600">
-                        ₱
-                        {(order.total || 0).toLocaleString('en-PH', {
-                          minimumFractionDigits: 2,
-                        })}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              ))
-            )}
-          </div>
-        </div>
+        <RecentTransactionsSection
+          transactions={todayData.todayOrders}
+          onViewAll={() => setIsHistoryOpen(true)}
+        />
       </div>
 
       <OrderHistoryModal

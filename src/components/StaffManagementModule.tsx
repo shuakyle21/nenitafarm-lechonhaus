@@ -13,6 +13,17 @@ import FinancialLedger from './FinancialLedger';
 type ViewMode = 'grid' | 'manage' | 'payroll' | 'ledger';
 type RoleFilter = 'All' | 'Server' | 'Cashier' | 'Kitchen' | 'Manager';
 
+// Role badge colors
+const getRoleBadgeStyle = (role: string) => {
+  const styles: Record<string, string> = {
+    Server: 'bg-emerald-100 text-emerald-700',
+    Cashier: 'bg-blue-100 text-blue-700',
+    Kitchen: 'bg-amber-100 text-amber-700',
+    Manager: 'bg-purple-100 text-purple-700',
+  };
+  return styles[role] || 'bg-stone-100 text-stone-700';
+};
+
 const StaffManagementModule: React.FC = () => {
   // Core State
   const [staffList, setStaffList] = useState<Staff[]>([]);
@@ -202,21 +213,10 @@ const StaffManagementModule: React.FC = () => {
     }
   };
 
-  // Role badge colors
-  const getRoleBadgeStyle = (role: string) => {
-    const styles: Record<string, string> = {
-      Server: 'bg-emerald-100 text-emerald-700',
-      Cashier: 'bg-blue-100 text-blue-700',
-      Kitchen: 'bg-amber-100 text-amber-700',
-      Manager: 'bg-purple-100 text-purple-700',
-    };
-    return styles[role] || 'bg-stone-100 text-stone-700';
-  };
-
   if (loading) {
     return (
       <div className="flex-1 flex items-center justify-center bg-stone-50">
-        <div className="animate-spin w-8 h-8 border-4 border-emerald-600 border-t-transparent rounded-full" />
+        <div className="animate-spin size-8 border-4 border-emerald-600 border-t-transparent rounded-full" />
       </div>
     );
   }
@@ -229,7 +229,7 @@ const StaffManagementModule: React.FC = () => {
           {/* Title row */}
           <div className="flex items-center gap-3">
             {viewMode !== 'grid' && (
-              <button
+              <button type="button"
                 onClick={() => { setViewMode('grid'); setSelectedStaff(null); }}
                 className="p-2 hover:bg-stone-100 rounded-lg transition-colors"
               >
@@ -266,21 +266,21 @@ const StaffManagementModule: React.FC = () => {
             
             {viewMode === 'grid' && (
               <>
-                <button
+                <button type="button"
                   onClick={() => setViewMode('ledger')}
                   className="px-3 py-2 bg-stone-100 text-stone-700 rounded-lg font-medium flex items-center gap-1.5 hover:bg-stone-200 transition-colors text-sm"
                 >
                   <Wallet size={16} />
                   <span className="hidden sm:inline">Ledger</span>
                 </button>
-                <button
+                <button type="button"
                   onClick={() => setViewMode('payroll')}
                   className="px-3 py-2 bg-stone-100 text-stone-700 rounded-lg font-medium flex items-center gap-1.5 hover:bg-stone-200 transition-colors text-sm"
                 >
                   <FileText size={16} />
                   <span className="hidden sm:inline">Bulk Payroll</span>
                 </button>
-                <button
+                <button type="button"
                   onClick={() => setShowAddModal(true)}
                   className="px-3 py-2 bg-stone-900 text-white rounded-lg font-medium flex items-center gap-1.5 hover:bg-stone-800 transition-colors text-sm"
                 >
@@ -299,6 +299,7 @@ const StaffManagementModule: React.FC = () => {
               <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-stone-400" />
               <input
                 type="text"
+                aria-label="Search staff"
                 placeholder="Search staff..."
                 value={searchQuery}
                 onChange={e => setSearchQuery(e.target.value)}
@@ -308,7 +309,7 @@ const StaffManagementModule: React.FC = () => {
             <div className="flex items-center gap-2 overflow-x-auto no-scrollbar -mx-3 px-3 sm:mx-0 sm:px-0 snap-x">
               <Filter size={16} className="text-stone-400 shrink-0" />
               {(['All', 'Server', 'Cashier', 'Kitchen', 'Manager'] as RoleFilter[]).map(role => (
-                <button
+                <button type="button"
                   key={role}
                   onClick={() => setRoleFilter(role)}
                   className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors whitespace-nowrap snap-start shrink-0 ${
@@ -338,9 +339,9 @@ const StaffManagementModule: React.FC = () => {
                   {/* Staff Header */}
                   <div className="flex items-start justify-between mb-4">
                     <div className="flex items-center gap-3">
-                      <div className="w-11 h-11 rounded-full bg-stone-200 flex items-center justify-center text-stone-600 font-bold text-lg overflow-hidden">
+                      <div className="size-11 rounded-full bg-stone-200 flex items-center justify-center text-stone-600 font-bold text-lg overflow-hidden">
                         {staff.image_url ? (
-                          <img src={staff.image_url} alt={staff.name} className="w-full h-full object-cover" />
+                          <img src={staff.image_url} alt={staff.name} className="size-full object-cover" />
                         ) : staff.name.charAt(0)}
                       </div>
                       <div>
@@ -355,7 +356,7 @@ const StaffManagementModule: React.FC = () => {
                         </div>
                       </div>
                     </div>
-                    <div className={`w-2.5 h-2.5 rounded-full ${
+                    <div className={`size-2.5 rounded-full ${
                       status === 'CLOCKED_IN' ? 'bg-emerald-500' :
                       status === 'ABSENT' ? 'bg-red-500' : 'bg-stone-300'
                     }`} />
@@ -365,13 +366,13 @@ const StaffManagementModule: React.FC = () => {
                   <div className="flex gap-2 mb-4">
                     {status === 'NO_RECORD' || status === 'CLOCKED_OUT' ? (
                       <>
-                        <button
+                        <button type="button"
                           onClick={() => handleClockIn(staff.id)}
                           className="flex-1 py-2 bg-emerald-50 text-emerald-700 rounded-lg text-sm font-medium flex items-center justify-center gap-1.5 hover:bg-emerald-100 transition-colors"
                         >
                           <Clock size={15} /> Clock In
                         </button>
-                        <button
+                        <button type="button"
                           onClick={() => { setSelectedStaff(staff); setShowAbsentModal(true); }}
                           className="flex-1 py-2 bg-stone-100 text-stone-600 rounded-lg text-sm font-medium flex items-center justify-center gap-1.5 hover:bg-stone-200 transition-colors"
                         >
@@ -379,7 +380,7 @@ const StaffManagementModule: React.FC = () => {
                         </button>
                       </>
                     ) : status === 'CLOCKED_IN' ? (
-                      <button
+                      <button type="button"
                         onClick={() => recordId && handleClockOut(recordId)}
                         className="flex-1 py-2 bg-red-50 text-red-700 rounded-lg text-sm font-medium flex items-center justify-center gap-1.5 hover:bg-red-100 transition-colors"
                       >
@@ -402,21 +403,21 @@ const StaffManagementModule: React.FC = () => {
                   
                   {/* Action Buttons */}
                   <div className="grid grid-cols-3 gap-2 mt-3">
-                    <button
+                    <button type="button"
                       onClick={() => { setSelectedStaff(staff); setShowCAModal(true); }}
                       className="py-2 bg-orange-50 text-orange-700 rounded-lg text-[10px] font-semibold flex flex-col items-center gap-0.5 hover:bg-orange-100 transition-colors"
                     >
                       <DollarSign size={14} />
                       CA Advance
                     </button>
-                    <button
+                    <button type="button"
                       onClick={() => { setSelectedStaff(staff); setShowDeductionModal(true); }}
                       className="py-2 bg-blue-50 text-blue-700 rounded-lg text-[10px] font-semibold flex flex-col items-center gap-0.5 hover:bg-blue-100 transition-colors"
                     >
                       <Wallet size={14} />
                       Deduction
                     </button>
-                    <button
+                    <button type="button"
                       onClick={() => { setSelectedStaff(staff); setViewMode('manage'); }}
                       className="py-2 bg-purple-50 text-purple-700 rounded-lg text-[10px] font-semibold flex flex-col items-center gap-0.5 hover:bg-purple-100 transition-colors"
                     >
@@ -468,14 +469,15 @@ const StaffManagementModule: React.FC = () => {
           <div className="bg-white rounded-xl w-full max-w-md shadow-2xl overflow-hidden">
             <div className="p-4 border-b border-stone-100 flex justify-between items-center">
               <h2 className="font-bold text-lg">Add New Staff</h2>
-              <button onClick={() => setShowAddModal(false)} className="p-2 hover:bg-stone-100 rounded-lg">
+              <button type="button" onClick={() => setShowAddModal(false)} className="p-2 hover:bg-stone-100 rounded-lg">
                 <X size={20} />
               </button>
             </div>
             <form onSubmit={handleAddStaff} className="p-5 space-y-4">
               <div>
-                <label className="block text-sm font-medium text-stone-600 mb-1">Full Name</label>
+                <label htmlFor="mgmt-staff-full-name" className="block text-sm font-medium text-stone-600 mb-1">Full Name</label>
                 <input
+                  id="mgmt-staff-full-name"
                   type="text"
                   required
                   value={staffForm.name}
@@ -486,8 +488,9 @@ const StaffManagementModule: React.FC = () => {
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-stone-600 mb-1">Role</label>
+                  <label htmlFor="mgmt-staff-role" className="block text-sm font-medium text-stone-600 mb-1">Role</label>
                   <select
+                    id="mgmt-staff-role"
                     value={staffForm.role}
                     onChange={e => setStaffForm({ ...staffForm, role: e.target.value as Staff['role'] })}
                     className="w-full p-3 bg-stone-50 border border-stone-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-stone-900"
@@ -499,8 +502,9 @@ const StaffManagementModule: React.FC = () => {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-stone-600 mb-1">Daily Wage (₱)</label>
+                  <label htmlFor="mgmt-staff-daily-wage" className="block text-sm font-medium text-stone-600 mb-1">Daily Wage (₱)</label>
                   <input
+                    id="mgmt-staff-daily-wage"
                     type="number"
                     min="0"
                     step="0.01"
@@ -511,8 +515,9 @@ const StaffManagementModule: React.FC = () => {
                 </div>
               </div>
               <div>
-                <label className="block text-sm font-medium text-stone-600 mb-1">PIN (4 digits)</label>
+                <label htmlFor="mgmt-staff-pin" className="block text-sm font-medium text-stone-600 mb-1">PIN (4 digits)</label>
                 <input
+                  id="mgmt-staff-pin"
                   type="text"
                   required
                   maxLength={4}
@@ -541,19 +546,20 @@ const StaffManagementModule: React.FC = () => {
           <div className="bg-white rounded-xl w-full max-w-md shadow-2xl overflow-hidden">
             <div className="p-4 border-b border-stone-100 flex justify-between items-center bg-red-50">
               <h2 className="font-bold text-lg text-red-800">Mark {selectedStaff.name} Absent</h2>
-              <button onClick={() => setShowAbsentModal(false)} className="p-2 hover:bg-red-100 rounded-lg">
+              <button type="button" onClick={() => setShowAbsentModal(false)} className="p-2 hover:bg-red-100 rounded-lg">
                 <X size={20} className="text-red-600" />
               </button>
             </div>
             <div className="p-5 space-y-4">
               <textarea
                 required
+                aria-label="Reason for absence"
                 value={absentReason}
                 onChange={e => setAbsentReason(e.target.value)}
                 className="w-full p-3 bg-stone-50 border border-stone-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 min-h-[100px]"
                 placeholder="Reason for absence..."
               />
-              <button
+              <button type="button"
                 onClick={handleMarkAbsent}
                 className="w-full py-3 bg-red-600 text-white rounded-lg font-semibold flex items-center justify-center gap-2 hover:bg-red-700"
               >
@@ -571,14 +577,15 @@ const StaffManagementModule: React.FC = () => {
           <div className="bg-white rounded-xl w-full max-w-md shadow-2xl overflow-hidden">
             <div className="p-4 border-b border-stone-100 flex justify-between items-center bg-orange-50">
               <h2 className="font-bold text-lg">Cash Advance - {selectedStaff.name}</h2>
-              <button onClick={() => setShowCAModal(false)} className="p-2 hover:bg-orange-100 rounded-lg">
+              <button type="button" onClick={() => setShowCAModal(false)} className="p-2 hover:bg-orange-100 rounded-lg">
                 <X size={20} />
               </button>
             </div>
             <div className="p-5 space-y-4">
               <div>
-                <label className="block text-sm font-medium text-stone-600 mb-1">Amount (₱)</label>
+                <label htmlFor="mgmt-ca-amount" className="block text-sm font-medium text-stone-600 mb-1">Amount (₱)</label>
                 <input
+                  id="mgmt-ca-amount"
                   type="number"
                   min="0"
                   step="0.01"
@@ -588,15 +595,16 @@ const StaffManagementModule: React.FC = () => {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-stone-600 mb-1">Reason</label>
+                <label htmlFor="mgmt-ca-reason" className="block text-sm font-medium text-stone-600 mb-1">Reason</label>
                 <textarea
+                  id="mgmt-ca-reason"
                   value={caForm.reason}
                   onChange={e => setCAForm({ ...caForm, reason: e.target.value })}
                   className="w-full p-3 bg-stone-50 border border-stone-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 min-h-[80px]"
                   placeholder="Reason for advance..."
                 />
               </div>
-              <button
+              <button type="button"
                 onClick={handleIssueCA}
                 className="w-full py-3 bg-orange-600 text-white rounded-lg font-semibold flex items-center justify-center gap-2 hover:bg-orange-700"
               >
@@ -614,14 +622,15 @@ const StaffManagementModule: React.FC = () => {
           <div className="bg-white rounded-xl w-full max-w-md shadow-2xl overflow-hidden">
             <div className="p-4 border-b border-stone-100 flex justify-between items-center bg-blue-50">
               <h2 className="font-bold text-lg">Apply Deduction - {selectedStaff.name}</h2>
-              <button onClick={() => setShowDeductionModal(false)} className="p-2 hover:bg-blue-100 rounded-lg">
+              <button type="button" onClick={() => setShowDeductionModal(false)} className="p-2 hover:bg-blue-100 rounded-lg">
                 <X size={20} />
               </button>
             </div>
             <div className="p-5 space-y-4">
               <div>
-                <label className="block text-sm font-medium text-stone-600 mb-1">Deduction Type</label>
+                <label htmlFor="mgmt-deduction-type" className="block text-sm font-medium text-stone-600 mb-1">Deduction Type</label>
                 <select
+                  id="mgmt-deduction-type"
                   value={deductionForm.type}
                   onChange={e => setDeductionForm({ ...deductionForm, type: e.target.value })}
                   className="w-full p-3 bg-stone-50 border border-stone-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -633,8 +642,9 @@ const StaffManagementModule: React.FC = () => {
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium text-stone-600 mb-1">Amount (₱)</label>
+                <label htmlFor="mgmt-deduction-amount" className="block text-sm font-medium text-stone-600 mb-1">Amount (₱)</label>
                 <input
+                  id="mgmt-deduction-amount"
                   type="number"
                   min="0"
                   step="0.01"
@@ -643,7 +653,7 @@ const StaffManagementModule: React.FC = () => {
                   className="w-full p-3 bg-stone-50 border border-stone-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
-              <button
+              <button type="button"
                 onClick={handleApplyDeduction}
                 className="w-full py-3 bg-blue-600 text-white rounded-lg font-semibold flex items-center justify-center gap-2 hover:bg-blue-700"
               >

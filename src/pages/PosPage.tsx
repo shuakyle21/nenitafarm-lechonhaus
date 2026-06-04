@@ -12,21 +12,21 @@ interface PosPageProps {
   isOnline: boolean;
 }
 
+// Helper for daily count
+const isToday = (dateString: string) => {
+  const date = new Date(dateString);
+  const today = new Date();
+  return (
+    date.getDate() === today.getDate() &&
+    date.getMonth() === today.getMonth() &&
+    date.getFullYear() === today.getFullYear()
+  );
+};
+
 const PosPage: React.FC<PosPageProps> = ({ onSaveOrder, isOnline }) => {
   const { menuItems, addItem, updateItem, deleteItem } = useMenu(true);
   const { orders, setOrders } = useOrders(true);
   const { staffList } = useStaff(true);
-
-  // Helper for daily count
-  const isToday = (dateString: string) => {
-    const date = new Date(dateString);
-    const today = new Date();
-    return (
-      date.getDate() === today.getDate() &&
-      date.getMonth() === today.getMonth() &&
-      date.getFullYear() === today.getFullYear()
-    );
-  };
 
   const todayOrderCount = orders.filter((o) => isToday(o.date)).length;
 

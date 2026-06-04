@@ -11,6 +11,289 @@ interface OrderHistoryModalProps {
   onDeleteOrder?: (id: string) => Promise<void>;
 }
 
+// --- Date Helpers ---
+const isToday = (dateString: string) => {
+  const date = new Date(dateString);
+  const today = new Date();
+  return (
+    date.getDate() === today.getDate() &&
+    date.getMonth() === today.getMonth() &&
+    date.getFullYear() === today.getFullYear()
+  );
+};
+
+const isYesterday = (dateString: string) => {
+  const date = new Date(dateString);
+  const yesterday = new Date();
+  yesterday.setDate(yesterday.getDate() - 1);
+  return (
+    date.getDate() === yesterday.getDate() &&
+    date.getMonth() === yesterday.getMonth() &&
+    date.getFullYear() === yesterday.getFullYear()
+  );
+};
+
+const isThisWeek = (dateString: string) => {
+  const date = new Date(dateString);
+  const today = new Date();
+  const diffTime = Math.abs(today.getTime() - date.getTime());
+  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+  return diffDays <= 7;
+};
+
+const isThisMonth = (dateString: string) => {
+  const date = new Date(dateString);
+  const today = new Date();
+  const diffTime = Math.abs(today.getTime() - date.getTime());
+  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+  return diffDays <= 30;
+};
+
+const formatCurrency = (amount: number) => {
+  return `₱${amount.toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+};
+
+const formatItemString = (item: CartItem) => {
+  if (item.weight) {
+    // Strip default unit from name if present for cleaner display
+    const cleanName = item.name.replace(' (1 Kilo)', '');
+
+    const weightInGrams = item.weight * 1000;
+    const weightStr =
+      weightInGrams < 1000 ? `${Math.round(weightInGrams)}g` : `${item.weight.toFixed(2)}kg`;
+
+    return `${item.quantity}x ${cleanName} (${weightStr})`;
+  }
+  return `${item.quantity}x ${item.name}`;
+};
+
+// --- Sub-components ---
+
+interface OrderTableProps {
+  orders: Order[];
+  onSelectOrder: (order: Order) => void;
+  onDeleteOrder?: (id: string) => Promise<void>;
+  formatCurrency: (n: number) => string;
+  formatItemString: (item: CartItem) => string;
+}
+
+const DesktopOrderTable: React.FC<OrderTableProps> = ({ orders, onSelectOrder, onDeleteOrder, formatCurrency, formatItemString }) => (
+  <div className="hidden md:block bg-white rounded-xl shadow-sm border border-stone-200 overflow-hidden">
+    <table className="w-full text-left border-collapse">
+      <thead className="bg-stone-100 text-stone-600 text-xs uppercase tracking-wider font-bold">
+        <tr>
+          <th className="p-4 border-b border-stone-200">Order ID</th>
+          <th className="p-4 border-b border-stone-200">Date & Time</th>
+          <th className="p-4 border-b border-stone-200">Type</th>
+          <th className="p-4 border-b border-stone-200">Items Summary</th>
+          <th className="p-4 border-b border-stone-200 text-right">Subtotal</th>
+          <th className="p-4 border-b border-stone-200 text-right">Discount</th>
+          <th className="p-4 border-b border-stone-200 text-right">Total</th>
+          <th className="p-4 border-b border-stone-200 text-center">Receipt</th>
+        </tr>
+      </thead>
+      <tbody className="divide-y divide-stone-100 text-sm">
+        {orders.length === 0 ? (
+          <tr>
+            <td colSpan={7} className="p-8 text-center text-stone-400">
+              No transactions found.
+            </td>
+          </tr>
+        ) : (
+          orders.map((order) => (
+            <tr key={order.id} className="hover:bg-stone-50 transition-colors">
+              <td className="p-4 font-mono font-bold text-stone-800">
+                #{order.orderNumber || order.id.substring(0, 8)}
+              </td>
+              <td className="p-4 text-stone-600">
+                <div className="flex flex-col">
+                  <span className="flex items-center gap-1 font-bold text-stone-700">
+                    <Calendar size={12} />{' '}
+                    {new Date(order.date).toLocaleDateString('en-US', {
+                      month: '2-digit',
+                      day: '2-digit',
+                      year: 'numeric',
+                    })}
+                  </span>
+                  <span className="flex items-center gap-1 text-xs mt-0.5">
+                    <Clock size={12} />{' '}
+                    {new Date(order.date).toLocaleTimeString('en-US', {
+                      hour: '2-digit',
+                      minute: '2-digit',
+                    })}
+                  </span>
+                </div>
+              </td>
+              <td className="p-4">
+                <div className="flex flex-col gap-1">
+                  {order.orderType === 'TAKEOUT' ? (
+                    <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-orange-100 text-orange-700 text-xs font-bold uppercase tracking-wider w-fit">
+                      <ShoppingBag size={12} /> Takeout
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-blue-100 text-blue-700 text-xs font-bold uppercase tracking-wider w-fit">
+                      <Utensils size={12} /> Dine-in
+                    </span>
+                  )}
+                  <div className="flex flex-wrap gap-1 mt-1">
+                    {order.tableNumber && (
+                      <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-black uppercase tracking-wider bg-red-100 text-red-800 border border-red-200">
+                        T-{order.tableNumber}
+                      </span>
+                    )}
+                    {order.serverName && (
+                      <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-black uppercase tracking-wider bg-stone-100 text-stone-600 border border-stone-200">
+                        {order.serverName}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </td>
+              <td className="p-4 text-stone-600">
+                <div className="max-w-[300px] whitespace-normal font-medium">
+                  {order.items.map(formatItemString).join(', ')}
+                </div>
+                <div className="text-xs text-stone-400 mt-1">
+                  {order.items.length} items total
+                </div>
+              </td>
+              <td className="p-4 text-right font-medium text-stone-600">
+                {formatCurrency(order.subtotal)}
+              </td>
+              <td className="p-4 text-right text-red-600">
+                {order.discount ? (
+                  <div className="flex flex-col items-end">
+                    <span className="font-bold">20% ({order.discount.type})</span>
+                    <span className="text-[10px]">
+                      On {order.discount.numberOfIds}/{order.discount.totalPax} pax
+                    </span>
+                  </div>
+                ) : (
+                  <span className="text-stone-300">-</span>
+                )}
+              </td>
+              <td className="p-4 text-right">
+                <span
+                  className="font-black text-stone-800 text-lg"
+                  data-testid={`order-total-${order.id}`}
+                >
+                  {formatCurrency(order.total)}
+                </span>
+              </td>
+              <td className="p-4 text-center">
+                <button type="button"
+                  onClick={() => onSelectOrder(order)}
+                  className="p-2 bg-stone-100 hover:bg-stone-200 text-stone-600 rounded-full transition-colors"
+                  title="View Receipt"
+                  data-testid={`view-receipt-${order.id}`}
+                >
+                  <Printer size={16} />
+                </button>
+                {onDeleteOrder && (
+                  <button type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onDeleteOrder(order.id);
+                    }}
+                    className="p-2 ml-2 bg-red-100 hover:bg-red-200 text-red-600 rounded-full transition-colors"
+                    title="Delete Order"
+                  >
+                    <X size={16} />
+                  </button>
+                )}
+              </td>
+            </tr>
+          ))
+        )}
+      </tbody>
+    </table>
+  </div>
+);
+
+const MobileOrderCards: React.FC<OrderTableProps> = ({ orders, onSelectOrder, onDeleteOrder, formatCurrency, formatItemString }) => (
+  <div className="md:hidden space-y-4">
+    {orders.length === 0 ? (
+      <div className="p-8 text-center text-stone-400 bg-white rounded-xl shadow-sm border border-stone-200">
+        No transactions found.
+      </div>
+    ) : (
+      orders.map((order) => (
+        <div key={order.id} className="bg-white rounded-xl shadow-sm border border-stone-200 p-4 flex flex-col gap-3">
+          <div className="flex justify-between items-start border-b border-stone-100 pb-3">
+            <div>
+              <div className="font-mono font-bold text-stone-800 text-lg">
+                #{order.orderNumber || order.id.substring(0, 8)}
+              </div>
+              <div className="flex items-center gap-2 mt-1">
+                 {order.orderType === 'TAKEOUT' ? (
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-orange-100 text-orange-700 text-[10px] font-bold uppercase tracking-wider">
+                      <ShoppingBag size={10} /> Takeout
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 text-[10px] font-bold uppercase tracking-wider">
+                      <Utensils size={10} /> Dine-in
+                    </span>
+                  )}
+                  {order.tableNumber && (
+                    <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-black uppercase tracking-wider bg-red-100 text-red-800 border border-red-200">
+                      T-{order.tableNumber}
+                    </span>
+                  )}
+              </div>
+            </div>
+            <div className="text-right text-xs text-stone-500">
+              <div className="flex items-center justify-end gap-1 font-bold text-stone-700">
+                 {new Date(order.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+              </div>
+              <div className="flex items-center justify-end gap-1 mt-0.5">
+                 {new Date(order.date).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
+              </div>
+            </div>
+          </div>
+
+          <div className="text-sm text-stone-600 font-medium line-clamp-2">
+            {order.items.map(formatItemString).join(', ')}
+          </div>
+
+          <div className="flex justify-between items-end pt-2 border-t border-stone-100">
+            <div className="flex gap-2">
+              <button type="button"
+                onClick={() => onSelectOrder(order)}
+                className="p-2.5 bg-stone-100 hover:bg-stone-200 text-stone-600 rounded-lg transition-colors flex items-center justify-center shadow-sm"
+                title="View Receipt"
+              >
+                <Printer size={18} />
+              </button>
+              {onDeleteOrder && (
+                <button type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onDeleteOrder(order.id);
+                  }}
+                  className="p-2.5 bg-red-50 hover:bg-red-100 text-red-600 rounded-lg transition-colors flex items-center justify-center border border-red-100 shadow-sm"
+                  title="Delete Order"
+                >
+                  <X size={18} />
+                </button>
+              )}
+            </div>
+            <div className="text-right">
+               {order.discount && (
+                  <div className="text-[10px] font-bold text-red-500 mb-0.5">
+                    -20% {order.discount.type}
+                  </div>
+               )}
+               <div className="font-brand font-black text-stone-800 text-xl leading-none">
+                 {formatCurrency(order.total)}
+               </div>
+            </div>
+          </div>
+        </div>
+      ))
+    )}
+  </div>
+);
+
 const OrderHistoryModal: React.FC<OrderHistoryModalProps> = ({
   isOpen,
   onClose,
@@ -24,44 +307,6 @@ const OrderHistoryModal: React.FC<OrderHistoryModalProps> = ({
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
 
   if (!isOpen) return null;
-
-  // --- Date Helpers ---
-  const isToday = (dateString: string) => {
-    const date = new Date(dateString);
-    const today = new Date();
-    return (
-      date.getDate() === today.getDate() &&
-      date.getMonth() === today.getMonth() &&
-      date.getFullYear() === today.getFullYear()
-    );
-  };
-
-  const isYesterday = (dateString: string) => {
-    const date = new Date(dateString);
-    const yesterday = new Date();
-    yesterday.setDate(yesterday.getDate() - 1);
-    return (
-      date.getDate() === yesterday.getDate() &&
-      date.getMonth() === yesterday.getMonth() &&
-      date.getFullYear() === yesterday.getFullYear()
-    );
-  };
-
-  const isThisWeek = (dateString: string) => {
-    const date = new Date(dateString);
-    const today = new Date();
-    const diffTime = Math.abs(today.getTime() - date.getTime());
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    return diffDays <= 7;
-  };
-
-  const isThisMonth = (dateString: string) => {
-    const date = new Date(dateString);
-    const today = new Date();
-    const diffTime = Math.abs(today.getTime() - date.getTime());
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    return diffDays <= 30;
-  };
 
   const filteredOrders = orders.filter((order) => {
     const matchesSearch =
@@ -80,24 +325,6 @@ const OrderHistoryModal: React.FC<OrderHistoryModalProps> = ({
     return matchesSearch && matchesTime;
   });
 
-  const formatCurrency = (amount: number) => {
-    return `₱${amount.toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-  };
-
-  const formatItemString = (item: CartItem) => {
-    if (item.weight) {
-      // Strip default unit from name if present for cleaner display
-      const cleanName = item.name.replace(' (1 Kilo)', '');
-
-      const weightInGrams = item.weight * 1000;
-      const weightStr =
-        weightInGrams < 1000 ? `${Math.round(weightInGrams)}g` : `${item.weight.toFixed(2)}kg`;
-
-      return `${item.quantity}x ${cleanName} (${weightStr})`;
-    }
-    return `${item.quantity}x ${item.name}`;
-  };
-
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-5xl h-[85vh] flex flex-col overflow-hidden animate-in zoom-in-95 duration-200">
@@ -112,7 +339,7 @@ const OrderHistoryModal: React.FC<OrderHistoryModalProps> = ({
               <p className="text-xs text-stone-400">Total Records: {orders.length}</p>
             </div>
           </div>
-          <button
+          <button type="button"
             onClick={onClose}
             className="p-2 hover:bg-stone-700 rounded-full transition-colors"
           >
@@ -125,7 +352,7 @@ const OrderHistoryModal: React.FC<OrderHistoryModalProps> = ({
           {/* Filter Buttons */}
           <div className="flex gap-2 w-full overflow-x-auto pb-3 -mx-4 px-4 md:mx-0 md:px-0 hide-scrollbar scroll-smooth snap-x">
             {(['TODAY', 'YESTERDAY', 'WEEK', 'MONTH', 'ALL'] as const).map((filter) => (
-              <button
+              <button type="button"
                 key={filter}
                 onClick={() => setTimeFilter(filter)}
                 className={`px-4 py-2 text-sm font-bold rounded-lg transition-all whitespace-nowrap shrink-0 snap-start ${
@@ -155,6 +382,7 @@ const OrderHistoryModal: React.FC<OrderHistoryModalProps> = ({
               />
               <input
                 type="text"
+                aria-label="Search order history"
                 placeholder="Search Order # or Date..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
@@ -180,223 +408,27 @@ const OrderHistoryModal: React.FC<OrderHistoryModalProps> = ({
         {/* Table Content */}
         <div className="flex-1 overflow-auto bg-stone-50 p-4">
           {/* Desktop Table */}
-          <div className="hidden md:block bg-white rounded-xl shadow-sm border border-stone-200 overflow-hidden">
-            <table className="w-full text-left border-collapse">
-              <thead className="bg-stone-100 text-stone-600 text-xs uppercase tracking-wider font-bold">
-                <tr>
-                  <th className="p-4 border-b border-stone-200">Order ID</th>
-                  <th className="p-4 border-b border-stone-200">Date & Time</th>
-                  <th className="p-4 border-b border-stone-200">Type</th>
-                  <th className="p-4 border-b border-stone-200">Items Summary</th>
-                  <th className="p-4 border-b border-stone-200 text-right">Subtotal</th>
-                  <th className="p-4 border-b border-stone-200 text-right">Discount</th>
-                  <th className="p-4 border-b border-stone-200 text-right">Total</th>
-                  <th className="p-4 border-b border-stone-200 text-center">Receipt</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-stone-100 text-sm">
-                {filteredOrders.length === 0 ? (
-                  <tr>
-                    <td colSpan={7} className="p-8 text-center text-stone-400">
-                      No transactions found.
-                    </td>
-                  </tr>
-                ) : (
-                  filteredOrders.map((order) => (
-                    <tr key={order.id} className="hover:bg-stone-50 transition-colors">
-                      <td className="p-4 font-mono font-bold text-stone-800">
-                        #{order.orderNumber || order.id.substring(0, 8)}
-                      </td>
-                      <td className="p-4 text-stone-600">
-                        <div className="flex flex-col">
-                          <span className="flex items-center gap-1 font-bold text-stone-700">
-                            <Calendar size={12} />{' '}
-                            {new Date(order.date).toLocaleDateString('en-US', {
-                              month: '2-digit',
-                              day: '2-digit',
-                              year: 'numeric',
-                            })}
-                          </span>
-                          <span className="flex items-center gap-1 text-xs mt-0.5">
-                            <Clock size={12} />{' '}
-                            {new Date(order.date).toLocaleTimeString('en-US', {
-                              hour: '2-digit',
-                              minute: '2-digit',
-                            })}
-                          </span>
-                        </div>
-                      </td>
-                      <td className="p-4">
-                        <div className="flex flex-col gap-1">
-                          {order.orderType === 'TAKEOUT' ? (
-                            <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-orange-100 text-orange-700 text-xs font-bold uppercase tracking-wider w-fit">
-                              <ShoppingBag size={12} /> Takeout
-                            </span>
-                          ) : (
-                            <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-blue-100 text-blue-700 text-xs font-bold uppercase tracking-wider w-fit">
-                              <Utensils size={12} /> Dine-in
-                            </span>
-                          )}
-                          <div className="flex flex-wrap gap-1 mt-1">
-                            {order.tableNumber && (
-                              <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-black uppercase tracking-wider bg-red-100 text-red-800 border border-red-200">
-                                T-{order.tableNumber}
-                              </span>
-                            )}
-                            {order.serverName && (
-                              <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-black uppercase tracking-wider bg-stone-100 text-stone-600 border border-stone-200">
-                                {order.serverName}
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                      </td>
-                      <td className="p-4 text-stone-600">
-                        <div className="max-w-[300px] whitespace-normal font-medium">
-                          {order.items.map(formatItemString).join(', ')}
-                        </div>
-                        <div className="text-xs text-stone-400 mt-1">
-                          {order.items.length} items total
-                        </div>
-                      </td>
-                      <td className="p-4 text-right font-medium text-stone-600">
-                        {formatCurrency(order.subtotal)}
-                      </td>
-                      <td className="p-4 text-right text-red-600">
-                        {order.discount ? (
-                          <div className="flex flex-col items-end">
-                            <span className="font-bold">20% ({order.discount.type})</span>
-                            <span className="text-[10px]">
-                              On {order.discount.numberOfIds}/{order.discount.totalPax} pax
-                            </span>
-                          </div>
-                        ) : (
-                          <span className="text-stone-300">-</span>
-                        )}
-                      </td>
-                      <td className="p-4 text-right">
-                        <span
-                          className="font-black text-stone-800 text-lg"
-                          data-testid={`order-total-${order.id}`}
-                        >
-                          {formatCurrency(order.total)}
-                        </span>
-                      </td>
-                      <td className="p-4 text-center">
-                        <button
-                          onClick={() => setSelectedOrder(order)}
-                          className="p-2 bg-stone-100 hover:bg-stone-200 text-stone-600 rounded-full transition-colors"
-                          title="View Receipt"
-                          data-testid={`view-receipt-${order.id}`}
-                        >
-                          <Printer size={16} />
-                        </button>
-                        {onDeleteOrder && (
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              onDeleteOrder(order.id);
-                            }}
-                            className="p-2 ml-2 bg-red-100 hover:bg-red-200 text-red-600 rounded-full transition-colors"
-                            title="Delete Order"
-                          >
-                            <X size={16} />
-                          </button>
-                        )}
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
+          <DesktopOrderTable
+            orders={filteredOrders}
+            onSelectOrder={setSelectedOrder}
+            onDeleteOrder={onDeleteOrder}
+            formatCurrency={formatCurrency}
+            formatItemString={formatItemString}
+          />
 
           {/* Mobile Cards View */}
-          <div className="md:hidden space-y-4">
-            {filteredOrders.length === 0 ? (
-              <div className="p-8 text-center text-stone-400 bg-white rounded-xl shadow-sm border border-stone-200">
-                No transactions found.
-              </div>
-            ) : (
-              filteredOrders.map((order) => (
-                <div key={order.id} className="bg-white rounded-xl shadow-sm border border-stone-200 p-4 flex flex-col gap-3">
-                  <div className="flex justify-between items-start border-b border-stone-100 pb-3">
-                    <div>
-                      <div className="font-mono font-bold text-stone-800 text-lg">
-                        #{order.orderNumber || order.id.substring(0, 8)}
-                      </div>
-                      <div className="flex items-center gap-2 mt-1">
-                         {order.orderType === 'TAKEOUT' ? (
-                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-orange-100 text-orange-700 text-[10px] font-bold uppercase tracking-wider">
-                              <ShoppingBag size={10} /> Takeout
-                            </span>
-                          ) : (
-                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 text-[10px] font-bold uppercase tracking-wider">
-                              <Utensils size={10} /> Dine-in
-                            </span>
-                          )}
-                          {order.tableNumber && (
-                            <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-black uppercase tracking-wider bg-red-100 text-red-800 border border-red-200">
-                              T-{order.tableNumber}
-                            </span>
-                          )}
-                      </div>
-                    </div>
-                    <div className="text-right text-xs text-stone-500">
-                      <div className="flex items-center justify-end gap-1 font-bold text-stone-700">
-                         {new Date(order.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-                      </div>
-                      <div className="flex items-center justify-end gap-1 mt-0.5">
-                         {new Date(order.date).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="text-sm text-stone-600 font-medium line-clamp-2">
-                    {order.items.map(formatItemString).join(', ')}
-                  </div>
-
-                  <div className="flex justify-between items-end pt-2 border-t border-stone-100">
-                    <div className="flex gap-2">
-                      <button
-                        onClick={() => setSelectedOrder(order)}
-                        className="p-2.5 bg-stone-100 hover:bg-stone-200 text-stone-600 rounded-lg transition-colors flex items-center justify-center shadow-sm"
-                        title="View Receipt"
-                      >
-                        <Printer size={18} />
-                      </button>
-                      {onDeleteOrder && (
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            onDeleteOrder(order.id);
-                          }}
-                          className="p-2.5 bg-red-50 hover:bg-red-100 text-red-600 rounded-lg transition-colors flex items-center justify-center border border-red-100 shadow-sm"
-                          title="Delete Order"
-                        >
-                          <X size={18} />
-                        </button>
-                      )}
-                    </div>
-                    <div className="text-right">
-                       {order.discount && (
-                          <div className="text-[10px] font-bold text-red-500 mb-0.5">
-                            -20% {order.discount.type}
-                          </div>
-                       )}
-                       <div className="font-brand font-black text-stone-800 text-xl leading-none">
-                         {formatCurrency(order.total)}
-                       </div>
-                    </div>
-                  </div>
-                </div>
-              ))
-            )}
-          </div>
+          <MobileOrderCards
+            orders={filteredOrders}
+            onSelectOrder={setSelectedOrder}
+            onDeleteOrder={onDeleteOrder}
+            formatCurrency={formatCurrency}
+            formatItemString={formatItemString}
+          />
         </div>
       </div>
 
       <ReceiptModal
+        key={selectedOrder?.id || 'none'}
         isOpen={!!selectedOrder}
         onClose={() => setSelectedOrder(null)}
         existingOrder={selectedOrder}

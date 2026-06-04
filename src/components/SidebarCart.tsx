@@ -93,6 +93,7 @@ const SidebarCart: React.FC<SidebarCartProps> = ({
             <span className="text-xs font-bold uppercase text-red-200">Table</span>
             <input
               type="text"
+              aria-label="Table number"
               value={tableNumber}
               onChange={(e) => onSetTableNumber(e.target.value)}
               className="w-12 bg-transparent text-white font-bold text-center border-b border-red-300 focus:outline-none focus:border-white"
@@ -103,7 +104,7 @@ const SidebarCart: React.FC<SidebarCartProps> = ({
 
         {/* Order Type Toggle */}
         <div className="flex bg-red-800/50 p-1 rounded-lg mt-2 mb-2">
-          <button
+          <button type="button"
             onClick={() => onSetOrderType('DINE_IN')}
             className={`flex-1 flex items-center justify-center gap-1 py-1.5 rounded-md text-xs font-bold transition-all ${
               orderType === 'DINE_IN'
@@ -113,7 +114,7 @@ const SidebarCart: React.FC<SidebarCartProps> = ({
           >
             <Utensils size={12} /> Dine-in
           </button>
-          <button
+          <button type="button"
             onClick={() => onSetOrderType('TAKEOUT')}
             className={`flex-1 flex items-center justify-center gap-1 py-1.5 rounded-md text-xs font-bold transition-all ${
               orderType === 'TAKEOUT'
@@ -123,7 +124,7 @@ const SidebarCart: React.FC<SidebarCartProps> = ({
           >
             <ShoppingBag size={12} /> Takeout
           </button>
-          <button
+          <button type="button"
             onClick={() => onSetOrderType('DELIVERY')}
             className={`flex-1 flex items-center justify-center gap-1 py-1.5 rounded-md text-xs font-bold transition-all ${
               orderType === 'DELIVERY'
@@ -137,7 +138,7 @@ const SidebarCart: React.FC<SidebarCartProps> = ({
 
         {/* Server Selection */}
         <div className="relative mt-1">
-          <button
+          <button type="button"
             onClick={() => setIsServerMenuOpen(!isServerMenuOpen)}
             className="text-xs text-red-100 flex items-center gap-1 hover:text-white transition-colors"
           >
@@ -157,7 +158,7 @@ const SidebarCart: React.FC<SidebarCartProps> = ({
                 </div>
                 <div className="max-h-48 overflow-y-auto">
                   {staffList.map((staff) => (
-                    <button
+                    <button type="button"
                       key={staff.id}
                       onClick={() => {
                         onSelectServer(staff);
@@ -165,7 +166,7 @@ const SidebarCart: React.FC<SidebarCartProps> = ({
                       }}
                       className={`w-full text-left px-3 py-2 text-sm hover:bg-stone-50 transition-colors flex items-center gap-2 ${selectedServer?.id === staff.id ? 'bg-red-50 text-red-700 font-bold' : ''}`}
                     >
-                      <div className="w-6 h-6 rounded-full bg-stone-200 flex items-center justify-center text-[10px] font-bold text-stone-500">
+                      <div className="size-6 rounded-full bg-stone-200 flex items-center justify-center text-[10px] font-bold text-stone-500">
                         {staff.name.charAt(0)}
                       </div>
                       {staff.name}
@@ -186,6 +187,7 @@ const SidebarCart: React.FC<SidebarCartProps> = ({
           </div>
           <input
             type="text"
+            aria-label="Delivery address"
             placeholder="Delivery Address"
             value={deliveryDetails?.address || ''}
             onChange={(e) =>
@@ -196,6 +198,7 @@ const SidebarCart: React.FC<SidebarCartProps> = ({
           <div className="flex gap-2">
             <input
               type="time"
+              aria-label="Delivery time"
               value={deliveryDetails?.time || ''}
               onChange={(e) =>
                 onUpdateDeliveryDetails({ ...deliveryDetails, time: e.target.value })
@@ -204,6 +207,7 @@ const SidebarCart: React.FC<SidebarCartProps> = ({
             />
             <input
               type="text"
+              aria-label="Delivery contact number"
               placeholder="Contact #"
               value={deliveryDetails?.contact || ''}
               onChange={(e) =>
@@ -251,7 +255,7 @@ const SidebarCart: React.FC<SidebarCartProps> = ({
                 {/* Quantity Controls */}
                 {!item.isWeighted ? (
                   <div className="flex items-center bg-stone-100 rounded-lg overflow-hidden border border-stone-200">
-                    <button
+                    <button type="button"
                       onClick={() => onUpdateQuantity(item.cartId, -1)}
                       className="p-1.5 hover:bg-stone-200 text-stone-600 transition-colors"
                     >
@@ -260,7 +264,7 @@ const SidebarCart: React.FC<SidebarCartProps> = ({
                     <span className="w-8 text-center text-sm font-bold text-stone-800">
                       {item.quantity}
                     </span>
-                    <button
+                    <button type="button"
                       onClick={() => onUpdateQuantity(item.cartId, 1)}
                       className="p-1.5 hover:bg-stone-200 text-stone-600 transition-colors"
                     >
@@ -273,7 +277,7 @@ const SidebarCart: React.FC<SidebarCartProps> = ({
                   </span>
                 )}
 
-                <button
+                <button type="button"
                   onClick={() => onRemove(item.cartId)}
                   className="text-stone-400 hover:text-red-600 transition-colors p-1"
                 >
@@ -322,7 +326,7 @@ const SidebarCart: React.FC<SidebarCartProps> = ({
         </div>
 
         <div className="grid grid-cols-2 gap-2 mb-2">
-          <button
+          <button type="button"
             onClick={onOpenDiscount}
             className={`py-2 px-3 rounded-xl border-2 font-bold text-xs transition-colors flex items-center justify-center gap-1.5 ${
               discount
@@ -332,7 +336,7 @@ const SidebarCart: React.FC<SidebarCartProps> = ({
           >
             {discount ? 'Edit' : 'Discount'}
           </button>
-          <button
+          <button type="button"
             onClick={onClear}
             className="py-2 px-3 rounded-xl border-2 border-red-100 text-red-600 font-bold text-xs hover:bg-red-50 transition-colors"
           >
@@ -341,7 +345,7 @@ const SidebarCart: React.FC<SidebarCartProps> = ({
         </div>
 
         <div className="grid grid-cols-2 gap-2 mb-2">
-          <button
+          <button type="button"
             onClick={onSaveForLater}
             disabled={cart.length === 0}
             className="py-2 px-3 rounded-xl border-2 border-blue-100 text-blue-600 font-bold text-xs hover:bg-blue-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-1.5"
@@ -349,21 +353,21 @@ const SidebarCart: React.FC<SidebarCartProps> = ({
             <ShoppingBag size={14} />
             Save
           </button>
-          <button
+          <button type="button"
             onClick={onOpenSavedOrders}
             className="py-2 px-3 rounded-xl border-2 border-stone-200 text-stone-600 font-bold text-xs hover:bg-stone-50 transition-colors flex items-center justify-center gap-1.5 relative"
           >
             <Clock size={14} />
             Saved
             {savedOrdersCount > 0 && (
-              <span className="absolute -top-1.5 -right-1.5 bg-red-600 text-white text-[9px] font-bold w-4 h-4 rounded-full flex items-center justify-center shadow-sm">
+              <span className="absolute -top-1.5 -right-1.5 bg-red-600 text-white text-[9px] font-bold size-4 rounded-full flex items-center justify-center shadow-sm">
                 {savedOrdersCount}
               </span>
             )}
           </button>
         </div>
 
-        <button
+        <button type="button"
           onClick={onConfirmOrder}
           disabled={cart.length === 0}
           className="w-full bg-green-600 text-white py-3 rounded-xl font-bold text-base shadow-lg hover:bg-green-700 active:scale-[0.98] transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed mb-2 sm:mb-0"

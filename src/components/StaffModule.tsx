@@ -8,6 +8,94 @@ import autoTable from 'jspdf-autotable';
 import { generatePayrollPDF } from '../utils/payrollPDF';
 import { staffManagementService } from '@/services/staffManagementService';
 
+const generateWeeklyReport = async () => {
+  try {
+    // 1. Fetch last 7 days attendance
+    const endDate = new Date();
+    const startDate = new Date();
+    startDate.setDate(endDate.getDate() - 7);
+
+    const { data: reportData, error } = await supabase
+      .from('attendance')
+      .select(
+        `
+                    *,
+                    staff (name, role, daily_wage)
+                `
+      )
+      .gte('date', startDate.toISOString().split('T')[0])
+      .lte('date', endDate.toISOString().split('T')[0])
+      .order('date', { ascending: false });
+
+    if (error) throw error;
+
+    if (!reportData || reportData.length === 0) {
+      alert('No attendance records found for the last 7 days.');
+      return;
+    }
+
+    // 2. Generate PDF
+    const doc = new jsPDF();
+
+    // Header
+    doc.setFontSize(20);
+    doc.text('NENITA FARM LECHON HAUS', 105, 20, { align: 'center' });
+    doc.setFontSize(14);
+    doc.text('Weekly Attendance & Payroll Report', 105, 30, { align: 'center' });
+    doc.setFontSize(10);
+    doc.text(`Generated: ${new Date().toLocaleString()}`, 105, 38, { align: 'center' });
+
+    // Table Data
+    const tableData = reportData.map((record) => {
+      const status = record.status || 'PRESENT';
+      const wage = record.staff?.daily_wage || 0;
+      const pay = status === 'ABSENT' ? 0 : wage; // Simple logic: No pay if absent
+
+      return [
+        record.date,
+        record.staff?.name || 'Unknown',
+        record.staff?.role || 'Unknown',
+        status === 'ABSENT' ? 'ABSENT' : new Date(record.clock_in).toLocaleTimeString(),
+        status === 'ABSENT'
+          ? record.notes || '-'
+          : record.clock_out
+            ? new Date(record.clock_out).toLocaleTimeString()
+            : 'Active',
+        status,
+        `P ${wage.toFixed(2)}`,
+        `P ${pay.toFixed(2)}`,
+      ];
+    });
+
+    autoTable(doc, {
+      head: [
+        ['Date', 'Staff Name', 'Role', 'In', 'Out/Reason', 'Status', 'Daily Rate', 'Est. Pay'],
+      ],
+      body: tableData,
+      startY: 45,
+      theme: 'grid',
+      styles: { fontSize: 8 },
+      headStyles: { fillColor: [220, 38, 38] }, // Red header to match brand
+    });
+
+    // Force download via Blob and Anchor tag
+    const blob = doc.output('blob');
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `payroll_report_${new Date().toISOString().split('T')[0]}.pdf`;
+    document.body.appendChild(link);
+    link.click();
+
+    // Cleanup
+    document.body.removeChild(link);
+    window.URL.revokeObjectURL(url);
+  } catch (error) {
+    console.error('Error generating report:', error);
+    alert('Failed to generate report');
+  }
+};
+
 const StaffModule: React.FC = () => {
   const [staffList, setStaffList] = useState<Staff[]>([]);
   const [attendanceList, setAttendanceList] = useState<Attendance[]>([]);
@@ -243,94 +331,6 @@ const StaffModule: React.FC = () => {
     return () => clearInterval(timer);
   }, []);
 
-  const generateWeeklyReport = async () => {
-    try {
-      // 1. Fetch last 7 days attendance
-      const endDate = new Date();
-      const startDate = new Date();
-      startDate.setDate(endDate.getDate() - 7);
-
-      const { data: reportData, error } = await supabase
-        .from('attendance')
-        .select(
-          `
-                    *,
-                    staff (name, role, daily_wage)
-                `
-        )
-        .gte('date', startDate.toISOString().split('T')[0])
-        .lte('date', endDate.toISOString().split('T')[0])
-        .order('date', { ascending: false });
-
-      if (error) throw error;
-
-      if (!reportData || reportData.length === 0) {
-        alert('No attendance records found for the last 7 days.');
-        return;
-      }
-
-      // 2. Generate PDF
-      const doc = new jsPDF();
-
-      // Header
-      doc.setFontSize(20);
-      doc.text('NENITA FARM LECHON HAUS', 105, 20, { align: 'center' });
-      doc.setFontSize(14);
-      doc.text('Weekly Attendance & Payroll Report', 105, 30, { align: 'center' });
-      doc.setFontSize(10);
-      doc.text(`Generated: ${new Date().toLocaleString()}`, 105, 38, { align: 'center' });
-
-      // Table Data
-      const tableData = reportData.map((record) => {
-        const status = record.status || 'PRESENT';
-        const wage = record.staff?.daily_wage || 0;
-        const pay = status === 'ABSENT' ? 0 : wage; // Simple logic: No pay if absent
-
-        return [
-          record.date,
-          record.staff?.name || 'Unknown',
-          record.staff?.role || 'Unknown',
-          status === 'ABSENT' ? 'ABSENT' : new Date(record.clock_in).toLocaleTimeString(),
-          status === 'ABSENT'
-            ? record.notes || '-'
-            : record.clock_out
-              ? new Date(record.clock_out).toLocaleTimeString()
-              : 'Active',
-          status,
-          `P ${wage.toFixed(2)}`,
-          `P ${pay.toFixed(2)}`,
-        ];
-      });
-
-      autoTable(doc, {
-        head: [
-          ['Date', 'Staff Name', 'Role', 'In', 'Out/Reason', 'Status', 'Daily Rate', 'Est. Pay'],
-        ],
-        body: tableData,
-        startY: 45,
-        theme: 'grid',
-        styles: { fontSize: 8 },
-        headStyles: { fillColor: [220, 38, 38] }, // Red header to match brand
-      });
-
-      // Force download via Blob and Anchor tag
-      const blob = doc.output('blob');
-      const url = window.URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = `payroll_report_${new Date().toISOString().split('T')[0]}.pdf`;
-      document.body.appendChild(link);
-      link.click();
-
-      // Cleanup
-      document.body.removeChild(link);
-      window.URL.revokeObjectURL(url);
-    } catch (error) {
-      console.error('Error generating report:', error);
-      alert('Failed to generate report');
-    }
-  };
-
   return (
     <div className="flex-1 bg-stone-100 overflow-hidden flex flex-col font-roboto animate-in fade-in duration-300">
       {/* Header - responsive */}
@@ -359,7 +359,7 @@ const StaffModule: React.FC = () => {
             </div>
           </div>
 
-          <button
+          <button type="button"
             onClick={generateWeeklyReport}
             className="bg-white text-stone-700 border border-stone-300 px-3 py-2 rounded-xl font-bold text-sm flex items-center gap-2 hover:bg-stone-50 transition-colors shadow-sm"
           >
@@ -367,7 +367,7 @@ const StaffModule: React.FC = () => {
             <span className="hidden sm:inline">Report</span>
           </button>
 
-          <button
+          <button type="button"
             onClick={() => setIsAddModalOpen(true)}
             className="bg-stone-900 text-white px-3 py-2 rounded-xl font-bold text-sm flex items-center gap-2 hover:bg-stone-800 transition-colors shadow-lg"
           >
@@ -389,12 +389,12 @@ const StaffModule: React.FC = () => {
               >
                 <div className="flex justify-between items-start mb-4">
                   <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 rounded-full bg-stone-200 flex items-center justify-center text-stone-500 font-bold text-xl overflow-hidden">
+                    <div className="size-12 rounded-full bg-stone-200 flex items-center justify-center text-stone-500 font-bold text-xl overflow-hidden">
                       {staff.image_url ? (
                         <img
                           src={staff.image_url}
                           alt={staff.name}
-                          className="w-full h-full object-cover"
+                          className="size-full object-cover"
                         />
                       ) : (
                         staff.name.charAt(0)
@@ -413,7 +413,7 @@ const StaffModule: React.FC = () => {
                     </div>
                   </div>
                   <div
-                    className={`w-3 h-3 rounded-full ${
+                    className={`size-3 rounded-full ${
                       status === 'CLOCKED_IN'
                         ? 'bg-green-500'
                         : status === 'ABSENT'
@@ -435,13 +435,13 @@ const StaffModule: React.FC = () => {
                   <div className="flex gap-2 mt-4">
                     {status === 'CLOCKED_OUT' || status === 'NO_RECORD' ? (
                       <>
-                        <button
+                        <button type="button"
                           onClick={() => handleClockIn(staff.id)}
                           className="flex-1 bg-green-50 text-green-700 py-2 rounded-lg font-bold text-sm hover:bg-green-100 transition-colors flex items-center justify-center gap-2"
                         >
                           <UserCheck size={16} /> Clock In
                         </button>
-                        <button
+                        <button type="button"
                           onClick={() => {
                             setAbsentData({ ...absentData, staffId: staff.id });
                             setIsAbsentModalOpen(true);
@@ -452,7 +452,7 @@ const StaffModule: React.FC = () => {
                         </button>
                       </>
                     ) : (
-                      <button
+                      <button type="button"
                         onClick={() => recordId && handleClockOut(recordId)}
                         className="flex-1 bg-red-50 text-red-700 py-2 rounded-lg font-bold text-sm hover:bg-red-100 transition-colors flex items-center justify-center gap-2"
                       >
@@ -471,19 +471,19 @@ const StaffModule: React.FC = () => {
                     </span>
                   </div>
                   <div className="grid grid-cols-3 gap-2">
-                    <button
+                    <button type="button"
                       onClick={() => { setSelectedStaffForAction(staff); setIsCAModalOpen(true); }}
                       className="bg-orange-50 text-orange-700 p-2 rounded-lg text-[10px] font-bold flex flex-col items-center gap-1 hover:bg-orange-100 transition-colors"
                     >
                       <DollarSign size={14} /> CA Advance
                     </button>
-                    <button
+                    <button type="button"
                       onClick={() => { setSelectedStaffForAction(staff); setIsPayModalOpen(true); }}
                       className="bg-blue-50 text-blue-700 p-2 rounded-lg text-[10px] font-bold flex flex-col items-center gap-1 hover:bg-blue-100 transition-colors"
                     >
                       <CreditCard size={14} /> Pay CA
                     </button>
-                    <button
+                    <button type="button"
                       onClick={() => { setSelectedStaffForAction(staff); setIsPayrollModalOpen(true); }}
                       className="bg-purple-50 text-purple-700 p-2 rounded-lg text-[10px] font-bold flex flex-col items-center gap-1 hover:bg-purple-100 transition-colors"
                     >
@@ -503,7 +503,7 @@ const StaffModule: React.FC = () => {
           <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
             <div className="p-4 border-b border-stone-100 flex justify-between items-center bg-stone-50">
               <h2 className="font-bold text-lg text-stone-800">Add New Staff</h2>
-              <button
+              <button type="button"
                 onClick={() => setIsAddModalOpen(false)}
                 className="p-2 hover:bg-stone-200 rounded-full transition-colors"
               >
@@ -513,8 +513,9 @@ const StaffModule: React.FC = () => {
 
             <form onSubmit={handleAddStaff} className="p-6 space-y-4">
               <div>
-                <label className="block text-sm font-bold text-stone-600 mb-1">Full Name</label>
+                <label htmlFor="staff-full-name" className="block text-sm font-bold text-stone-600 mb-1">Full Name</label>
                 <input
+                  id="staff-full-name"
                   type="text"
                   required
                   value={formData.name}
@@ -525,8 +526,9 @@ const StaffModule: React.FC = () => {
               </div>
 
               <div>
-                <label className="block text-sm font-bold text-stone-600 mb-1">Role</label>
+                <label htmlFor="staff-role" className="block text-sm font-bold text-stone-600 mb-1">Role</label>
                 <select
+                  id="staff-role"
                   value={formData.role}
                   onChange={(e) => setFormData({ ...formData, role: e.target.value as any })}
                   className="w-full p-3 bg-stone-50 border border-stone-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-stone-900"
@@ -539,10 +541,11 @@ const StaffModule: React.FC = () => {
               </div>
 
               <div>
-                <label className="block text-sm font-bold text-stone-600 mb-1">
+                <label htmlFor="staff-daily-wage" className="block text-sm font-bold text-stone-600 mb-1">
                   Daily Wage (PHP)
                 </label>
                 <input
+                  id="staff-daily-wage"
                   type="number"
                   required
                   min="0"
@@ -557,10 +560,11 @@ const StaffModule: React.FC = () => {
               </div>
 
               <div>
-                <label className="block text-sm font-bold text-stone-600 mb-1">
+                <label htmlFor="staff-pin" className="block text-sm font-bold text-stone-600 mb-1">
                   PIN (4 digits)
                 </label>
                 <input
+                  id="staff-pin"
                   type="text"
                   required
                   maxLength={4}
@@ -590,7 +594,7 @@ const StaffModule: React.FC = () => {
           <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
             <div className="p-4 border-b border-stone-100 flex justify-between items-center bg-red-50">
               <h2 className="font-bold text-lg text-red-800">Mark Staff as Absent</h2>
-              <button
+              <button type="button"
                 onClick={() => setIsAbsentModalOpen(false)}
                 className="p-2 hover:bg-red-100 rounded-full transition-colors"
               >
@@ -604,10 +608,11 @@ const StaffModule: React.FC = () => {
                 log.
               </p>
               <div>
-                <label className="block text-sm font-bold text-stone-600 mb-1">
+                <label htmlFor="staff-absent-reason" className="block text-sm font-bold text-stone-600 mb-1">
                   Reason for Absence
                 </label>
                 <textarea
+                  id="staff-absent-reason"
                   required
                   value={absentData.reason}
                   onChange={(e) => setAbsentData({ ...absentData, reason: e.target.value })}
@@ -636,7 +641,7 @@ const StaffModule: React.FC = () => {
               <h2 className="font-bold text-lg text-stone-800">
                 {isCAModalOpen ? 'Cash Advance' : 'Pay Advance'} - {selectedStaffForAction?.name}
               </h2>
-              <button
+              <button type="button"
                 onClick={() => { setIsCAModalOpen(false); setIsPayModalOpen(false); }}
                 className="p-2 hover:bg-stone-200 rounded-full transition-colors"
               >
@@ -646,8 +651,9 @@ const StaffModule: React.FC = () => {
 
             <div className="p-6 space-y-4">
               <div>
-                <label className="block text-sm font-bold text-stone-600 mb-1">Amount (PHP)</label>
+                <label htmlFor="staff-transaction-amount" className="block text-sm font-bold text-stone-600 mb-1">Amount (PHP)</label>
                 <input
+                  id="staff-transaction-amount"
                   type="number"
                   required
                   min="0"
@@ -660,8 +666,9 @@ const StaffModule: React.FC = () => {
               </div>
 
               <div>
-                <label className="block text-sm font-bold text-stone-600 mb-1">Date</label>
+                <label htmlFor="staff-transaction-date" className="block text-sm font-bold text-stone-600 mb-1">Date</label>
                 <input
+                  id="staff-transaction-date"
                   type="date"
                   value={transactionData.date}
                   onChange={(e) => setTransactionData({ ...transactionData, date: e.target.value })}
@@ -670,8 +677,9 @@ const StaffModule: React.FC = () => {
               </div>
 
               <div>
-                <label className="block text-sm font-bold text-stone-600 mb-1">Notes (Optional)</label>
+                <label htmlFor="staff-transaction-notes" className="block text-sm font-bold text-stone-600 mb-1">Notes (Optional)</label>
                 <textarea
+                  id="staff-transaction-notes"
                   value={transactionData.notes}
                   onChange={(e) => setTransactionData({ ...transactionData, notes: e.target.value })}
                   className="w-full p-3 bg-stone-50 border border-stone-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-stone-900 min-h-[80px]"
@@ -679,7 +687,7 @@ const StaffModule: React.FC = () => {
                 />
               </div>
 
-              <button
+              <button type="button"
                 onClick={() => handleSaveTransaction(isCAModalOpen ? 'ADVANCE' : 'PAYMENT')}
                 className={`w-full text-white py-4 rounded-xl font-bold text-lg shadow-lg transition-all mt-4 flex items-center justify-center gap-2 ${isCAModalOpen ? 'bg-orange-600 hover:bg-orange-700' : 'bg-blue-600 hover:bg-blue-700'}`}
               >
@@ -697,7 +705,7 @@ const StaffModule: React.FC = () => {
           <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
             <div className="p-4 border-b border-stone-100 flex justify-between items-center bg-purple-50">
               <h2 className="font-bold text-lg text-stone-800">Generate Payroll - {selectedStaffForAction?.name}</h2>
-              <button
+              <button type="button"
                 onClick={() => setIsPayrollModalOpen(false)}
                 className="p-2 hover:bg-stone-200 rounded-full transition-colors"
               >
@@ -708,8 +716,9 @@ const StaffModule: React.FC = () => {
             <div className="p-6 space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-bold text-stone-600 mb-1">Start Date</label>
+                  <label htmlFor="staff-payroll-start" className="block text-sm font-bold text-stone-600 mb-1">Start Date</label>
                   <input
+                    id="staff-payroll-start"
                     type="date"
                     value={payrollRange.startDate}
                     onChange={(e) => setPayrollRange({ ...payrollRange, startDate: e.target.value })}
@@ -717,8 +726,9 @@ const StaffModule: React.FC = () => {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-bold text-stone-600 mb-1">End Date</label>
+                  <label htmlFor="staff-payroll-end" className="block text-sm font-bold text-stone-600 mb-1">End Date</label>
                   <input
+                    id="staff-payroll-end"
                     type="date"
                     value={payrollRange.endDate}
                     onChange={(e) => setPayrollRange({ ...payrollRange, endDate: e.target.value })}
@@ -727,7 +737,7 @@ const StaffModule: React.FC = () => {
                 </div>
               </div>
 
-              <button
+              <button type="button"
                 onClick={handleGeneratePayroll}
                 className="w-full bg-purple-600 text-white py-4 rounded-xl font-bold text-lg shadow-lg hover:bg-purple-700 transition-all mt-4 flex items-center justify-center gap-2"
               >

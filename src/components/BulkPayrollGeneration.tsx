@@ -141,10 +141,11 @@ const BulkPayrollGeneration: React.FC = () => {
       {/* Filters */}
         <div className="flex items-center gap-4 mb-6">
           <div>
-            <label className="block text-xs font-medium text-stone-500 mb-1">Date Range Picker</label>
+            <label htmlFor="bulk-payroll-date-start" className="block text-xs font-medium text-stone-500 mb-1">Date Range Picker</label>
             <div className="flex items-center gap-2 bg-white border border-stone-200 rounded-lg px-3 py-2">
               <Calendar size={16} className="text-stone-400" />
               <input
+                id="bulk-payroll-date-start"
                 type="date"
                 value={dateRange.start}
                 onChange={e => setDateRange({ ...dateRange, start: e.target.value })}
@@ -152,6 +153,8 @@ const BulkPayrollGeneration: React.FC = () => {
               />
               <span className="text-stone-300">-</span>
               <input
+                id="bulk-payroll-date-end"
+                aria-label="End date"
                 type="date"
                 value={dateRange.end}
                 onChange={e => setDateRange({ ...dateRange, end: e.target.value })}
@@ -161,8 +164,9 @@ const BulkPayrollGeneration: React.FC = () => {
           </div>
 
           <div>
-            <label className="block text-xs font-medium text-stone-500 mb-1">Department</label>
+            <label htmlFor="bulk-payroll-department" className="block text-xs font-medium text-stone-500 mb-1">Department</label>
             <select
+              id="bulk-payroll-department"
               value={roleFilter}
               onChange={e => setRoleFilter(e.target.value)}
               className="bg-white border border-stone-200 rounded-lg px-4 py-2 text-sm"
@@ -175,7 +179,7 @@ const BulkPayrollGeneration: React.FC = () => {
             </select>
           </div>
 
-          <button
+          <button type="button"
             onClick={generatePayroll}
             disabled={loading}
             className="mt-5 px-4 py-2 bg-stone-900 text-white rounded-lg font-medium flex items-center gap-2 hover:bg-stone-800 disabled:opacity-50"
@@ -189,14 +193,14 @@ const BulkPayrollGeneration: React.FC = () => {
         {payrollData.length > 0 && (
           <div className="bg-white rounded-xl border border-stone-200 overflow-hidden">
             <div className="p-4 border-b border-stone-100 flex items-center justify-end gap-2">
-              <button
+              <button type="button"
                 onClick={exportPDF}
                 className="px-4 py-2 border border-red-200 text-red-600 rounded-lg text-sm font-medium flex items-center gap-2 hover:bg-red-50"
               >
                 <Download size={16} />
                 Export as PDF
               </button>
-              <button
+              <button type="button"
                 onClick={exportExcel}
                 className="px-4 py-2 border border-emerald-200 text-emerald-600 rounded-lg text-sm font-medium flex items-center gap-2 hover:bg-emerald-50"
               >
@@ -209,7 +213,7 @@ const BulkPayrollGeneration: React.FC = () => {
               <thead className="bg-stone-50 border-b border-stone-100">
                 <tr>
                   <th className="text-left px-4 py-3">
-                    <button onClick={toggleSelectAll} className="text-stone-400 hover:text-stone-600">
+                    <button type="button" onClick={toggleSelectAll} className="text-stone-400 hover:text-stone-600">
                       {filteredPayroll.every(p => p.selected) ? (
                         <CheckSquare size={18} />
                       ) : (
@@ -229,7 +233,7 @@ const BulkPayrollGeneration: React.FC = () => {
                 {filteredPayroll.map(p => (
                   <tr key={p.staff.id} className="hover:bg-stone-50">
                     <td className="px-4 py-3">
-                      <button onClick={() => toggleSelect(p.staff.id)} className="text-emerald-600">
+                      <button type="button" onClick={() => toggleSelect(p.staff.id)} className="text-emerald-600">
                         {p.selected ? <CheckSquare size={18} /> : <Square size={18} className="text-stone-300" />}
                       </button>
                     </td>

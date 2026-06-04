@@ -32,9 +32,7 @@ import {
   Banknote,
   Upload,
 } from 'lucide-react';
-import { pdf } from '@react-pdf/renderer';
 import { saveAs } from 'file-saver';
-import FinancialReportPDF from './FinancialReportPDF';
 import SalesAdjustmentModal from './SalesAdjustmentModal';
 import ExpenseModal from './ExpenseModal';
 import ExpenseCard from './ExpenseCard';
@@ -68,6 +66,15 @@ interface FinancialModuleProps {
 }
 
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8', '#82ca9d'];
+
+// Report Logic
+const isSunday = () => new Date().getDay() === 0;
+const isLastDayOfMonth = () => {
+  const today = new Date();
+  const tomorrow = new Date(today);
+  tomorrow.setDate(today.getDate() + 1);
+  return tomorrow.getDate() === 1;
+};
 
 const FinancialModule: React.FC<FinancialModuleProps> = ({
   orders,
@@ -368,15 +375,6 @@ const FinancialModule: React.FC<FinancialModuleProps> = ({
     return Object.entries(categoryMap).map(([name, value]) => ({ name, value }));
   }, [todayData.orders]);
 
-  // Report Logic
-  const isSunday = () => new Date().getDay() === 0;
-  const isLastDayOfMonth = () => {
-    const today = new Date();
-    const tomorrow = new Date(today);
-    tomorrow.setDate(today.getDate() + 1);
-    return tomorrow.getDate() === 1;
-  };
-
   const getFilteredData = (type: 'TODAY' | 'WEEK' | 'MONTH' | 'CUSTOM') => {
     const today = new Date();
     let filteredOrders: Order[] = [];
@@ -438,6 +436,10 @@ const FinancialModule: React.FC<FinancialModuleProps> = ({
       return;
     }
 
+    const [{ pdf }, { default: FinancialReportPDF }] = await Promise.all([
+      import('@react-pdf/renderer'),
+      import('./FinancialReportPDF'),
+    ]);
     const blob = await pdf(
       <FinancialReportPDF
         orders={filteredOrders}
@@ -517,16 +519,11 @@ const FinancialModule: React.FC<FinancialModuleProps> = ({
         type: 'SALES' as const,
         person: s.added_by,
       })),
-      ...todayData.cashTransactions
-        .filter((t) => t.type === 'CASH_DROP')
-        .map((t) => ({
-          id: t.id,
-          date: t.created_at,
-          amount: t.amount,
-          reason: t.description || 'Cash Drop',
-          type: 'CASH_DROP' as const,
-          person: t.performed_by,
-        })),
+      ...todayData.cashTransactions.flatMap((t) =>
+        t.type === 'CASH_DROP'
+          ? [{ id: t.id, date: t.created_at, amount: t.amount, reason: t.description || 'Cash Drop', type: 'CASH_DROP' as const, person: t.performed_by }]
+          : []
+      ),
       ...todayData.staffTransactions.map((st) => ({
         id: st.id,
         date: st.date,
@@ -540,7 +537,7 @@ const FinancialModule: React.FC<FinancialModuleProps> = ({
   }, [todayData]);
 
   return (
-    <div className="h-full w-full bg-stone-100 overflow-y-auto overflow-x-hidden p-3 md:p-6 lg:p-8 font-roboto animate-in fade-in duration-300">
+    <div className="size-full bg-stone-100 overflow-y-auto overflow-x-hidden p-3 md:p-6 lg:p-8 font-roboto animate-in fade-in duration-300">
       {/* Header - responsive */}
       <div className="flex flex-col lg:flex-row lg:items-end justify-between mb-4 md:mb-8 gap-4 lg:gap-6">
         <div className="flex items-center gap-3">
@@ -563,6 +560,7 @@ const FinancialModule: React.FC<FinancialModuleProps> = ({
               <span className="text-[10px] sm:text-xs font-bold text-stone-500 uppercase shrink-0">From:</span>
               <input
                 type="date"
+                aria-label="Report start date"
                 value={startDate}
                 onChange={(e) => setStartDate(e.target.value)}
                 className="bg-transparent text-sm font-bold text-stone-700 focus:outline-none min-w-0 w-full"
@@ -572,6 +570,7 @@ const FinancialModule: React.FC<FinancialModuleProps> = ({
               <span className="text-[10px] sm:text-xs font-bold text-stone-500 uppercase shrink-0">To:</span>
               <input
                 type="date"
+                aria-label="Report end date"
                 value={endDate}
                 onChange={(e) => setEndDate(e.target.value)}
                 className="bg-transparent text-sm font-bold text-stone-700 focus:outline-none min-w-0 w-full"
@@ -579,7 +578,7 @@ const FinancialModule: React.FC<FinancialModuleProps> = ({
             </div>
 
             <div className="flex items-center gap-1 border-l border-stone-200 pl-2 ml-auto shrink-0">
-              <button
+              <button type="button"
                 onClick={() => generateReport('CUSTOM')}
                 disabled={!startDate || !endDate}
                 className="p-1.5 hover:bg-stone-100 rounded-md text-blue-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
@@ -587,7 +586,7 @@ const FinancialModule: React.FC<FinancialModuleProps> = ({
               >
                 <FileText size={16} />
               </button>
-              <button
+              <button type="button"
                 onClick={() => handleExport('CUSTOM')}
                 disabled={!startDate || !endDate}
                 className="p-1.5 hover:bg-stone-100 rounded-md text-green-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
@@ -602,13 +601,13 @@ const FinancialModule: React.FC<FinancialModuleProps> = ({
           <div className="flex bg-white rounded-lg shadow-sm border border-stone-200 p-1 w-full sm:w-auto">
             {/* Today */}
             <div className="flex items-center flex-1 sm:flex-initial">
-              <button
+              <button type="button"
                 onClick={() => generateReport('TODAY')}
                 className="px-3 py-1.5 text-xs font-bold text-stone-600 hover:text-stone-900 hover:bg-stone-50 rounded-l-md transition-colors flex-1 sm:flex-initial"
               >
                 Today
               </button>
-              <button
+              <button type="button"
                 onClick={() => handleExport('TODAY')}
                 className="px-2 py-1.5 text-green-600 hover:bg-green-50 rounded-r-md transition-colors border-l border-stone-100"
                 title="Export Today"
@@ -619,14 +618,14 @@ const FinancialModule: React.FC<FinancialModuleProps> = ({
 
             {/* Week */}
             <div className="flex items-center border-l border-stone-200 pl-1 ml-1 flex-1 sm:flex-initial">
-              <button
+              <button type="button"
                 onClick={() => generateReport('WEEK')}
                 disabled={!isSunday()}
                 className="px-3 py-1.5 text-xs font-bold text-stone-600 hover:text-stone-900 hover:bg-stone-50 rounded-l-md transition-colors disabled:opacity-40 flex-1 sm:flex-initial"
               >
                 Week
               </button>
-              <button
+              <button type="button"
                 onClick={() => handleExport('WEEK')}
                 disabled={!isSunday()}
                 className="px-2 py-1.5 text-green-600 hover:bg-green-50 rounded-r-md transition-colors border-l border-stone-100 disabled:opacity-40"
@@ -638,14 +637,14 @@ const FinancialModule: React.FC<FinancialModuleProps> = ({
 
             {/* Month */}
             <div className="flex items-center border-l border-stone-200 pl-1 ml-1 flex-1 sm:flex-initial">
-              <button
+              <button type="button"
                 onClick={() => generateReport('MONTH')}
                 disabled={!isLastDayOfMonth()}
                 className="px-3 py-1.5 text-xs font-bold text-stone-600 hover:text-stone-900 hover:bg-stone-50 rounded-l-md transition-colors disabled:opacity-40 flex-1 sm:flex-initial"
               >
                 Month
               </button>
-              <button
+              <button type="button"
                 onClick={() => handleExport('MONTH')}
                 disabled={!isLastDayOfMonth()}
                 className="px-2 py-1.5 text-green-600 hover:bg-green-50 rounded-r-md transition-colors border-l border-stone-100 disabled:opacity-40"
@@ -826,7 +825,7 @@ const FinancialModule: React.FC<FinancialModuleProps> = ({
                     stroke="none"
                   >
                     {categoryData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                      <Cell key={`cell-${entry.name}`} fill={COLORS[index % COLORS.length]} />
                     ))}
                   </Pie>
                   <Tooltip
@@ -861,7 +860,7 @@ const FinancialModule: React.FC<FinancialModuleProps> = ({
             </h3>
 
             <div className="grid grid-cols-2 gap-3 mb-4">
-              <button
+              <button type="button"
                 onClick={() => {
                   setTransactionType('EXPENSE');
                   setAmount('');
@@ -875,7 +874,7 @@ const FinancialModule: React.FC<FinancialModuleProps> = ({
                 <span className="text-xs font-bold uppercase">Expense</span>
               </button>
 
-              <button
+              <button type="button"
                 onClick={() => {
                   setTransactionType('SALES');
                   setAmount('');
@@ -889,7 +888,7 @@ const FinancialModule: React.FC<FinancialModuleProps> = ({
                 <span className="text-xs font-bold uppercase">Adjustment</span>
               </button>
 
-              <button
+              <button type="button"
                 onClick={() => setIsCashDropModalOpen(true)}
                 className="col-span-2 flex items-center justify-center gap-2 p-4 bg-stone-100 hover:bg-stone-200 text-stone-700 rounded-xl transition-colors"
               >
@@ -898,7 +897,7 @@ const FinancialModule: React.FC<FinancialModuleProps> = ({
               </button>
 
               {paperPosImport && (
-                <button
+                <button type="button"
                   onClick={() => setIsPaperPosImportModalOpen(true)}
                   className="col-span-2 flex items-center justify-center gap-2 p-4 bg-blue-50 hover:bg-blue-100 text-blue-600 rounded-xl transition-colors"
                 >
@@ -908,7 +907,7 @@ const FinancialModule: React.FC<FinancialModuleProps> = ({
               )}
 
               {paperPosImport && paperPosImport.records.length > 0 && (
-                <button
+                <button type="button"
                   onClick={() => setShowPaperPosRecords(!showPaperPosRecords)}
                   className="col-span-2 flex items-center justify-center gap-2 p-4 bg-orange-50 hover:bg-orange-100 text-orange-600 rounded-xl transition-colors"
                 >
@@ -959,7 +958,7 @@ const FinancialModule: React.FC<FinancialModuleProps> = ({
                     >
                       <div className="flex items-center gap-4">
                         <div
-                          className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                          className={`size-10 rounded-full flex items-center justify-center ${
                             trans.type === 'EXPENSE' || trans.type === 'CASH_DROP'
                               ? 'bg-red-50 text-red-500'
                               : 'bg-green-50 text-green-500'
@@ -995,7 +994,7 @@ const FinancialModule: React.FC<FinancialModuleProps> = ({
                           {trans.type === 'EXPENSE' || trans.type === 'CASH_DROP' ? '-' : '+'}
                           {formatCurrency(trans.amount)}
                         </span>
-                        <button
+                        <button type="button"
                           onClick={() => handleDeleteTransaction(trans.id, trans.type)}
                           className="p-2 text-stone-300 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all opacity-0 group-hover:opacity-100"
                           title="Delete"
@@ -1068,11 +1067,11 @@ const FinancialModule: React.FC<FinancialModuleProps> = ({
               <div className="w-full max-w-5xl bg-white rounded-lg shadow-2xl max-h-[90vh] flex flex-col">
                 <div className="flex items-center justify-between p-6 border-b border-stone-200">
                   <h2 className="text-2xl font-bold text-stone-800">Paper POS Records</h2>
-                  <button
+                  <button type="button"
                     onClick={() => setShowPaperPosRecords(false)}
                     className="p-2 rounded-lg hover:bg-stone-100 transition-colors"
                   >
-                    <FileText className="w-6 h-6 text-stone-600" />
+                    <FileText className="size-6 text-stone-600" />
                   </button>
                 </div>
                 <div className="flex-1 overflow-y-auto p-6">

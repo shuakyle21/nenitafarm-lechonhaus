@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { MenuItem, Category } from '../types';
 import { CATEGORIES } from '../constants';
 import { X, Plus, Save, Trash2, Edit2, Image, Search, ArrowLeft, Upload } from 'lucide-react';
@@ -24,41 +24,24 @@ const MenuManagementModal: React.FC<MenuManagementModalProps> = ({
 }) => {
   const [view, setView] = useState<'LIST' | 'FORM'>('LIST');
   const [searchQuery, setSearchQuery] = useState('');
-  const [editingItem, setEditingItem] = useState<MenuItem | null>(null);
   const [uploading, setUploading] = useState(false);
 
-  // Form State
-  const [formData, setFormData] = useState<Partial<MenuItem>>({
-    name: '',
-    price: 0,
-    category: 'Lechon & Grills',
-    image: '',
-    isWeighted: false,
+  const [editing, setEditing] = useState<{ item: MenuItem | null; formData: Partial<MenuItem> }>({
+    item: null,
+    formData: { name: '', price: 0, category: 'Lechon & Grills', image: '', isWeighted: false },
   });
-
-  useEffect(() => {
-    if (isOpen) {
-      setView('LIST');
-      setSearchQuery('');
-    }
-  }, [isOpen]);
 
   if (!isOpen) return null;
 
   const handleEdit = (item: MenuItem) => {
-    setEditingItem(item);
-    setFormData({ ...item });
+    setEditing({ item, formData: { ...item } });
     setView('FORM');
   };
 
   const handleAddNew = () => {
-    setEditingItem(null);
-    setFormData({
-      name: '',
-      price: 0,
-      category: 'Lechon & Grills',
-      image: 'https://picsum.photos/400/300',
-      isWeighted: false,
+    setEditing({
+      item: null,
+      formData: { name: '', price: 0, category: 'Lechon & Grills', image: 'https://picsum.photos/400/300', isWeighted: false },
     });
     setView('FORM');
   };
@@ -66,21 +49,12 @@ const MenuManagementModal: React.FC<MenuManagementModalProps> = ({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!formData.name || !formData.price || !formData.category) return;
+    if (!editing.formData.name || !editing.formData.price || !editing.formData.category) return;
 
-    if (editingItem) {
-      // Update
-      onUpdate({
-        ...editingItem,
-        ...(formData as MenuItem),
-      });
+    if (editing.item) {
+      onUpdate({ ...editing.item, ...(editing.formData as MenuItem) });
     } else {
-      // Add
-      const newItem: MenuItem = {
-        id: Math.random().toString(36).substr(2, 9),
-        ...(formData as Omit<MenuItem, 'id'>),
-      };
-      onAdd(newItem);
+      onAdd({ id: Math.random().toString(36).substr(2, 9), ...(editing.formData as Omit<MenuItem, 'id'>) });
     }
     setView('LIST');
   };
@@ -104,7 +78,7 @@ const MenuManagementModal: React.FC<MenuManagementModalProps> = ({
         <div className="bg-stone-900 text-white p-4 flex justify-between items-center shrink-0">
           <div className="flex items-center gap-3">
             {view === 'FORM' && (
-              <button
+              <button type="button"
                 onClick={() => setView('LIST')}
                 className="p-1 hover:bg-stone-700 rounded-full transition-colors mr-2"
               >
@@ -112,10 +86,10 @@ const MenuManagementModal: React.FC<MenuManagementModalProps> = ({
               </button>
             )}
             <h2 className="text-xl font-bold uppercase tracking-wide">
-              {view === 'LIST' ? 'Menu Management' : editingItem ? 'Edit Item' : 'Add New Item'}
+              {view === 'LIST' ? 'Menu Management' : editing.item ? 'Edit Item' : 'Add New Item'}
             </h2>
           </div>
-          <button
+          <button type="button"
             onClick={onClose}
             className="p-2 hover:bg-stone-700 rounded-full transition-colors"
           >
@@ -136,13 +110,14 @@ const MenuManagementModal: React.FC<MenuManagementModalProps> = ({
                   />
                   <input
                     type="text"
+                    aria-label="Search menu items"
                     placeholder="Search items..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     className="w-full pl-10 pr-4 py-3 bg-stone-100 border border-stone-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-stone-500"
                   />
                 </div>
-                <button
+                <button type="button"
                   onClick={handleAddNew}
                   className="bg-green-600 text-white px-6 py-3 rounded-xl font-bold flex items-center gap-2 hover:bg-green-700 transition-colors shadow-sm"
                 >
@@ -162,7 +137,7 @@ const MenuManagementModal: React.FC<MenuManagementModalProps> = ({
                       <img
                         src={item.image}
                         alt={item.name}
-                        className="w-16 h-16 rounded-lg object-cover bg-stone-100"
+                        className="size-16 rounded-lg object-cover bg-stone-100"
                       />
 
                       <div className="flex-1">
@@ -185,14 +160,14 @@ const MenuManagementModal: React.FC<MenuManagementModalProps> = ({
                       </div>
 
                       <div className="flex gap-2">
-                        <button
+                        <button type="button"
                           onClick={() => handleEdit(item)}
                           className="p-2 text-stone-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
                           title="Edit"
                         >
                           <Edit2 size={20} />
                         </button>
-                        <button
+                        <button type="button"
                           onClick={() => handleDelete(item.id)}
                           className="p-2 text-stone-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
                           title="Delete"
@@ -215,44 +190,47 @@ const MenuManagementModal: React.FC<MenuManagementModalProps> = ({
               <form onSubmit={handleSubmit} className="max-w-2xl mx-auto space-y-6">
                 <div className="grid grid-cols-2 gap-6">
                   <div className="col-span-2">
-                    <label className="block text-sm font-bold text-stone-600 mb-2 uppercase text-xs tracking-wider">
+                    <label htmlFor="menu-item-name" className="block text-sm font-bold text-stone-600 mb-2 uppercase text-xs tracking-wider">
                       Item Name
                     </label>
                     <input
+                      id="menu-item-name"
                       type="text"
                       required
-                      value={formData.name}
-                      onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                      value={editing.formData.name}
+                      onChange={(e) => setEditing(prev => ({ ...prev, formData: { ...prev.formData, name: e.target.value } }))}
                       className="w-full p-3 bg-white border border-stone-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-stone-500 font-medium"
                       placeholder="e.g. Crispy Pata"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-sm font-bold text-stone-600 mb-2 uppercase text-xs tracking-wider">
+                    <label htmlFor="menu-item-price" className="block text-sm font-bold text-stone-600 mb-2 uppercase text-xs tracking-wider">
                       Price (₱)
                     </label>
                     <input
+                      id="menu-item-price"
                       type="number"
                       required
                       min="0"
                       step="0.01"
-                      value={formData.price}
+                      value={editing.formData.price}
                       onChange={(e) =>
-                        setFormData({ ...formData, price: parseFloat(e.target.value) })
+                        setEditing(prev => ({ ...prev, formData: { ...prev.formData, price: parseFloat(e.target.value) } }))
                       }
                       className="w-full p-3 bg-white border border-stone-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-stone-500 font-medium"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-sm font-bold text-stone-600 mb-2 uppercase text-xs tracking-wider">
+                    <label htmlFor="menu-item-category" className="block text-sm font-bold text-stone-600 mb-2 uppercase text-xs tracking-wider">
                       Category
                     </label>
                     <select
-                      value={formData.category}
+                      id="menu-item-category"
+                      value={editing.formData.category}
                       onChange={(e) =>
-                        setFormData({ ...formData, category: e.target.value as Category })
+                        setEditing(prev => ({ ...prev, formData: { ...prev.formData, category: e.target.value as Category } }))
                       }
                       className="w-full p-3 bg-white border border-stone-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-stone-500 font-medium"
                     >
@@ -265,7 +243,7 @@ const MenuManagementModal: React.FC<MenuManagementModalProps> = ({
                   </div>
 
                   <div className="col-span-2">
-                    <label className="block text-sm font-bold text-stone-600 mb-2 uppercase text-xs tracking-wider">
+                    <label htmlFor="menu-item-image-url" className="block text-sm font-bold text-stone-600 mb-2 uppercase text-xs tracking-wider">
                       Image URL
                     </label>
                     <div className="flex gap-4">
@@ -275,9 +253,10 @@ const MenuManagementModal: React.FC<MenuManagementModalProps> = ({
                           size={20}
                         />
                         <input
+                          id="menu-item-image-url"
                           type="text"
-                          value={formData.image}
-                          onChange={(e) => setFormData({ ...formData, image: e.target.value })}
+                          value={editing.formData.image}
+                          onChange={(e) => setEditing(prev => ({ ...prev, formData: { ...prev.formData, image: e.target.value } }))}
                           className="w-full pl-10 pr-4 py-3 bg-white border border-stone-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-stone-500 font-medium"
                           placeholder="https://..."
                         />
@@ -314,7 +293,7 @@ const MenuManagementModal: React.FC<MenuManagementModalProps> = ({
                                     .from('menu-images')
                                     .getPublicUrl(filePath);
 
-                                  setFormData((prev) => ({ ...prev, image: data.publicUrl }));
+                                  setEditing(prev => ({ ...prev, formData: { ...prev.formData, image: data.publicUrl } }));
                                 } catch (error) {
                                   console.error('Error uploading image:', error);
                                   alert('Error uploading image');
@@ -326,12 +305,12 @@ const MenuManagementModal: React.FC<MenuManagementModalProps> = ({
                           </label>
                         </div>
                       </div>
-                      <div className="w-12 h-12 rounded-lg bg-stone-200 border border-stone-300 overflow-hidden shrink-0">
-                        {formData.image && (
+                      <div className="size-12 rounded-lg bg-stone-200 border border-stone-300 overflow-hidden shrink-0">
+                        {editing.formData.image && (
                           <img
-                            src={formData.image}
+                            src={editing.formData.image}
                             alt="Preview"
-                            className="w-full h-full object-cover"
+                            className="size-full object-cover"
                           />
                         )}
                       </div>
@@ -342,9 +321,9 @@ const MenuManagementModal: React.FC<MenuManagementModalProps> = ({
                     <label className="flex items-center gap-3 p-4 bg-white border border-stone-300 rounded-xl cursor-pointer hover:border-stone-400 transition-colors">
                       <input
                         type="checkbox"
-                        checked={formData.isWeighted}
-                        onChange={(e) => setFormData({ ...formData, isWeighted: e.target.checked })}
-                        className="w-5 h-5 rounded border-stone-300 text-stone-900 focus:ring-stone-500"
+                        checked={editing.formData.isWeighted}
+                        onChange={(e) => setEditing(prev => ({ ...prev, formData: { ...prev.formData, isWeighted: e.target.checked } }))}
+                        className="size-5 rounded border-stone-300 text-stone-900 focus:ring-stone-500"
                       />
                       <div>
                         <span className="block font-bold text-stone-800">Weighted Item</span>
@@ -369,7 +348,7 @@ const MenuManagementModal: React.FC<MenuManagementModalProps> = ({
                     className="flex-[2] py-3 bg-stone-900 text-white font-bold rounded-xl shadow-lg hover:bg-stone-800 transition-all flex items-center justify-center gap-2"
                   >
                     <Save size={20} />
-                    {editingItem ? 'Save Changes' : 'Add Item'}
+                    {editing.item ? 'Save Changes' : 'Add Item'}
                   </button>
                 </div>
               </form>

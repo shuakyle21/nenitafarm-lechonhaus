@@ -16,17 +16,17 @@ export const VariantSelector: React.FC<VariantSelectorProps> = ({ item, onSelect
       <div className="w-full max-w-md bg-white rounded-xl shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200">
         <div className="p-4 border-b border-stone-100 flex justify-between items-center bg-stone-50">
           <h3 className="font-bold text-lg text-stone-800">Select Size for {item.name}</h3>
-          <button
+          <button type="button"
             onClick={onClose}
             className="p-2 hover:bg-stone-200 rounded-full transition-colors"
           >
-            <X className="w-5 h-5 text-stone-500" />
+            <X className="size-5 text-stone-500" />
           </button>
         </div>
 
         <div className="p-4 space-y-3">
           {item.variants.map((variant) => (
-            <button
+            <button type="button"
               key={variant.name}
               onClick={() => onSelect(variant)}
               className="w-full flex justify-between items-center p-4 border border-stone-200 rounded-lg hover:border-orange-500 hover:bg-orange-50 transition-all group"

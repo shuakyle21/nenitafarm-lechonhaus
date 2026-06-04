@@ -10,6 +10,15 @@ interface StaffDetailedManagementProps {
   currentTime: Date;
 }
 
+const getStatusBadge = (status?: string) => {
+  const styles: Record<string, string> = {
+    PAID: 'text-emerald-600',
+    PENDING: 'text-amber-600',
+    ACTIVE: 'text-blue-600',
+  };
+  return styles[status || 'PENDING'] || 'text-stone-600';
+};
+
 const StaffDetailedManagement: React.FC<StaffDetailedManagementProps> = ({
   staff,
   transactions,
@@ -73,15 +82,6 @@ const StaffDetailedManagement: React.FC<StaffDetailedManagementProps> = ({
     }
   };
 
-  const getStatusBadge = (status?: string) => {
-    const styles: Record<string, string> = {
-      PAID: 'text-emerald-600',
-      PENDING: 'text-amber-600',
-      ACTIVE: 'text-blue-600',
-    };
-    return styles[status || 'PENDING'] || 'text-stone-600';
-  };
-
   return (
     <div className="space-y-6">
       {/* Personal Information Section */}
@@ -89,8 +89,9 @@ const StaffDetailedManagement: React.FC<StaffDetailedManagementProps> = ({
         <h2 className="text-base font-semibold text-stone-800 mb-4">Personal Information</h2>
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <div>
-            <label className="block text-xs font-medium text-stone-500 mb-1.5">Full Name</label>
+            <label htmlFor="detail-full-name" className="block text-xs font-medium text-stone-500 mb-1.5">Full Name</label>
             <input
+              id="detail-full-name"
               type="text"
               value={form.name}
               onChange={e => setForm({ ...form, name: e.target.value })}
@@ -99,8 +100,9 @@ const StaffDetailedManagement: React.FC<StaffDetailedManagementProps> = ({
             />
           </div>
           <div>
-            <label className="block text-xs font-medium text-stone-500 mb-1.5">Email Address</label>
+            <label htmlFor="detail-email" className="block text-xs font-medium text-stone-500 mb-1.5">Email Address</label>
             <input
+              id="detail-email"
               type="email"
               value={form.email}
               onChange={e => setForm({ ...form, email: e.target.value })}
@@ -109,8 +111,9 @@ const StaffDetailedManagement: React.FC<StaffDetailedManagementProps> = ({
             />
           </div>
           <div>
-            <label className="block text-xs font-medium text-stone-500 mb-1.5">Phone Number</label>
+            <label htmlFor="detail-phone" className="block text-xs font-medium text-stone-500 mb-1.5">Phone Number</label>
             <input
+              id="detail-phone"
               type="tel"
               value={form.phone}
               onChange={e => setForm({ ...form, phone: e.target.value })}
@@ -119,8 +122,9 @@ const StaffDetailedManagement: React.FC<StaffDetailedManagementProps> = ({
             />
           </div>
           <div>
-            <label className="block text-xs font-medium text-stone-500 mb-1.5">Home Address</label>
+            <label htmlFor="detail-address" className="block text-xs font-medium text-stone-500 mb-1.5">Home Address</label>
             <input
+              id="detail-address"
               type="text"
               value={form.address}
               onChange={e => setForm({ ...form, address: e.target.value })}
@@ -136,8 +140,9 @@ const StaffDetailedManagement: React.FC<StaffDetailedManagementProps> = ({
         <h2 className="text-base font-semibold text-stone-800 mb-4">Employment Details</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label className="block text-xs font-medium text-stone-500 mb-1.5">Role</label>
+            <label htmlFor="detail-role" className="block text-xs font-medium text-stone-500 mb-1.5">Role</label>
             <select
+              id="detail-role"
               value={form.role}
               onChange={e => setForm({ ...form, role: e.target.value })}
               className="w-full px-3 py-2.5 bg-stone-50 border border-stone-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-stone-900"
@@ -149,9 +154,10 @@ const StaffDetailedManagement: React.FC<StaffDetailedManagementProps> = ({
             </select>
           </div>
           <div>
-            <label className="block text-xs font-medium text-stone-500 mb-1.5">Hire Date</label>
+            <label htmlFor="detail-hire-date" className="block text-xs font-medium text-stone-500 mb-1.5">Hire Date</label>
             <div className="relative">
               <input
+                id="detail-hire-date"
                 type="date"
                 value={form.hire_date}
                 onChange={e => setForm({ ...form, hire_date: e.target.value })}
@@ -166,10 +172,11 @@ const StaffDetailedManagement: React.FC<StaffDetailedManagementProps> = ({
         <h3 className="text-sm font-semibold text-stone-800 mt-6 mb-3">Salary Management</h3>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div>
-            <label className="block text-xs font-medium text-stone-500 mb-1.5">Daily Rate</label>
+            <label htmlFor="detail-daily-rate" className="block text-xs font-medium text-stone-500 mb-1.5">Daily Rate</label>
             <div className="relative">
               <span className="absolute left-3 top-1/2 -translate-y-1/2 text-stone-400 text-sm">P</span>
               <input
+                id="detail-daily-rate"
                 type="number"
                 step="0.01"
                 min="0"
@@ -180,10 +187,11 @@ const StaffDetailedManagement: React.FC<StaffDetailedManagementProps> = ({
             </div>
           </div>
           <div>
-            <label className="block text-xs font-medium text-stone-500 mb-1.5">Hourly Rate</label>
+            <label htmlFor="detail-hourly-rate" className="block text-xs font-medium text-stone-500 mb-1.5">Hourly Rate</label>
             <div className="relative">
               <span className="absolute left-3 top-1/2 -translate-y-1/2 text-stone-400 text-sm">P</span>
               <input
+                id="detail-hourly-rate"
                 type="number"
                 step="0.01"
                 min="0"
@@ -194,10 +202,11 @@ const StaffDetailedManagement: React.FC<StaffDetailedManagementProps> = ({
             </div>
           </div>
           <div>
-            <label className="block text-xs font-medium text-stone-500 mb-1.5">Bonuses</label>
+            <label htmlFor="detail-bonuses" className="block text-xs font-medium text-stone-500 mb-1.5">Bonuses</label>
             <div className="relative">
               <span className="absolute left-3 top-1/2 -translate-y-1/2 text-stone-400 text-sm">P</span>
               <input
+                id="detail-bonuses"
                 type="number"
                 step="0.01"
                 min="0"
@@ -272,7 +281,7 @@ const StaffDetailedManagement: React.FC<StaffDetailedManagementProps> = ({
 
       {/* Action Buttons */}
       <div className="flex justify-end gap-3">
-        <button
+        <button type="button"
           onClick={handleSave}
           disabled={saving}
           className="px-5 py-2.5 bg-emerald-600 text-white rounded-lg font-medium flex items-center gap-2 hover:bg-emerald-700 transition-colors disabled:opacity-50"
@@ -280,7 +289,7 @@ const StaffDetailedManagement: React.FC<StaffDetailedManagementProps> = ({
           <Save size={18} />
           {saving ? 'Saving...' : 'Save Changes'}
         </button>
-        <button
+        <button type="button"
           onClick={onDelete}
           className="px-5 py-2.5 bg-red-600 text-white rounded-lg font-medium flex items-center gap-2 hover:bg-red-700 transition-colors"
         >

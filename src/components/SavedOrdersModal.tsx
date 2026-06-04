@@ -33,7 +33,7 @@ const SavedOrdersModal: React.FC<SavedOrdersModalProps> = ({
               <p className="text-red-200 text-sm">Select an order to resume</p>
             </div>
           </div>
-          <button
+          <button type="button"
             onClick={onClose}
             className="p-2 hover:bg-white/10 rounded-full transition-colors"
           >
@@ -67,7 +67,7 @@ const SavedOrdersModal: React.FC<SavedOrdersModalProps> = ({
                             minute: '2-digit',
                           })}
                         </span>
-                        <span className="w-1 h-1 bg-stone-300 rounded-full" />
+                        <span className="size-1 bg-stone-300 rounded-full" />
                         <span>
                           {order.items.reduce((acc, item) => acc + item.quantity, 0)} items
                         </span>
@@ -106,14 +106,14 @@ const SavedOrdersModal: React.FC<SavedOrdersModalProps> = ({
                   </div>
 
                   <div className="flex gap-3">
-                    <button
+                    <button type="button"
                       onClick={() => onRestore(order)}
                       className="flex-1 bg-green-600 text-white py-2.5 rounded-lg font-bold hover:bg-green-700 transition-colors flex items-center justify-center gap-2"
                     >
                       <ArrowRight size={18} />
                       Resume Order
                     </button>
-                    <button
+                    <button type="button"
                       onClick={() => onDelete(order.id)}
                       className="px-4 border-2 border-red-100 text-red-600 rounded-lg font-bold hover:bg-red-50 transition-colors"
                       title="Delete saved order"

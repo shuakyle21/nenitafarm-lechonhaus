@@ -11,6 +11,19 @@ interface PaperPosRecordsListProps {
   onDeleteRecord: (recordId: string) => Promise<void>;
 }
 
+const formatDate = (dateString: string) => {
+  const date = new Date(dateString);
+  return date.toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+  });
+};
+
+const formatCurrency = (amount: number) => {
+  return `₱${amount.toFixed(2)}`;
+};
+
 export default function PaperPosRecordsList({
   records,
   unsyncedCount,
@@ -20,19 +33,6 @@ export default function PaperPosRecordsList({
   onDeleteRecord,
 }: PaperPosRecordsListProps) {
   const [expandedId, setExpandedId] = useState<string | null>(null);
-
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-    });
-  };
-
-  const formatCurrency = (amount: number) => {
-    return `₱${amount.toFixed(2)}`;
-  };
 
   const handleSyncRecord = async (recordId: string) => {
     if (window.confirm('Sync this record to the orders database?')) {
@@ -67,7 +67,7 @@ export default function PaperPosRecordsList({
   if (records.length === 0) {
     return (
       <div className="text-center py-12 text-stone-500">
-        <FileText className="w-12 h-12 mx-auto mb-3 opacity-50" />
+        <FileText className="size-12 mx-auto mb-3 opacity-50" />
         <p>No paper POS records imported yet.</p>
       </div>
     );
@@ -79,17 +79,17 @@ export default function PaperPosRecordsList({
       {unsyncedCount > 0 && (
         <div className="flex items-center justify-between p-4 bg-orange-50 border border-orange-200 rounded-lg">
           <div className="flex items-center gap-2">
-            <AlertCircle className="w-5 h-5 text-orange-600" />
+            <AlertCircle className="size-5 text-orange-600" />
             <span className="font-medium text-orange-800">
               {unsyncedCount} record(s) pending sync
             </span>
           </div>
-          <button
+          <button type="button"
             onClick={handleSyncAll}
             disabled={syncing}
             className="px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded-lg transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            <RefreshCw className={`w-4 h-4 ${syncing ? 'animate-spin' : ''}`} />
+            <RefreshCw className={`size-4 ${syncing ? 'animate-spin' : ''}`} />
             {syncing ? 'Syncing...' : 'Sync All'}
           </button>
         </div>
@@ -102,65 +102,47 @@ export default function PaperPosRecordsList({
             key={record.id}
             className="border border-stone-200 rounded-lg overflow-hidden hover:shadow-md transition-shadow"
           >
-            <div
-              className="p-4 bg-white cursor-pointer"
-              onClick={() => setExpandedId(expandedId === record.id ? null : record.id)}
-            >
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-4 flex-1">
-                  <div className="flex items-center gap-2">
-                    {record.synced ? (
-                      <CheckCircle className="w-5 h-5 text-green-600" />
-                    ) : (
-                      <Clock className="w-5 h-5 text-orange-600" />
-                    )}
-                  </div>
-
-                  <div className="flex-1">
-                    <div className="flex items-center gap-3">
-                      <span className="font-semibold text-stone-800">
-                        {formatDate(record.date)}
-                      </span>
-                      <span className="text-lg font-bold text-orange-600">
-                        {formatCurrency(record.total_amount)}
-                      </span>
-                      <span className="text-sm text-stone-500">
-                        {record.order_type || 'DINE_IN'}
-                      </span>
-                      <span className="text-sm text-stone-500">
-                        {record.payment_method || 'CASH'}
-                      </span>
-                    </div>
-                    {record.notes && (
-                      <p className="text-sm text-stone-500 mt-1">{record.notes}</p>
-                    )}
-                  </div>
-                </div>
-
+            <div className="p-4 bg-white flex items-center gap-2">
+              <button
+                type="button"
+                className="flex-1 text-left flex items-center gap-4"
+                onClick={() => setExpandedId(expandedId === record.id ? null : record.id)}
+                aria-expanded={expandedId === record.id}
+              >
                 <div className="flex items-center gap-2">
-                  {!record.synced && (
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleSyncRecord(record.id);
-                      }}
-                      disabled={syncing}
-                      className="px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors text-sm flex items-center gap-1 disabled:opacity-50"
-                    >
-                      <RefreshCw className="w-4 h-4" />
-                      Sync
-                    </button>
+                  {record.synced ? (
+                    <CheckCircle className="size-5 text-green-600" />
+                  ) : (
+                    <Clock className="size-5 text-orange-600" />
                   )}
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleDelete(record.id);
-                    }}
-                    className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
                 </div>
+                <div className="flex-1">
+                  <div className="flex items-center gap-3 flex-wrap">
+                    <span className="font-semibold text-stone-800">{formatDate(record.date)}</span>
+                    <span className="text-lg font-bold text-orange-600">{formatCurrency(record.total_amount)}</span>
+                    <span className="text-sm text-stone-500">{record.order_type || 'DINE_IN'}</span>
+                    <span className="text-sm text-stone-500">{record.payment_method || 'CASH'}</span>
+                  </div>
+                  {record.notes && <p className="text-sm text-stone-500 mt-1">{record.notes}</p>}
+                </div>
+              </button>
+              <div className="flex items-center gap-2 shrink-0">
+                {!record.synced && (
+                  <button type="button"
+                    onClick={() => handleSyncRecord(record.id)}
+                    disabled={syncing}
+                    className="px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors text-sm flex items-center gap-1 disabled:opacity-50"
+                  >
+                    <RefreshCw className="size-4" />
+                    Sync
+                  </button>
+                )}
+                <button type="button"
+                  onClick={() => handleDelete(record.id)}
+                  className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                >
+                  <Trash2 className="size-4" />
+                </button>
               </div>
             </div>
 

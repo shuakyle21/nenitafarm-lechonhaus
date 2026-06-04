@@ -12,37 +12,30 @@ import StaffPage from '@/pages/StaffPage';
 import FinancePage from '@/pages/FinancePage';
 import BookingPage from '@/pages/BookingPage';
 
+type Auth = { isAuthenticated: boolean; userRole: 'ADMIN' | 'CASHIER' | null; username: string; userId: string | null };
+const AUTH_INITIAL: Auth = { isAuthenticated: false, userRole: null, username: '', userId: null };
+
 const App: React.FC = () => {
-  // Auth State - Default to false for security (requires login)
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [userRole, setUserRole] = useState<'ADMIN' | 'CASHIER' | null>(null);
-  const [username, setUsername] = useState<string>('');
-  const [userId, setUserId] = useState<string | null>(null);
+  const [auth, setAuth] = useState<Auth>(AUTH_INITIAL);
 
   const [activeModule, setActiveModule] = useState<
     'DASHBOARD' | 'POS' | 'STAFF' | 'FINANCE' | 'BOOKING'
   >('POS');
 
   // Offline Sync Hook - Kept at App level to persist sync state across page changes
-  const { isOnline, saveOrderWithOfflineSupport, pendingOrdersCount } = useOfflineSync(userId);
+  const { isOnline, saveOrderWithOfflineSupport, pendingOrdersCount } = useOfflineSync(auth.userId);
 
   const handleLogin = (user: { id: string; username: string; role: 'ADMIN' | 'CASHIER' }) => {
-    setIsAuthenticated(true);
-    setUserRole(user.role);
-    setUsername(user.username);
-    setUserId(user.id);
+    setAuth({ isAuthenticated: true, userRole: user.role, username: user.username, userId: user.id });
     // Default to POS for Cashier, Dashboard for Admin
     setActiveModule(user.role === 'CASHIER' ? 'POS' : 'DASHBOARD');
   };
 
   const handleLogout = () => {
-    setIsAuthenticated(false);
-    setUserRole(null);
-    setUsername('');
-    setUserId(null);
+    setAuth(AUTH_INITIAL);
   };
 
-  if (!isAuthenticated) {
+  if (!auth.isAuthenticated) {
     return <LoginPage onLogin={handleLogin} />;
   }
 
@@ -52,7 +45,7 @@ const App: React.FC = () => {
       <MainSidebar
         activeModule={activeModule}
         onModuleChange={setActiveModule}
-        userRole={userRole}
+        userRole={auth.userRole}
         onLogout={handleLogout}
         isOnline={isOnline}
         pendingOrdersCount={pendingOrdersCount}
@@ -70,26 +63,26 @@ const App: React.FC = () => {
         {activeModule === 'POS' && (
           <PosPage onSaveOrder={saveOrderWithOfflineSupport} isOnline={isOnline} />
         )}
-        
+
         {activeModule === 'BOOKING' && (
           <BookingPage />
         )}
 
         {/* Admin only modules */}
-        {userRole === 'ADMIN' && (
+        {auth.userRole === 'ADMIN' && (
           <>
-            {activeModule === 'DASHBOARD' && <DashboardPage username={username} />}
+            {activeModule === 'DASHBOARD' && <DashboardPage username={auth.username} />}
             {activeModule === 'STAFF' && <StaffPage />}
-            {activeModule === 'FINANCE' && <FinancePage username={username} userId={userId} />}
+            {activeModule === 'FINANCE' && <FinancePage username={auth.username} userId={auth.userId} />}
           </>
         )}
 
         {/* Fallback for Cashier attempting to access restricted modules via direct state manipulation */}
-        {userRole === 'CASHIER' && !['POS', 'BOOKING'].includes(activeModule) && (
+        {auth.userRole === 'CASHIER' && !['POS', 'BOOKING'].includes(activeModule) && (
           <div className="flex-1 flex flex-col items-center justify-center p-8 text-center bg-stone-50">
             <h3 className="text-xl font-bold text-stone-800 mb-2">Access Restricted</h3>
             <p className="text-stone-500 mb-6">You don't have permission to access this module.</p>
-            <button 
+            <button type="button"
               onClick={() => setActiveModule('POS')}
               className="px-6 py-2 bg-red-800 text-white rounded-lg font-bold shadow-md hover:bg-red-700 transition-colors"
             >
@@ -103,7 +96,7 @@ const App: React.FC = () => {
       <MobileBottomNav
         activeModule={activeModule}
         onModuleChange={setActiveModule}
-        userRole={userRole}
+        userRole={auth.userRole}
         onLogout={handleLogout}
       />
     </div>

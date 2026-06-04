@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import Calendar from 'react-calendar';
 import 'react-calendar/dist/Calendar.css';
 import { format, parseISO } from 'date-fns';
@@ -21,8 +21,6 @@ import {
   CreditCard,
   Printer,
 } from 'lucide-react';
-import { pdf } from '@react-pdf/renderer';
-import BookingReceiptPDF from './BookingReceiptPDF';
 import BookingItemSelector from './BookingItemSelector';
 
 interface BookingModuleProps {
@@ -31,6 +29,21 @@ interface BookingModuleProps {
 
 type ValuePiece = Date | null;
 type Value = ValuePiece | [ValuePiece, ValuePiece];
+
+const handlePrintReceipt = async (booking: Booking) => {
+  try {
+    const [{ pdf }, { default: BookingReceiptPDF }] = await Promise.all([
+      import('@react-pdf/renderer'),
+      import('./BookingReceiptPDF'),
+    ]);
+    const blob = await pdf(<BookingReceiptPDF booking={booking} />).toBlob();
+    const url = URL.createObjectURL(blob);
+    window.open(url, '_blank');
+  } catch (error) {
+    console.error('Error generating receipt:', error);
+    alert('Failed to generate receipt');
+  }
+};
 
 const BookingModule: React.FC<BookingModuleProps> = ({ items }) => {
   const [date, setDate] = useState<Value>(new Date());
@@ -74,17 +87,7 @@ const BookingModule: React.FC<BookingModuleProps> = ({ items }) => {
     return matchesType && matchesStatus;
   });
 
-  useEffect(() => {
-    fetchBookings();
-    if (!editingId) {
-      setFormData((prev) => ({
-        ...prev,
-        booking_date: format(selectedDate, 'yyyy-MM-dd'),
-      }));
-    }
-  }, [date]);
-
-  const fetchBookings = async () => {
+  const fetchBookings = useCallback(async () => {
     setIsLoading(true);
     try {
       const todayStr = format(new Date(), 'yyyy-MM-dd');
@@ -102,7 +105,17 @@ const BookingModule: React.FC<BookingModuleProps> = ({ items }) => {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    fetchBookings();
+    if (!editingId) {
+      setFormData((prev) => ({
+        ...prev,
+        booking_date: format(selectedDate, 'yyyy-MM-dd'),
+      }));
+    }
+  }, [date, fetchBookings, editingId, selectedDate]);
 
   const handleInputChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
@@ -168,17 +181,6 @@ const BookingModule: React.FC<BookingModuleProps> = ({ items }) => {
     setIsItemSelectorOpen(false);
   };
 
-  const handlePrintReceipt = async (booking: Booking) => {
-    try {
-      const blob = await pdf(<BookingReceiptPDF booking={booking} />).toBlob();
-      const url = URL.createObjectURL(blob);
-      window.open(url, '_blank');
-    } catch (error) {
-      console.error('Error generating receipt:', error);
-      alert('Failed to generate receipt');
-    }
-  };
-
   // Item Management
   const handleAddItemsFromSelector = (selectedCartItems: CartItem[]) => {
     setFormData((prev) => {
@@ -228,7 +230,7 @@ const BookingModule: React.FC<BookingModuleProps> = ({ items }) => {
   };
 
   return (
-    <div className="flex flex-col lg:flex-row h-full w-full bg-stone-100 overflow-y-auto lg:overflow-hidden font-roboto animate-in fade-in duration-300">
+    <div className="flex flex-col lg:flex-row size-full bg-stone-100 overflow-y-auto lg:overflow-hidden font-roboto animate-in fade-in duration-300">
       <style>{`
                 .react-calendar { width: 100% !important; border: none !important; font-family: inherit; background: transparent; }
                 .react-calendar__tile { padding: 1em 0.5em; }
@@ -259,7 +261,7 @@ const BookingModule: React.FC<BookingModuleProps> = ({ items }) => {
                   if (hasConfirmed)
                     return (
                       <div className="flex justify-center mt-1">
-                        <div className="w-1.5 h-1.5 bg-red-500 rounded-full"></div>
+                        <div className="size-1.5 bg-red-500 rounded-full"></div>
                       </div>
                     );
                 }
@@ -331,21 +333,21 @@ const BookingModule: React.FC<BookingModuleProps> = ({ items }) => {
                       </span>
                     </div>
                     <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <button
+                      <button type="button"
                         onClick={() => handlePrintReceipt(booking)}
                         className="p-1.5 text-stone-400 hover:text-stone-600 hover:bg-stone-100 rounded-lg transition-colors"
                         title="Print Receipt"
                       >
                         <Printer size={14} />
                       </button>
-                      <button
+                      <button type="button"
                         onClick={() => handleEdit(booking)}
                         className="p-1.5 text-stone-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
                         title="Edit"
                       >
                         <Pencil size={14} />
                       </button>
-                      <button
+                      <button type="button"
                         onClick={() => handleDelete(booking.id)}
                         className="p-1.5 text-stone-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
                         title="Delete"
@@ -401,7 +403,7 @@ const BookingModule: React.FC<BookingModuleProps> = ({ items }) => {
               {editingId ? 'Edit Booking' : 'New Booking'}
             </h3>
             {editingId && (
-              <button
+              <button type="button"
                 onClick={resetForm}
                 className="text-xs font-bold text-red-600 hover:bg-red-50 px-3 py-1.5 rounded-lg transition-colors"
               >
@@ -413,10 +415,11 @@ const BookingModule: React.FC<BookingModuleProps> = ({ items }) => {
           <form onSubmit={handleSubmit} className="space-y-4 md:space-y-6">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 md:gap-6">
               <div className="space-y-2">
-                <label className="text-sm font-bold text-stone-700 flex items-center gap-2">
+                <label htmlFor="booking-customer-name" className="text-sm font-bold text-stone-700 flex items-center gap-2">
                   <User size={16} /> Customer Name
                 </label>
                 <input
+                  id="booking-customer-name"
                   type="text"
                   name="customer_name"
                   value={formData.customer_name}
@@ -427,10 +430,11 @@ const BookingModule: React.FC<BookingModuleProps> = ({ items }) => {
                 />
               </div>
               <div className="space-y-2">
-                <label className="text-sm font-bold text-stone-700 flex items-center gap-2">
+                <label htmlFor="booking-contact-number" className="text-sm font-bold text-stone-700 flex items-center gap-2">
                   <Phone size={16} /> Contact Number
                 </label>
                 <input
+                  id="booking-contact-number"
                   type="text"
                   name="contact_number"
                   value={formData.contact_number}
@@ -444,8 +448,9 @@ const BookingModule: React.FC<BookingModuleProps> = ({ items }) => {
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 md:gap-6">
               <div className="space-y-2">
-                <label className="text-sm font-bold text-stone-700">Date</label>
+                <label htmlFor="booking-date" className="text-sm font-bold text-stone-700">Date</label>
                 <input
+                  id="booking-date"
                   type="date"
                   name="booking_date"
                   value={formData.booking_date}
@@ -454,10 +459,11 @@ const BookingModule: React.FC<BookingModuleProps> = ({ items }) => {
                 />
               </div>
               <div className="space-y-2">
-                <label className="text-sm font-bold text-stone-700 flex items-center gap-2">
+                <label htmlFor="booking-time" className="text-sm font-bold text-stone-700 flex items-center gap-2">
                   <Clock size={16} /> Time
                 </label>
                 <input
+                  id="booking-time"
                   type="time"
                   name="booking_time"
                   value={formData.booking_time}
@@ -467,10 +473,11 @@ const BookingModule: React.FC<BookingModuleProps> = ({ items }) => {
                 />
               </div>
               <div className="space-y-2">
-                <label className="text-sm font-bold text-stone-700 flex items-center gap-2">
+                <label htmlFor="booking-pax" className="text-sm font-bold text-stone-700 flex items-center gap-2">
                   <Users size={16} /> Pax
                 </label>
                 <input
+                  id="booking-pax"
                   type="number"
                   name="pax"
                   value={formData.pax}
@@ -483,7 +490,7 @@ const BookingModule: React.FC<BookingModuleProps> = ({ items }) => {
             </div>
 
             <div className="space-y-2">
-              <label className="text-sm font-bold text-stone-700">Type</label>
+              <p className="text-sm font-bold text-stone-700">Type</p>
               <div className="flex gap-4">
                 <label
                   className={`flex-1 cursor-pointer border rounded-lg p-3 flex items-center justify-center gap-2 transition-all ${formData.type === 'RESERVATION' ? 'bg-blue-50 border-blue-500 text-blue-700' : 'bg-white border-stone-200 hover:bg-stone-50'}`}
@@ -587,7 +594,7 @@ const BookingModule: React.FC<BookingModuleProps> = ({ items }) => {
 
             {/* Payment Method - Available for ALL types */}
             <div className="space-y-2">
-              <label className="text-sm font-bold text-stone-700">Payment Method</label>
+              <p className="text-sm font-bold text-stone-700">Payment Method</p>
               <div className="flex gap-2">
                 {['CASH', 'GCASH', 'MAYA'].map((method) => (
                   <label
@@ -609,8 +616,9 @@ const BookingModule: React.FC<BookingModuleProps> = ({ items }) => {
             </div>
 
             <div className="space-y-2">
-              <label className="text-sm font-bold text-stone-700">Status</label>
+              <label htmlFor="booking-status" className="text-sm font-bold text-stone-700">Status</label>
               <select
+                id="booking-status"
                 name="status"
                 value={formData.status}
                 onChange={handleInputChange}
@@ -624,10 +632,11 @@ const BookingModule: React.FC<BookingModuleProps> = ({ items }) => {
             </div>
 
             <div className="space-y-2">
-              <label className="text-sm font-bold text-stone-700 flex items-center gap-2">
+              <label htmlFor="booking-notes" className="text-sm font-bold text-stone-700 flex items-center gap-2">
                 <FileText size={16} /> Notes
               </label>
               <textarea
+                id="booking-notes"
                 name="notes"
                 value={formData.notes}
                 onChange={handleInputChange}

@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useEffectEvent } from 'react';
 import { MenuItem } from '../types';
 import { X, Scale, Banknote } from 'lucide-react';
 
@@ -14,13 +14,7 @@ const LechonModal: React.FC<LechonModalProps> = ({ isOpen, onClose, onConfirm, i
   const [mode, setMode] = useState<'weight' | 'price'>('weight');
   const [inputValue, setInputValue] = useState<string>('0');
 
-  // Reset state when opening
-  useEffect(() => {
-    if (isOpen) {
-      setInputValue('0');
-      setMode('weight');
-    }
-  }, [isOpen]);
+  const onCloseEvent = useEffectEvent(onClose);
 
   // Keyboard Support
   useEffect(() => {
@@ -52,13 +46,13 @@ const LechonModal: React.FC<LechonModalProps> = ({ isOpen, onClose, onConfirm, i
           confirmBtn.click();
         }
       } else if (e.key === 'Escape') {
-        onClose();
+        onCloseEvent();
       }
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, inputValue, mode]); // Re-bind when state changes so we have fresh state if we were to use it directly, though we use DOM click for Enter.
+  }, [isOpen, inputValue, mode]);
 
   if (!isOpen || !item) return null;
 
@@ -111,7 +105,7 @@ const LechonModal: React.FC<LechonModalProps> = ({ isOpen, onClose, onConfirm, i
         {/* Header */}
         <div className="bg-red-800 text-white p-4 flex justify-between items-center">
           <h2 className="text-xl font-brand font-bold">Select Lechon Quantity</h2>
-          <button onClick={onClose} className="p-1 hover:bg-red-700 rounded-full transition-colors">
+          <button type="button" onClick={onClose} className="p-1 hover:bg-red-700 rounded-full transition-colors">
             <X size={24} />
           </button>
         </div>
@@ -120,7 +114,7 @@ const LechonModal: React.FC<LechonModalProps> = ({ isOpen, onClose, onConfirm, i
         <div className="p-4 sm:p-6 flex-1 bg-stone-50 overflow-y-auto min-h-0">
           {/* Toggles */}
           <div className="flex gap-4 mb-6">
-            <button
+            <button type="button"
               onClick={() => {
                 setMode('weight');
                 setInputValue('0');
@@ -136,7 +130,7 @@ const LechonModal: React.FC<LechonModalProps> = ({ isOpen, onClose, onConfirm, i
               <span className="text-xs opacity-75">e.g., 0.5 kg</span>
             </button>
 
-            <button
+            <button type="button"
               onClick={() => {
                 setMode('price');
                 setInputValue('0');
@@ -160,7 +154,7 @@ const LechonModal: React.FC<LechonModalProps> = ({ isOpen, onClose, onConfirm, i
             </div>
             <div className="grid grid-cols-4 gap-2">
               {[100, 175, 350, 700].map((preset) => (
-                <button
+                <button type="button"
                   key={preset}
                   onClick={() => {
                     setMode('price');
@@ -199,7 +193,7 @@ const LechonModal: React.FC<LechonModalProps> = ({ isOpen, onClose, onConfirm, i
           {/* Numpad */}
           <div className="grid grid-cols-3 gap-3">
             {[1, 2, 3, 4, 5, 6, 7, 8, 9, '.', 0].map((num) => (
-              <button
+              <button type="button"
                 key={num}
                 onClick={() => handleNumPress(num.toString())}
                 className="h-16 rounded-lg bg-white border-b-4 border-stone-200 active:border-b-0 active:mt-1 active:mb-[3px] text-2xl font-bold text-stone-700 hover:bg-stone-100 transition-all flex items-center justify-center shadow-sm"
@@ -207,7 +201,7 @@ const LechonModal: React.FC<LechonModalProps> = ({ isOpen, onClose, onConfirm, i
                 {num}
               </button>
             ))}
-            <button
+            <button type="button"
               onClick={handleBackspace}
               className="h-16 rounded-lg bg-stone-200 border-b-4 border-stone-300 active:border-b-0 active:mt-1 active:mb-[3px] text-stone-600 hover:bg-stone-300 transition-all flex items-center justify-center shadow-sm"
             >
@@ -218,13 +212,13 @@ const LechonModal: React.FC<LechonModalProps> = ({ isOpen, onClose, onConfirm, i
 
         {/* Footer Actions - Extra bottom padding for mobile safe areas */}
         <div className="p-4 pb-8 sm:pb-4 bg-white border-t border-stone-200 flex gap-4">
-          <button
+          <button type="button"
             onClick={handleClear}
             className="flex-1 py-4 font-bold text-stone-500 hover:text-red-600 transition-colors"
           >
             Clear
           </button>
-          <button
+          <button type="button"
             id="lechon-confirm-btn"
             onClick={handleConfirm}
             disabled={displayPrice <= 0}

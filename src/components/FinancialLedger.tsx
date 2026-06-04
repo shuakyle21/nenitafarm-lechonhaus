@@ -246,7 +246,7 @@ const FinancialLedger: React.FC<FinancialLedgerProps> = ({ onBack }) => {
   if (loading) {
     return (
       <div className="flex-1 flex items-center justify-center bg-stone-50">
-        <div className="animate-spin w-8 h-8 border-4 border-emerald-600 border-t-transparent rounded-full" />
+        <div className="animate-spin size-8 border-4 border-emerald-600 border-t-transparent rounded-full" />
       </div>
     );
   }
@@ -319,14 +319,14 @@ const FinancialLedger: React.FC<FinancialLedgerProps> = ({ onBack }) => {
                 </select>
               </div>
               <div className="flex items-center gap-2 border-l border-stone-200 pl-3 ml-2">
-                <button
+                <button type="button"
                   onClick={exportPDF}
                   className="p-2 hover:bg-stone-50 rounded-lg text-red-600 transition-colors"
                   title="Export as PDF"
                 >
                   <FileText size={18} />
                 </button>
-                <button
+                <button type="button"
                   onClick={() => { void exportExcel(); }}
                   className="p-2 hover:bg-stone-50 rounded-lg text-emerald-600 transition-colors"
                   title="Export as Excel"

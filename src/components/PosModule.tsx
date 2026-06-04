@@ -35,6 +35,18 @@ interface PosModuleProps {
   isOnline: boolean;
 }
 
+const getSafeImage = (url?: string) => {
+  if (!url || url.includes('placeholder.com')) {
+    return 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjY2NjY2NjIi8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxMiIgZmlsbD0iIzY2NjY2NiIgZG9taW5hbnQtYmFzZWxpbmU9Im1pZGRsZSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+Tm8gSW1hZ2U8L3RleHQ+PC9zdmc+';
+  }
+  return url;
+};
+
+const ALL_CATEGORIES: Category[] = [
+  'Lechon & Grills', 'Party Trays', 'Chicken Dishes', 'Pork Dishes', 'Beef Dishes',
+  'Seafood', 'Vegetables', 'Soup', 'Short Orders', 'Desserts', 'Extras', "Today's Menu",
+];
+
 const PosModule: React.FC<PosModuleProps> = ({
   items,
   orderCount,
@@ -52,7 +64,7 @@ const PosModule: React.FC<PosModuleProps> = ({
   // Persistence: Load initial state from localStorage
   const [cart, setCart] = useState<CartItem[]>(() => {
     try {
-      const stored = localStorage.getItem('pos_cart');
+      const stored = localStorage.getItem('pos_cart:v1');
       return stored ? JSON.parse(stored) : [];
     } catch (e) {
       console.error('Failed to load cart', e);
@@ -65,7 +77,7 @@ const PosModule: React.FC<PosModuleProps> = ({
 
   const [selectedServer, setSelectedServer] = useState<Staff | null>(() => {
     try {
-      const stored = localStorage.getItem('pos_selected_server');
+      const stored = localStorage.getItem('pos_selected_server:v1');
       return stored ? JSON.parse(stored) : null;
     } catch {
       return null;
@@ -74,7 +86,7 @@ const PosModule: React.FC<PosModuleProps> = ({
 
   const [orderType, setOrderType] = useState<OrderType>(() => {
     try {
-      const stored = localStorage.getItem('pos_order_type');
+      const stored = localStorage.getItem('pos_order_type:v1');
       return stored ? JSON.parse(stored) : 'DINE_IN';
     } catch {
       return 'DINE_IN';
@@ -83,7 +95,7 @@ const PosModule: React.FC<PosModuleProps> = ({
 
   const [deliveryDetails, setDeliveryDetails] = useState(() => {
     try {
-      const stored = localStorage.getItem('pos_delivery_details');
+      const stored = localStorage.getItem('pos_delivery_details:v1');
       return stored ? JSON.parse(stored) : { address: '', time: '', contact: '' };
     } catch {
       return { address: '', time: '', contact: '' };
@@ -91,7 +103,7 @@ const PosModule: React.FC<PosModuleProps> = ({
   });
 
   const [tableNumber, setTableNumber] = useState(() => {
-    return localStorage.getItem('pos_table_number') || '';
+    return localStorage.getItem('pos_table_number:v1') || '';
   });
 
   // Modals & Discount State
@@ -105,7 +117,7 @@ const PosModule: React.FC<PosModuleProps> = ({
   // Saved Orders State
   const [savedOrders, setSavedOrders] = useState<SavedOrder[]>(() => {
     try {
-      const stored = localStorage.getItem('pos_saved_orders');
+      const stored = localStorage.getItem('pos_saved_orders:v1');
       if (stored) {
         const parsed = JSON.parse(stored);
         // Revive Date objects
@@ -194,35 +206,35 @@ const PosModule: React.FC<PosModuleProps> = ({
   // Debounce localStorage writes to avoid blocking main thread on every state change
   useEffect(() => {
     const timeoutId = setTimeout(() => {
-      localStorage.setItem('pos_cart', JSON.stringify(cart));
+      localStorage.setItem('pos_cart:v1', JSON.stringify(cart));
     }, 300);
     return () => clearTimeout(timeoutId);
   }, [cart]);
 
   useEffect(() => {
     const timeoutId = setTimeout(() => {
-      localStorage.setItem('pos_saved_orders', JSON.stringify(savedOrders));
+      localStorage.setItem('pos_saved_orders:v1', JSON.stringify(savedOrders));
     }, 300);
     return () => clearTimeout(timeoutId);
   }, [savedOrders]);
 
   useEffect(() => {
     const timeoutId = setTimeout(() => {
-      localStorage.setItem('pos_order_type', JSON.stringify(orderType));
+      localStorage.setItem('pos_order_type:v1', JSON.stringify(orderType));
     }, 300);
     return () => clearTimeout(timeoutId);
   }, [orderType]);
 
   useEffect(() => {
     const timeoutId = setTimeout(() => {
-      localStorage.setItem('pos_table_number', tableNumber);
+      localStorage.setItem('pos_table_number:v1', tableNumber);
     }, 300);
     return () => clearTimeout(timeoutId);
   }, [tableNumber]);
 
   useEffect(() => {
     const timeoutId = setTimeout(() => {
-      localStorage.setItem('pos_delivery_details', JSON.stringify(deliveryDetails));
+      localStorage.setItem('pos_delivery_details:v1', JSON.stringify(deliveryDetails));
     }, 300);
     return () => clearTimeout(timeoutId);
   }, [deliveryDetails]);
@@ -230,9 +242,9 @@ const PosModule: React.FC<PosModuleProps> = ({
   useEffect(() => {
     const timeoutId = setTimeout(() => {
       if (selectedServer) {
-        localStorage.setItem('pos_selected_server', JSON.stringify(selectedServer));
+        localStorage.setItem('pos_selected_server:v1', JSON.stringify(selectedServer));
       } else {
-        localStorage.removeItem('pos_selected_server');
+        localStorage.removeItem('pos_selected_server:v1');
       }
     }, 300);
     return () => clearTimeout(timeoutId);
@@ -371,7 +383,7 @@ const PosModule: React.FC<PosModuleProps> = ({
       setIsReceiptModalOpen(false);
       setIsCartOpen(true); // reopen drawer to empty state for new order
     }
-  }, [orderType, deliveryDetails, tableNumber, onSaveOrder, clearCart]);
+  }, [orderType, deliveryDetails, tableNumber, onSaveOrder, clearCart, selectedServer]);
 
   // --- Saved Orders Logic (Wrapped with useCallback for performance) ---
   const handleSaveForLater = useCallback(() => {
@@ -464,32 +476,10 @@ const PosModule: React.FC<PosModuleProps> = ({
     }
   }, [searchQuery, filteredItems, activeCategory]);
 
-  // Update categories to include new ones if not in constants
-  const allCategories: Category[] = [
-    'Lechon & Grills',
-    'Party Trays',
-    'Chicken Dishes',
-    'Pork Dishes',
-    'Beef Dishes',
-    'Seafood',
-    'Vegetables',
-    'Soup',
-    'Short Orders',
-    'Desserts',
-    'Extras',
-    "Today's Menu",
-  ];
-
-  // --- Image Helper ---
-  const getSafeImage = (url?: string) => {
-    if (!url || url.includes('placeholder.com')) {
-      return 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjY2NjY2NjIi8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxMiIgZmlsbD0iIzY2NjY2NiIgZG9taW5hbnQtYmFzZWxpbmU9Im1pZGRsZSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+Tm8gSW1hZ2U8L3RleHQ+PC9zdmc+';
-    }
-    return url;
-  };
+  // getSafeImage and allCategories are at module scope
 
   return (
-    <div className="flex flex-col lg:flex-row h-full w-full bg-stone-100 overflow-hidden font-roboto animate-in fade-in duration-300">
+    <div className="flex flex-col lg:flex-row size-full bg-stone-100 overflow-hidden font-roboto animate-in fade-in duration-300">
       {/* DESKTOP: LEFT PANEL CART (visible only on lg+) */}
       <div className="hidden lg:block w-[35%] h-full shrink-0">
         <SidebarCart
@@ -527,11 +517,11 @@ const PosModule: React.FC<PosModuleProps> = ({
         <header className="bg-white border-b border-stone-200 px-3 pb-2 pt-2 md:px-6 md:pb-4 md:pt-4 flex justify-between items-center z-20 shadow-sm">
           <div className="flex items-center gap-2 md:gap-4">
             {/* Logo - smaller on mobile */}
-            <div className="w-10 h-10 md:w-16 md:h-16 rounded-full bg-white border-2 border-yellow-500 flex flex-col items-center justify-center shadow-lg relative overflow-hidden group p-0.5 md:p-1 shrink-0">
+            <div className="size-10 md:w-16 md:h-16 rounded-full bg-white border-2 border-yellow-500 flex flex-col items-center justify-center shadow-lg relative overflow-hidden group p-0.5 md:p-1 shrink-0">
               <img
                 src="/assets/logo.png"
                 alt="Nenita Farm Logo"
-                className="w-full h-full object-contain"
+                className="size-full object-contain"
               />
             </div>
             <div className="min-w-0">
@@ -558,6 +548,7 @@ const PosModule: React.FC<PosModuleProps> = ({
                 id="menu-search"
                 name="menu-search"
                 type="text"
+                aria-label="Search menu items"
                 placeholder="Search..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
@@ -565,7 +556,7 @@ const PosModule: React.FC<PosModuleProps> = ({
               />
             </div>
             {/* Mobile search icon button */}
-            <button
+            <button type="button"
               onClick={() => setMobileSearchOpen(!mobileSearchOpen)}
               className={`sm:hidden p-2.5 rounded-full transition-colors shadow-sm ${
                 mobileSearchOpen ? 'bg-red-100 text-red-600' : 'bg-stone-100 text-stone-600 hover:bg-stone-200'
@@ -578,12 +569,12 @@ const PosModule: React.FC<PosModuleProps> = ({
             {/* Mobile: Dynamic Cart Button (Removed per request, now opens on item selection) */}
         <div className="lg:hidden flex items-center gap-3">
           {isOnline ? (
-            <div className="w-2 h-2 rounded-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)] animate-pulse" />
+            <div className="size-2 rounded-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)] animate-pulse" />
           ) : (
-            <div className="w-2 h-2 rounded-full bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.6)]" />
+            <div className="size-2 rounded-full bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.6)]" />
           )}
         </div>
-            <button
+            <button type="button"
               onClick={() => setIsMenuManagerOpen(true)}
               className="p-2.5 md:p-3 bg-stone-900 text-white rounded-full hover:bg-stone-700 transition-colors shadow-lg"
               title="Manage Menu"
@@ -603,6 +594,7 @@ const PosModule: React.FC<PosModuleProps> = ({
               />
               <input
                 type="text"
+                aria-label="Search menu items"
                 placeholder="Search menu items..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
@@ -610,7 +602,7 @@ const PosModule: React.FC<PosModuleProps> = ({
                 className="w-full pl-9 pr-9 py-2.5 bg-stone-100 rounded-full border border-stone-200 focus:outline-none focus:ring-2 focus:ring-red-500 text-base"
               />
               {searchQuery && (
-                <button
+                <button type="button"
                   onClick={() => { setSearchQuery(''); setMobileSearchOpen(false); }}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-600"
                 >
@@ -624,8 +616,8 @@ const PosModule: React.FC<PosModuleProps> = ({
         {/* Category Navigation - Industrial/Tactile for Mobile, Clean Tabs for Desktop */}
         <div className="bg-white border-b border-stone-200 sticky top-0 z-30">
         <nav className="px-3 py-3 md:px-6 md:pt-3 md:pb-0 flex gap-2 md:gap-8 overflow-x-auto no-scrollbar shadow-sm snap-x snap-mandatory scroll-pl-3 items-center">
-          {allCategories.map((cat) => (
-            <button
+          {ALL_CATEGORIES.map((cat) => (
+            <button type="button"
               key={cat}
               onClick={() => setActiveCategory(cat)}
               className={`
@@ -651,16 +643,17 @@ const PosModule: React.FC<PosModuleProps> = ({
         <main className="flex-1 overflow-y-auto p-3 md:p-6 lg:p-8 bg-stone-100">
           <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3 md:gap-6 lg:gap-8 pb-20">
             {filteredItems.map((item) => (
-              <div
+              <button
+                type="button"
                 key={item.id}
                 onClick={() => addToCart(item)}
-                className="bg-white rounded-2xl shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 cursor-pointer overflow-hidden border border-stone-200 group flex flex-col h-full"
+                className="text-left bg-white rounded-2xl shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 overflow-hidden border border-stone-200 group flex flex-col h-full"
               >
                 <div className="relative h-40 overflow-hidden">
                   <img
                     src={getSafeImage(item.image)}
                     alt={item.name}
-                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                    className="size-full object-cover group-hover:scale-110 transition-transform duration-500"
                     onError={(e) => {
                       (e.target as HTMLImageElement).src = getSafeImage();
                     }}
@@ -706,7 +699,7 @@ const PosModule: React.FC<PosModuleProps> = ({
                     )}
                   </div>
                 </div>
-              </div>
+              </button>
             ))}
 
             {filteredItems.length === 0 && (
@@ -720,6 +713,7 @@ const PosModule: React.FC<PosModuleProps> = ({
 
       {/* Modals */}
       <LechonModal
+        key={isLechonModalOpen ? 'open' : 'closed'}
         isOpen={isLechonModalOpen}
         item={selectedLechonItem}
         onClose={() => setIsLechonModalOpen(false)}
@@ -741,6 +735,7 @@ const PosModule: React.FC<PosModuleProps> = ({
       />
 
       <ReceiptModal
+        key={isReceiptModalOpen ? orderCount : 'closed'}
         isOpen={isReceiptModalOpen}
         onClose={() => setIsReceiptModalOpen(false)}
         cart={cart}
@@ -753,6 +748,7 @@ const PosModule: React.FC<PosModuleProps> = ({
       />
 
       <MenuManagementModal
+        key={isMenuManagerOpen ? 'open' : 'closed'}
         isOpen={isMenuManagerOpen}
         onClose={() => setIsMenuManagerOpen(false)}
         items={items}
@@ -781,7 +777,7 @@ const PosModule: React.FC<PosModuleProps> = ({
 
         {/* Floating Action Button (FAB) - Only when cart has items and drawer is closed */}
         {cart.length > 0 && !isCartOpen && !isReceiptModalOpen && (
-          <button
+          <button type="button"
             onClick={() => setIsCartOpen(true)}
             className={`lg:hidden fixed z-[70] flex items-center gap-3 px-5 py-3 rounded-full shadow-[0_8px_30px_rgb(0,0,0,0.25)] transition-all duration-300 right-4 animate-in slide-in-from-bottom-8 ${
               itemAddedFlash
@@ -823,12 +819,12 @@ const PosModule: React.FC<PosModuleProps> = ({
                 {cart.reduce((sum, item) => sum + item.quantity, 0)} items
               </span>
             </div>
-            <button
+            <button type="button"
               onClick={(e) => {
                 e.stopPropagation();
                 setIsCartOpen(false);
               }}
-              className="w-10 h-10 flex items-center justify-center bg-stone-100 hover:bg-stone-200 text-stone-600 rounded-full transition-colors active:scale-95"
+              className="size-10 flex items-center justify-center bg-stone-100 hover:bg-stone-200 text-stone-600 rounded-full transition-colors active:scale-95"
             >
               <X size={20} />
             </button>

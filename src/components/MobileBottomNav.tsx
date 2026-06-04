@@ -26,6 +26,8 @@ interface NavItem {
   adminOnly?: boolean;
 }
 
+const PRIMARY_IDS = ['DASHBOARD', 'POS', 'FINANCE'];
+
 const navItems: NavItem[] = [
   { id: 'DASHBOARD', icon: LayoutDashboard, label: 'Dash', color: 'from-red-600 to-red-700', adminOnly: true },
   { id: 'POS', icon: Store, label: 'POS', color: 'from-yellow-500 to-yellow-600' },
@@ -43,9 +45,8 @@ const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
   const [isMoreMenuOpen, setIsMoreMenuOpen] = useState(false);
 
   const filteredItems = navItems.filter(item => !item.adminOnly || userRole === 'ADMIN');
-  const primaryIds = ['DASHBOARD', 'POS', 'FINANCE'];
-  const primaryItems = filteredItems.filter(item => primaryIds.includes(item.id));
-  const secondaryItems = filteredItems.filter(item => !primaryIds.includes(item.id));
+  const primaryItems = filteredItems.filter(item => PRIMARY_IDS.includes(item.id));
+  const secondaryItems = filteredItems.filter(item => !PRIMARY_IDS.includes(item.id));
 
   const handleModuleChange = (id: any) => {
     onModuleChange(id);
@@ -72,7 +73,7 @@ const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
         <div className="w-12 h-1.5 bg-stone-800 rounded-full mb-1" />
         <div className="flex w-full justify-between items-center px-4 pb-3 border-b border-stone-800/80">
           <span className="text-stone-400 font-bold uppercase tracking-widest text-[10px]">Additional Modules</span>
-          <button onClick={() => setIsMoreMenuOpen(false)} className="text-stone-500 hover:text-white p-2 -mr-2 transition-colors">
+          <button type="button" onClick={() => setIsMoreMenuOpen(false)} className="text-stone-500 hover:text-white p-2 -mr-2 transition-colors">
             <X size={18} />
           </button>
         </div>
@@ -81,7 +82,7 @@ const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
             const Icon = item.icon;
             const isActive = activeModule === item.id;
             return (
-              <button
+              <button type="button"
                 key={item.id}
                 onClick={() => handleModuleChange(item.id)}
                 className={`flex flex-col items-center justify-center p-4 rounded-2xl min-w-[5.5rem] transition-all group ${isActive ? 'bg-white/10 shadow-inner' : 'active:bg-stone-900'}`}
@@ -109,7 +110,7 @@ const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
           const isActive = activeModule === item.id;
 
           return (
-            <button
+            <button type="button"
               key={item.id}
               onClick={() => handleModuleChange(item.id)}
               aria-label={item.id === 'DASHBOARD' ? 'Dashboard' : item.id === 'POS' ? 'Point of Sale' : item.id === 'FINANCE' ? 'Financial Analysis' : item.label}
@@ -146,7 +147,7 @@ const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
 
         {/* More Button */}
         {secondaryItems.length > 0 && (
-          <button
+          <button type="button"
             onClick={() => setIsMoreMenuOpen(!isMoreMenuOpen)}
             aria-label="More modules"
             className={`
@@ -180,7 +181,7 @@ const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
         <div className="w-px bg-stone-800 my-3 mx-1" />
 
         {/* Improved Logout button */}
-        <button
+        <button type="button"
           onClick={onLogout}
           aria-label="Logout"
           className="relative flex flex-col items-center justify-center min-w-[4.5rem] px-1 group active:bg-red-950/20 transition-colors"
