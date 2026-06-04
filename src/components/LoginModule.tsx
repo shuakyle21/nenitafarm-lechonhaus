@@ -2,42 +2,10 @@ import * as React from 'react';
 import { useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { Lock, User, ChevronRight, MapPin } from 'lucide-react';
+import { getLoginErrorMessage } from '@/utils/loginValidation';
 
 interface LoginModuleProps {
   onLogin: (user: { id: string; username: string; role: 'ADMIN' | 'CASHIER' }) => void;
-}
-
-/**
- * Map login error scenarios to user-friendly messages.
- * Exported for testing.
- */
-export function getLoginErrorMessage(
-  type: 'NO_DATA' | 'RPC_ERROR' | 'UNKNOWN',
-  error?: any
-): string {
-  if (type === 'NO_DATA') {
-    return 'Invalid username or password';
-  }
-
-  if (type === 'RPC_ERROR' && error) {
-    const message = error?.message || '';
-
-    // Network / fetch errors
-    if (
-      error instanceof TypeError ||
-      message.toLowerCase().includes('fetch') ||
-      message.toLowerCase().includes('network')
-    ) {
-      return 'Connection error. Please check your internet and try again.';
-    }
-
-    // Timeout
-    if (error?.code === 'PGRST301' || message.toLowerCase().includes('timeout')) {
-      return 'Request timed out. Please try again.';
-    }
-  }
-
-  return 'An error occurred during login. Please try again.';
 }
 
 const LoginModule: React.FC<LoginModuleProps> = ({ onLogin }) => {
@@ -88,8 +56,8 @@ const LoginModule: React.FC<LoginModuleProps> = ({ onLogin }) => {
 
           {/* Logo Container */}
           <div className="relative z-10 flex flex-col items-center">
-            <div className="w-32 h-32 bg-white rounded-full p-2 shadow-xl mb-4 ring-4 ring-yellow-500/50">
-              <img src="/assets/logo.png" alt="Logo" className="w-full h-full object-contain" />
+            <div className="size-32 bg-white rounded-full p-2 shadow-xl mb-4 ring-4 ring-yellow-500/50">
+              <img src="/assets/logo.png" alt="Logo" className="size-full object-contain" />
             </div>
             <h1 className="text-3xl font-black text-white uppercase tracking-wider drop-shadow-md font-serif">
               Nenita Farm
@@ -124,21 +92,22 @@ const LoginModule: React.FC<LoginModuleProps> = ({ onLogin }) => {
 
           <form onSubmit={handleLogin} className="space-y-6">
             {error && (
-              <div className="bg-red-50 border-l-4 border-red-600 text-red-700 p-4 rounded-r-lg text-sm font-bold animate-in fade-in flex items-center gap-3 shadow-sm">
-                <span className="w-2 h-2 rounded-full bg-red-600 animate-pulse"></span>
+              <div className="bg-red-50 border-l-2 border-red-600 text-red-700 p-4 rounded-r-lg text-sm font-bold animate-in fade-in flex items-center gap-3 shadow-sm">
+                <span className="size-2 rounded-full bg-red-600 animate-pulse"></span>
                 {error}
               </div>
             )}
 
             <div className="space-y-2">
-              <label className="text-xs font-bold text-stone-500 uppercase tracking-wider ml-1">
+              <label htmlFor="login-username" className="text-xs font-bold text-stone-500 uppercase tracking-wider ml-1">
                 Username
               </label>
               <div className="relative group">
                 <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none transition-colors group-focus-within:text-red-700">
-                  <User className="h-5 w-5 text-stone-400 group-focus-within:text-red-700 transition-colors" />
+                  <User className="size-5 text-stone-400 group-focus-within:text-red-700 transition-colors" />
                 </div>
                 <input
+                  id="login-username"
                   type="text"
                   required
                   value={username}
@@ -150,14 +119,15 @@ const LoginModule: React.FC<LoginModuleProps> = ({ onLogin }) => {
             </div>
 
             <div className="space-y-2">
-              <label className="text-xs font-bold text-stone-500 uppercase tracking-wider ml-1">
+              <label htmlFor="login-password" className="text-xs font-bold text-stone-500 uppercase tracking-wider ml-1">
                 Password
               </label>
               <div className="relative group">
                 <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none transition-colors group-focus-within:text-red-700">
-                  <Lock className="h-5 w-5 text-stone-400 group-focus-within:text-red-700 transition-colors" />
+                  <Lock className="size-5 text-stone-400 group-focus-within:text-red-700 transition-colors" />
                 </div>
                 <input
+                  id="login-password"
                   type="password"
                   required
                   value={password}
@@ -171,11 +141,11 @@ const LoginModule: React.FC<LoginModuleProps> = ({ onLogin }) => {
             <button
               type="submit"
               disabled={loading}
-              className="w-full group relative flex justify-center items-center gap-2 py-4 px-4 border border-transparent rounded-xl shadow-lg shadow-red-900/30 text-sm font-bold text-white bg-gradient-to-r from-red-800 to-red-600 hover:from-red-700 hover:to-red-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-600 transition-all disabled:opacity-50 disabled:cursor-not-allowed overflow-hidden transform hover:-translate-y-0.5"
+              className="w-full group relative flex justify-center items-center gap-2 p-4 border border-transparent rounded-xl shadow-lg shadow-red-900/30 text-sm font-bold text-white bg-gradient-to-r from-red-800 to-red-600 hover:from-red-700 hover:to-red-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-600 transition-all disabled:opacity-50 disabled:cursor-not-allowed overflow-hidden transform hover:-translate-y-0.5"
             >
               <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700 ease-in-out"></div>
               {loading ? (
-                <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                <div className="size-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
               ) : (
                 <>
                   <span className="relative tracking-wide">SIGN IN</span>

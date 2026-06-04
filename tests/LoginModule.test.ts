@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { getLoginErrorMessage } from '../src/components/LoginModule';
+import { getLoginErrorMessage } from '../src/utils/loginValidation';
 
 describe('LoginModule - Error Messages', () => {
   describe('getLoginErrorMessage', () => {

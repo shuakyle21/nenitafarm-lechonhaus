@@ -20,6 +20,7 @@ import {
   ReceiptText,
 } from 'lucide-react';
 import { PaperPosRecord, OrderType } from '@/types';
+import { RecordType, FormRecord, validateField, validateRecord } from '@/utils/paperPosValidation';
 
 interface PaperPosImportModalProps {
   isOpen: boolean;
@@ -29,19 +30,6 @@ interface PaperPosImportModalProps {
   importedBy: string;
 }
 
-export type RecordType = 'SALE' | 'EXPENSE';
-
-export interface FormRecord {
-  record_type: RecordType;
-  date: string;
-  items: string;
-  total_amount: string;
-  payment_method: string;
-  order_type: OrderType;
-  notes: string;
-  reason: string;
-  requested_by: string;
-}
 
 interface ParsedItem {
   name: string;
@@ -79,61 +67,6 @@ const createEmptyRecord = (): FormRecord => ({
   reason: '',
   requested_by: '',
 });
-
-/**
- * Validate a single field based on the record type.
- * Returns an error message string, or null if valid.
- */
-export function validateField(
-  recordType: RecordType,
-  field: string,
-  value: string
-): string | null {
-  if (field === 'date') {
-    return !value ? 'Required' : null;
-  }
-
-  if (field === 'total_amount') {
-    return !value || parseFloat(value) <= 0 ? 'Must be greater than 0' : null;
-  }
-
-  if (recordType === 'SALE') {
-    if (field === 'items') {
-      return !value.trim() ? 'Required' : null;
-    }
-  }
-
-  if (recordType === 'EXPENSE') {
-    if (field === 'reason') {
-      return !value.trim() ? 'Required' : null;
-    }
-  }
-
-  return null;
-}
-
-/**
- * Validate all fields of a single record.
- * Returns an object of errors keyed by `${index}.${field}`.
- */
-export function validateRecord(
-  record: FormRecord,
-  index: number
-): Record<string, string> {
-  const errors: Record<string, string> = {};
-  const fieldsToValidate = record.record_type === 'SALE'
-    ? ['date', 'items', 'total_amount'] as const
-    : ['date', 'total_amount', 'reason'] as const;
-
-  for (const field of fieldsToValidate) {
-    const error = validateField(record.record_type, field, record[field]);
-    if (error) {
-      errors[`${index}.${field}`] = error;
-    }
-  }
-
-  return errors;
-}
 
 export default function PaperPosImportModal({
   isOpen,
@@ -320,12 +253,15 @@ export default function PaperPosImportModal({
 
         if (parts.length >= 3) {
           parsedRecords.push({
+            record_type: 'SALE',
             date: parts[0] || new Date().toISOString().split('T')[0],
             items: parts[1] || '',
             total_amount: parts[2] || '',
             payment_method: parts[3] || 'CASH',
             order_type: (parts[4] as OrderType) || 'DINE_IN',
             notes: parts[5] || '',
+            reason: '',
+            requested_by: '',
           });
         }
       }
@@ -355,14 +291,14 @@ export default function PaperPosImportModal({
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden">
         {/* Header */}
         <div className="bg-orange-600 text-white p-6 text-center relative shrink-0">
-          <button
+          <button type="button"
             onClick={onClose}
             className="absolute top-4 right-4 p-1.5 rounded-lg hover:bg-orange-700/50 transition-colors"
             aria-label="Close"
           >
-            <X className="w-5 h-5" />
+            <X className="size-5" />
           </button>
-          <div className="mx-auto bg-orange-700 w-12 h-12 rounded-full flex items-center justify-center mb-3">
+          <div className="mx-auto bg-orange-700 size-12 rounded-full flex items-center justify-center mb-3">
             <FileText size={24} className="text-white" />
           </div>
           <h2 className="text-xl font-brand font-black uppercase tracking-wide">
@@ -373,7 +309,7 @@ export default function PaperPosImportModal({
 
         {/* Mode Tabs */}
         <div className="flex border-b border-stone-200 shrink-0">
-          <button
+          <button type="button"
             onClick={() => setMode('manual')}
             className={`flex-1 py-3 text-xs font-bold uppercase tracking-wide transition-all flex items-center justify-center gap-2 ${
               mode === 'manual'
@@ -384,7 +320,7 @@ export default function PaperPosImportModal({
             <Keyboard size={14} />
             Manual Entry
           </button>
-          <button
+          <button type="button"
             onClick={() => setMode('csv')}
             className={`flex-1 py-3 text-xs font-bold uppercase tracking-wide transition-all flex items-center justify-center gap-2 ${
               mode === 'csv'
@@ -419,8 +355,9 @@ export default function PaperPosImportModal({
               </div>
 
               <div>
-                <label className={labelBase}>Paste CSV Data</label>
+                <label htmlFor="csv-import-input" className={labelBase}>Paste CSV Data</label>
                 <textarea
+                  id="csv-import-input"
                   value={csvInput}
                   onChange={(e) => {
                     setCsvInput(e.target.value);
@@ -438,7 +375,7 @@ export default function PaperPosImportModal({
                 )}
               </div>
 
-              <button
+              <button type="button"
                 onClick={handleCsvImport}
                 disabled={!csvInput.trim()}
                 className="w-full bg-orange-600 hover:bg-orange-500 text-white font-bold py-3 rounded-xl shadow-lg transition-all flex items-center justify-center gap-2 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
@@ -488,7 +425,7 @@ export default function PaperPosImportModal({
                     >
                       <div className="flex items-center gap-3">
                         <div
-                          className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold ${
+                          className={`size-7 rounded-full flex items-center justify-center text-xs font-bold ${
                             hasErrors
                               ? 'bg-red-100 text-red-600'
                               : 'bg-orange-100 text-orange-600'
@@ -574,11 +511,13 @@ export default function PaperPosImportModal({
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                           {/* Date */}
                           <div>
-                            <label className={labelBase}>
+                            <label htmlFor={`record-${index}-date`} className={labelBase}>
                               <Calendar size={10} className="inline mr-1 mb-0.5" />
                               Date *
                             </label>
                             <input
+                              id={`record-${index}-date`}
+                              aria-label="Date"
                               type="date"
                               value={record.date}
                               onChange={(e) => handleRecordChange(index, 'date', e.target.value)}
@@ -591,7 +530,7 @@ export default function PaperPosImportModal({
 
                           {/* Total Amount */}
                           <div>
-                            <label className={labelBase}>
+                            <label htmlFor={`record-${index}-total`} className={labelBase}>
                               <Wallet size={10} className="inline mr-1 mb-0.5" />
                               Total Amount *
                             </label>
@@ -600,6 +539,8 @@ export default function PaperPosImportModal({
                                 ₱
                               </span>
                               <input
+                                id={`record-${index}-total`}
+                                aria-label="Total amount"
                                 type="number"
                                 value={record.total_amount}
                                 onChange={(e) =>
@@ -632,8 +573,10 @@ export default function PaperPosImportModal({
                             <>
                               {/* Payment Method */}
                               <div>
-                                <label className={labelBase}>Payment Method</label>
+                                <label htmlFor={`record-${index}-payment`} className={labelBase}>Payment Method</label>
                                 <select
+                                  id={`record-${index}-payment`}
+                                  aria-label="Payment method"
                                   value={record.payment_method}
                                   onChange={(e) =>
                                     handleRecordChange(index, 'payment_method', e.target.value)
@@ -648,11 +591,13 @@ export default function PaperPosImportModal({
 
                               {/* Order Type */}
                               <div>
-                                <label className={labelBase}>
+                                <label htmlFor={`record-${index}-type`} className={labelBase}>
                                   <ShoppingBag size={10} className="inline mr-1 mb-0.5" />
                                   Order Type
                                 </label>
                                 <select
+                                  id={`record-${index}-type`}
+                                  aria-label="Order type"
                                   value={record.order_type}
                                   onChange={(e) =>
                                     handleRecordChange(
@@ -676,11 +621,13 @@ export default function PaperPosImportModal({
                             <>
                               {/* Reason */}
                               <div>
-                                <label className={labelBase}>
+                                <label htmlFor={`record-${index}-reason`} className={labelBase}>
                                   <ReceiptText size={10} className="inline mr-1 mb-0.5" />
                                   Reason *
                                 </label>
                                 <input
+                                  id={`record-${index}-reason`}
+                                  aria-label="Reason"
                                   type="text"
                                   value={record.reason}
                                   onChange={(e) => handleRecordChange(index, 'reason', e.target.value)}
@@ -694,11 +641,13 @@ export default function PaperPosImportModal({
 
                               {/* Requested By */}
                               <div>
-                                <label className={labelBase}>
+                                <label htmlFor={`record-${index}-requested-by`} className={labelBase}>
                                   <User size={10} className="inline mr-1 mb-0.5" />
                                   Requested By
                                 </label>
                                 <input
+                                  id={`record-${index}-requested-by`}
+                                  aria-label="Requested by"
                                   type="text"
                                   value={record.requested_by}
                                   onChange={(e) => handleRecordChange(index, 'requested_by', e.target.value)}
@@ -713,11 +662,13 @@ export default function PaperPosImportModal({
                         {/* Sale-specific: Items */}
                         {record.record_type === 'SALE' && (
                           <div>
-                            <label className={labelBase}>
+                            <label htmlFor={`record-${index}-items`} className={labelBase}>
                               <Package size={10} className="inline mr-1 mb-0.5" />
                               Items *
                             </label>
                             <textarea
+                              id={`record-${index}-items`}
+                              aria-label="Items"
                               value={record.items}
                               onChange={(e) => handleRecordChange(index, 'items', e.target.value)}
                               placeholder='e.g. Lechon Baboy x 2 @ 150, Pork BBQ x 3 @ 50'
@@ -780,11 +731,13 @@ export default function PaperPosImportModal({
 
                         {/* Notes */}
                         <div>
-                          <label className={labelBase}>
+                          <label htmlFor={`record-${index}-notes`} className={labelBase}>
                             <StickyNote size={10} className="inline mr-1 mb-0.5" />
                             Notes
                           </label>
                           <input
+                            id={`record-${index}-notes`}
+                            aria-label="Notes"
                             type="text"
                             value={record.notes}
                             onChange={(e) => handleRecordChange(index, 'notes', e.target.value)}
@@ -822,7 +775,7 @@ export default function PaperPosImportModal({
             CANCEL
           </button>
           {mode === 'manual' && (
-            <button
+            <button type="button"
               onClick={handleImport}
               disabled={importing}
               className="flex-1 bg-orange-600 hover:bg-orange-500 text-white font-bold py-3 rounded-xl shadow-lg hover:shadow-xl transition-all flex items-center justify-center gap-2 text-sm disabled:opacity-50 disabled:cursor-not-allowed"

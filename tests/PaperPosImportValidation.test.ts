@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { validateField, validateRecord } from '../src/components/PaperPosImportModal';
+import { validateField, validateRecord } from '../src/utils/paperPosValidation';
 
 describe('PaperPosImportModal - Inline Validation', () => {
   describe('validateField', () => {
