@@ -3,6 +3,7 @@
 ![Status](https://img.shields.io/badge/Status-Active_Development-green)
 ![Stack](https://img.shields.io/badge/Stack-React_|_Vite_|_Supabase-blue)
 ![License](https://img.shields.io/badge/License-Private-red)
+[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/shuakyle21/nenitafarm-lechonhaus)
 
 A comprehensive, all-in-one Restaurant Management System (RMS) tailored for **Nenita Farm Lechon Haus and Catering Services**. This application streamlines operations from order taking to financial reporting, ensuring data accuracy and operational efficiency.
 
@@ -44,10 +45,6 @@ graph TD
     Lib -->|Query| DB
 ```
 
-## ⚠️ SECURITY NOTICE
-
-**IMPORTANT**: Before running this application, please read [SECURITY_NOTICE.md](SECURITY_NOTICE.md) for critical security information.
-
 ## 🚀 Features
 
 ### 🛒 Point of Sale (POS)
@@ -88,76 +85,9 @@ graph TD
 
 ---
 
-## 💻 Getting Started
+## Internal Tool Notice
 
-### Prerequisites
-
-- Node.js (v18 or higher)
-- npm or yarn
-
-### Installation
-
-1.  **Clone the repository**
-
-    ```bash
-    git clone https://github.com/your-username/nenita-farm-lechon-pos.git
-    cd nenita-farm-lechon-pos
-    ```
-
-2.  **Install dependencies**
-
-    ```bash
-    npm install
-    ```
-
-3.  **Environment Setup**
-    Copy `.env.example` to `.env` and set your credentials:
-
-    ```bash
-    cp .env.example .env
-    ```
-
-    Edit `.env` with your Supabase URL and Anon Key.
-
-    > **IMPORTANT**: Never share or commit your `.env` file.
-    > On Unix/Linux systems, restrict file permissions: `chmod 600 .env`
-
-4.  **Run the development server**
-    ```bash
-    npm run dev
-    ```
-    The app will be available at `http://localhost:3000`.
-
----
-
-## 🚢 Deployment
-
-### Staging (Azure Static Web Apps)
-
-This project uses **Azure Static Web Apps** for staging.
-
-- **Trigger:** Automatically deploys whenever a Pull Request is opened against `main`.
-- **URL:** The staging URL is provided by the Azure bot in the PR comments.
-
-### Production (VPS)
-
-Production deployment is handled via a custom shell script to a VPS (Nginx).
-
-1.  **Build:** `npm run build`
-2.  **Deploy:** Run the deployment script:
-    ```bash
-    ./deploy.sh
-    ```
-    _Note: Requires SSH access to the production server._
-
-### Production Security Checklist
-
-1. Use secure environment variable management (GitHub Secrets, etc.)
-2. Never commit the `.env` file
-3. Change default passwords in the database
-4. Review and enable Row Level Security policies in Supabase
-
----
+This repository is for internal use only. The app is not intended for public setup, self-hosting, or external deployment.
 
 ## 📂 Project Structure
 
