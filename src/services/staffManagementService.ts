@@ -273,22 +273,23 @@ export const staffManagementService = {
     deductions: number;
     netPay: number;
   }>> {
-    const results = [];
-
-    for (const staffId of staffIds) {
-      const staff = await this.getStaffById(staffId);
-      if (!staff) continue;
-
-      const payrollData = await this.calculatePayroll(staffId, startDate, endDate);
-
-      results.push({
-        staff,
-        daysWorked: payrollData.daysWorked,
-        grossPay: payrollData.grossPay,
-        deductions: payrollData.totalAdvances + payrollData.totalDeductions,
-        netPay: payrollData.netPay,
-      });
-    }
+    const settled = await Promise.allSettled(
+      staffIds.map(async (staffId) => {
+        const staff = await this.getStaffById(staffId);
+        if (!staff) return null;
+        const payrollData = await this.calculatePayroll(staffId, startDate, endDate);
+        return {
+          staff,
+          daysWorked: payrollData.daysWorked,
+          grossPay: payrollData.grossPay,
+          deductions: payrollData.totalAdvances + payrollData.totalDeductions,
+          netPay: payrollData.netPay,
+        };
+      })
+    );
+    const results = settled.flatMap((r) =>
+      r.status === 'fulfilled' && r.value !== null ? [r.value] : []
+    );
 
     return results;
   },

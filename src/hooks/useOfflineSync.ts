@@ -7,7 +7,7 @@ export const useOfflineSync = (userId: string | null) => {
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [pendingOrders, setPendingOrders] = useState<Order[]>(() => {
     try {
-      const stored = localStorage.getItem('pending_orders');
+      const stored = localStorage.getItem('pending_orders:v1');
       return stored ? JSON.parse(stored) : [];
     } catch {
       return [];
@@ -17,11 +17,11 @@ export const useOfflineSync = (userId: string | null) => {
   const isSyncingRef = useRef(false);
 
   useEffect(() => {
-    localStorage.setItem('pending_orders', JSON.stringify(pendingOrders));
+    localStorage.setItem('pending_orders:v1', JSON.stringify(pendingOrders));
   }, [pendingOrders]);
 
   // Function to actually insert the order into Supabase
-  const insertOrderToSupabase = async (order: Order) => {
+  const insertOrderToSupabase = useCallback(async (order: Order) => {
     // 1. Insert into orders table
     const { data: orderData, error: orderError } = await supabase
       .from('orders')
@@ -74,7 +74,7 @@ export const useOfflineSync = (userId: string | null) => {
     );
 
     return orderData;
-  };
+  }, [userId]);
 
   const syncOfflineOrders = useCallback(async () => {
     if (pendingOrders.length === 0 || isSyncingRef.current) return;
@@ -113,7 +113,7 @@ export const useOfflineSync = (userId: string | null) => {
       isSyncingRef.current = false;
       setIsSyncing(false);
     }
-  }, [pendingOrders]);
+  }, [pendingOrders, insertOrderToSupabase]);
 
   useEffect(() => {
     const handleOnline = () => {

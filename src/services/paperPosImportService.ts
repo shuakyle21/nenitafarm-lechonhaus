@@ -222,18 +222,20 @@ export const paperPosImportService = {
       errors: [] as Array<{ recordId: string; error: string }>,
     };
 
-    for (const record of unsyncedRecords) {
-      try {
-        await this.syncRecordToOrder(record.id);
+    const settled = await Promise.allSettled(
+      unsyncedRecords.map((r) => this.syncRecordToOrder(r.id))
+    );
+    settled.forEach((result, i) => {
+      if (result.status === 'fulfilled') {
         results.success++;
-      } catch (error) {
+      } else {
         results.failed++;
         results.errors.push({
-          recordId: record.id!,
-          error: error instanceof Error ? error.message : 'Unknown error',
+          recordId: unsyncedRecords[i].id!,
+          error: result.reason instanceof Error ? result.reason.message : 'Unknown error',
         });
       }
-    }
+    });
 
     return results;
   },
