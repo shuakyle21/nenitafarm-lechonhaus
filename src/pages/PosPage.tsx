@@ -30,25 +30,25 @@ const PosPage: React.FC<PosPageProps> = ({ onSaveOrder, isOnline }) => {
 
   const todayOrderCount = orders.filter((o) => isToday(o.date)).length;
 
-  const handleSaveOrderWrapper = async (order: Order) => {
+  const handleSaveOrderWrapper = async (order: Order): Promise<Order | null> => {
     try {
       const result = await onSaveOrder(order);
 
       if (result.success) {
         if (result.mode === 'ONLINE') {
-          // Update local state with the returned real data
+          // Update local state with the returned real data (real id + order_number)
           setOrders((prev) => [result.data, ...prev]);
-          alert('Order saved successfully!');
         } else {
           alert('Offline: Order saved to local backup. Will sync when online.');
         }
-        return true;
+        // Return the persisted order so the receipt can show its real number.
+        return result.data as Order;
       }
-      return false;
+      return null;
     } catch (error) {
       console.error('Error saving order:', error);
       alert('Failed to save order');
-      return false;
+      return null;
     }
   };
 

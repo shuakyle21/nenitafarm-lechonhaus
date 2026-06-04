@@ -30,7 +30,7 @@ interface PosModuleProps {
   onAddItem: (item: MenuItem) => void;
   onUpdateItem: (item: MenuItem) => void;
   onDeleteItem: (id: string) => Promise<void>;
-  onSaveOrder: (order: Order) => Promise<boolean>;
+  onSaveOrder: (order: Order) => Promise<Order | null>;
   staffList: Staff[];
   isOnline: boolean;
 }
@@ -377,12 +377,13 @@ const PosModule: React.FC<PosModuleProps> = ({
       serverName: selectedServer?.name,
     };
     
-    const success = await onSaveOrder(finalOrder);
-    if (success) {
+    const savedOrder = await onSaveOrder(finalOrder);
+    if (savedOrder) {
+      // Clear the cart but keep the receipt open: it now renders from its own
+      // snapshot of the saved order (with the real DB order number).
       clearCart();
-      setIsReceiptModalOpen(false);
-      setIsCartOpen(true); // reopen drawer to empty state for new order
     }
+    return savedOrder;
   }, [orderType, deliveryDetails, tableNumber, onSaveOrder, clearCart, selectedServer]);
 
   // --- Saved Orders Logic (Wrapped with useCallback for performance) ---
@@ -735,13 +736,15 @@ const PosModule: React.FC<PosModuleProps> = ({
       />
 
       <ReceiptModal
-        key={isReceiptModalOpen ? orderCount : 'closed'}
+        key={isReceiptModalOpen ? 'open' : 'closed'}
         isOpen={isReceiptModalOpen}
-        onClose={() => setIsReceiptModalOpen(false)}
+        onClose={() => {
+          setIsReceiptModalOpen(false);
+          setIsCartOpen(true); // reopen drawer to empty state for the next order
+        }}
         cart={cart}
         discount={discountDetails}
         total={total}
-        orderCount={orderCount}
         onSaveOrder={handleOrderConfirmed}
         tableNumber={tableNumber}
         server={selectedServer}

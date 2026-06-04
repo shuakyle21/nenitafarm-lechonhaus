@@ -32,7 +32,6 @@ describe('ReceiptModal', () => {
         onSaveOrder={mockSave}
         cart={mockCart}
         total={500}
-        orderCount={1}
       />
     );
 
@@ -61,7 +60,6 @@ describe('ReceiptModal', () => {
         onSaveOrder={mockSave}
         cart={mockCart}
         total={500}
-        orderCount={1}
       />
     );
 

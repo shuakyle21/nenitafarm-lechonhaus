@@ -10,8 +10,7 @@ interface ReceiptModalProps {
   cart?: CartItem[];
   discount?: DiscountDetails | null;
   total?: number;
-  orderCount?: number;
-  onSaveOrder?: (order: Order) => void;
+  onSaveOrder?: (order: Order) => Promise<Order | null>;
   existingOrder?: Order | null;
   tableNumber?: string;
   server?: Staff | null;
@@ -29,8 +28,7 @@ const ReceiptModal: React.FC<ReceiptModalProps> = ({
   cart = EMPTY_CART,
   discount = null,
   total = 0,
-  orderCount = 0,
-  onSaveOrder = () => {},
+  onSaveOrder = async () => null,
   existingOrder,
   tableNumber,
   server,
@@ -45,34 +43,46 @@ const ReceiptModal: React.FC<ReceiptModalProps> = ({
     referenceNo: existingOrder?.paymentReference || '',
   }));
 
-  const [orderMeta] = useState(() => ({
-    orderNo: existingOrder
-      ? (existingOrder.orderNumber?.toString().padStart(6, '0') || existingOrder.id.substring(0, 6))
-      : (orderCount + 1).toString().padStart(6, '0'),
-    date: existingOrder ? existingOrder.date : new Date().toISOString(),
-  }));
+  // Snapshot of the order once it has been persisted, so the receipt can show
+  // the real DB order number and survive the cart being cleared.
+  const [savedOrder, setSavedOrder] = useState<Order | null>(null);
+  const [createdAt] = useState(() => new Date().toISOString());
 
   if (!isOpen) return null;
 
+  // The order being shown: a reprint (existingOrder) or the just-saved order.
+  // A brand-new order has no DB number until saved, so it reads "PENDING".
+  const sourceOrder = existingOrder ?? savedOrder;
+
+  const orderMeta = {
+    orderNo: sourceOrder
+      ? sourceOrder.orderNumber != null
+        ? sourceOrder.orderNumber.toString().padStart(6, '0')
+        : sourceOrder.id?.startsWith('OFFLINE')
+          ? 'PENDING SYNC'
+          : sourceOrder.id.substring(0, 6)
+      : 'PENDING',
+    date: sourceOrder ? sourceOrder.date : createdAt,
+  };
+
   // Determine values based on mode
-  const activeCart = existingOrder ? existingOrder.items : cart;
-  const activeTotal = existingOrder ? existingOrder.total : total;
-  const activeDiscount = existingOrder ? existingOrder.discount : discount;
+  const activeCart = sourceOrder ? sourceOrder.items : cart;
+  const activeTotal = sourceOrder ? sourceOrder.total : total;
+  const activeDiscount = sourceOrder ? sourceOrder.discount : discount;
 
   const subtotal = activeCart.reduce((acc, item) => acc + item.finalPrice, 0);
 
-  // Payment Logic
-  const cash = parseFloat(payment.amountTendered) || 0;
-  // If non-cash, change is 0. If cash, standard calculation.
-  const change =
-    payment.paymentMethod === 'CASH'
-      ? existingOrder
-        ? existingOrder.change || 0
-        : Math.max(0, cash - activeTotal)
+  // Payment Logic. Once finalized (reprint or saved) use the stored values.
+  const enteredCash = parseFloat(payment.amountTendered) || 0;
+  const cash = sourceOrder ? sourceOrder.cash ?? 0 : enteredCash;
+  const change = sourceOrder
+    ? sourceOrder.change ?? 0
+    : payment.paymentMethod === 'CASH'
+      ? Math.max(0, enteredCash - activeTotal)
       : 0;
 
-  // Paid Check
-  const isPaid = payment.paymentMethod === 'CASH' ? cash >= activeTotal - 0.1 : !!payment.referenceNo; // Digital payments require a reference number (simple validation)
+  // Paid Check (pre-save only)
+  const isPaid = payment.paymentMethod === 'CASH' ? enteredCash >= activeTotal - 0.1 : !!payment.referenceNo;
 
   const handleDownload = async () => {
     if (receiptRef.current === null) return;
@@ -96,19 +106,20 @@ const ReceiptModal: React.FC<ReceiptModalProps> = ({
   };
 
   const handleConfirmOrder = async () => {
-    if (!isPaid || isSubmitting) return;
+    if (!isPaid || isSubmitting || savedOrder) return;
 
     setIsSubmitting(true);
     try {
       const newOrder: Order = {
-        id: orderMeta.orderNo,
+        // id and orderNumber are assigned by the persistence layer (DB UUID +
+        // order_number sequence, or an offline temp id); don't fabricate them.
+        id: '',
         date: orderMeta.date,
         items: cart,
         subtotal,
         discount: discount || null,
         total,
-        cash: payment.paymentMethod === 'CASH' ? cash : total, // Record full amount as 'cash' equivalent for digital or distinct?
-        // Better: Keep cash as tendered amount.
+        cash: payment.paymentMethod === 'CASH' ? enteredCash : total,
         change,
         paymentMethod: payment.paymentMethod,
         paymentReference: payment.referenceNo,
@@ -116,7 +127,8 @@ const ReceiptModal: React.FC<ReceiptModalProps> = ({
         serverName: existingOrder?.serverName || server?.name,
       };
 
-      await onSaveOrder(newOrder);
+      const saved = await onSaveOrder(newOrder);
+      if (saved) setSavedOrder(saved);
     } finally {
       setIsSubmitting(false);
     }
@@ -140,8 +152,8 @@ const ReceiptModal: React.FC<ReceiptModalProps> = ({
           payment={payment}
         />
 
-        {/* Payment Input Controls (Screen Only) - Hide if viewing existing order */}
-        {!existingOrder && (
+        {/* Payment Input Controls (Screen Only) - Hidden for reprints and once saved */}
+        {!sourceOrder && (
           <div className="w-[380px] mt-4 bg-stone-800 p-4 rounded-xl shadow-lg print:hidden space-y-4">
             {/* Method Tabs */}
             <div className="grid grid-cols-3 gap-2 bg-stone-700 p-1 rounded-lg">
@@ -240,15 +252,34 @@ const ReceiptModal: React.FC<ReceiptModalProps> = ({
           </div>
         )}
 
+        {/* Saved confirmation (Screen Only) */}
+        {savedOrder && (
+          <div className="w-[380px] mt-4 bg-green-600/15 border border-green-500/30 rounded-xl p-3 flex items-center justify-center gap-2 print:hidden">
+            <CheckCircle size={20} className="text-green-400" />
+            <span className="text-green-200 font-bold text-sm">
+              Order #{orderMeta.orderNo} saved
+            </span>
+          </div>
+        )}
+
         {/* Action Buttons - Hide during print */}
         <div className="mt-4 flex gap-3 w-[380px] print:hidden">
-          <button type="button"
-            onClick={onClose}
-            className="size-12 flex items-center justify-center bg-stone-700 hover:bg-stone-600 text-white rounded-lg transition-colors"
-            title="Cancel"
-          >
-            <X size={20} />
-          </button>
+          {savedOrder ? (
+            <button type="button"
+              onClick={onClose}
+              className="flex-1 bg-stone-700 hover:bg-stone-600 text-white py-3 rounded-lg font-bold flex items-center justify-center gap-2 transition-colors"
+            >
+              New Order
+            </button>
+          ) : (
+            <button type="button"
+              onClick={onClose}
+              className="size-12 flex items-center justify-center bg-stone-700 hover:bg-stone-600 text-white rounded-lg transition-colors"
+              title="Cancel"
+            >
+              <X size={20} />
+            </button>
+          )}
 
           <button type="button"
             onClick={handleDownload}
