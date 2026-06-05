@@ -1,3 +1,4 @@
+
 -- Index foreign-key and frequently-filtered columns.
 --
 -- Postgres does NOT automatically index foreign-key columns, so JOINs and
