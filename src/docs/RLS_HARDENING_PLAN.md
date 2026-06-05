@@ -20,18 +20,56 @@ Consequences:
 - The anon key ships inside the browser bundle, so anyone who opens the app can
   extract it and call the REST API directly.
 
-## Current policy posture (from committed SQL — VERIFY live)
+## Current policy posture (VERIFIED live 2026-06-05)
 
-| Table | Policy | Effect today |
+| Table | Live policy | Effect today |
 | --- | --- | --- |
-| `orders` | `USING (true)` SELECT/INSERT/UPDATE | **Wide open** to anyone with the anon key |
-| `menu_items` | `USING (true)` all ops | Wide open |
-| `paper_pos_imports` | `USING (true)` all ops | Wide open |
-| `staff_transactions` | `TO authenticated … USING (true)` | **Contradiction** — `anon` is not `authenticated`, so this should *block* the app's own queries. Either it's failing in prod, or extra anon policies exist. **VERIFY.** |
-| `audit_logs` | admin role-claim check | Effectively denies all client reads (no role claim exists); writes happen via `SECURITY DEFINER` triggers, so they still work |
+| `orders` | `USING (true)` SELECT/INSERT/UPDATE/DELETE → `{public}` | **Wide open** to anyone with the anon key |
+| `menu_items` | `USING (true)` SELECT/INSERT/UPDATE/DELETE → `{public}` (writes labeled "DEMO ONLY") | Wide open |
+| `paper_pos_imports` | `USING (true)` SELECT/INSERT/UPDATE/DELETE → `{public}` | Wide open |
+| `staff_transactions` | `Allow all access` — `cmd = ALL`, `roles = {public}`, `qual = true` | **Wide open to `anon`.** ✅ Resolved: the committed `TO authenticated` SQL is **stale**; live is public-all, which is why the app's queries succeed in prod. |
+| `audit_logs` | `Admins can view audit logs` — `SELECT`, `{public}`, **`qual = true`** | ⚠️ **Readable by everyone.** The plan previously assumed this denied client reads — it does **not**. Anyone with the anon key can read the full audit log. Writes still happen via `SECURITY DEFINER` triggers. |
 
-The posture is **inconsistent**: some tables are fully public, others reference an
-auth identity that doesn't exist in this setup.
+RLS is **enabled** on all five tables, but every policy is permissive-`true`, so
+enablement buys nothing. The posture is uniformly wide-open, not "inconsistent" as
+previously thought.
+
+### 🔴 Critical findings beyond the original five tables (security advisors)
+
+These are **higher priority** than the `USING (true)` tables above — they leak data
+with *no policy at all*:
+
+| Object | Issue | Risk |
+| --- | --- | --- |
+| `public.users` | **RLS DISABLED** entirely | `anon` can `SELECT` every row, **including `password_hash`**. Bcrypt-hashed via `crypt()`, but the whole credential table is exposed. **Top priority.** |
+| `public.expenses` | **RLS DISABLED** entirely | Fully exposed to `anon`. |
+| `public.reporting_sales_details` | **`SECURITY DEFINER` view** | Runs with creator privileges, bypassing RLS for callers. |
+| `public.sales_adjustments` | RLS enabled, **no policy** | Denies all (safe), but inconsistent. |
+| `authenticate_user`, `audit_trigger_func` | **mutable `search_path`** (`proconfig = null`) | Injection risk for `SECURITY DEFINER` functions. Set `search_path = ''`. |
+| `menu-images` bucket | Public bucket with broad `SELECT` allows **listing all files** | Minor; public bucket doesn't need the list policy. |
+
+Plus 18 `rls_policy_always_true` advisor hits spanning `attendance`, `bookings`,
+`cash_transactions`, `order_items`, `staff` (in addition to the five above).
+
+### `authenticate_user` — no session mechanism exists (confirms step 4)
+
+```sql
+CREATE OR REPLACE FUNCTION public.authenticate_user(p_username text, p_password text)
+  RETURNS TABLE(id uuid, username text, role text)
+  LANGUAGE plpgsql SECURITY DEFINER       -- note: NO `set search_path`
+AS $$
+BEGIN
+  RETURN QUERY
+  SELECT u.id, u.username, u.role
+  FROM users u
+  WHERE u.username = p_username
+    AND u.password_hash = crypt(p_password, u.password_hash);  -- bcrypt, good
+END;
+$$;
+```
+
+It returns identity **in plaintext with no token** — there is nothing for Option A's
+mutation RPCs to verify yet. The token mechanism (step 4) must be built first.
 
 ## Recommended direction
 
@@ -70,13 +108,25 @@ flow and the `users` table; re-onboarding existing staff accounts.
 
 ### Option C — Interim damage control (do this regardless, this week)
 
-Even before A or B, shrink the blast radius:
+Re-prioritized after the live verification — the **RLS-disabled tables come first**,
+since they leak data with no policy at all:
 
-- **Drop the blanket `DELETE`/`UPDATE` `USING (true)` policies** on `orders`,
-  `menu_items`, `paper_pos_imports`. Deletion/edits should go through RPCs only.
-- Make `menu_items` **read-only** to `anon` (SELECT only) — the catalog rarely
-  changes and edits can be admin-RPC'd.
-- Confirm `audit_logs` is not directly writable or readable by `anon`.
+1. **Enable RLS on `public.users` and `public.expenses`** and add deny-by-default
+   (no anon policy). The `users` exposure (password hashes readable by anon) is the
+   most urgent item in this whole document.
+2. **Lock `audit_logs` reads** — the live `qual = true` SELECT policy must be
+   dropped/replaced so `anon` cannot read the audit trail. Writes are via
+   `SECURITY DEFINER` triggers and are unaffected.
+3. **Drop the blanket `DELETE`/`UPDATE` `USING (true)` policies** on `orders`,
+   `menu_items`, `paper_pos_imports`. Deletion/edits should go through RPCs only.
+4. Make `menu_items` **read-only** to `anon` (SELECT only) — the catalog rarely
+   changes and edits can be admin-RPC'd.
+5. **Pin `search_path = ''`** on `authenticate_user` and `audit_trigger_func`.
+6. Drop the broad list `SELECT` policy on the `menu-images` public bucket.
+
+> Draft SQL for steps 1–5 lives in
+> `supabase/migrations/20260605_rls_option_c_stopgap.sql`. The MCP is read-only,
+> so apply it from the Supabase SQL editor / CLI, and validate on a branch first.
 
 ## RLS performance note (`security-rls-performance`)
 
@@ -95,10 +145,13 @@ indexed — see `20260605_add_fk_indexes.sql`.
 
 ## Next actions
 
-1. **VERIFY (live DB)** via Supabase MCP: dump the *actual* policies on `orders`,
-   `menu_items`, `paper_pos_imports`, `staff_transactions`, `audit_logs`; confirm
-   whether `staff_transactions` access currently works for `anon`; inspect the
-   `authenticate_user` function body for any existing session mechanism.
-2. Decide between **Option A** (recommended) and **Option B**.
-3. Implement **Option C** as an immediate stopgap.
-4. Write the chosen migration; validate against a Supabase branch before prod.
+1. ~~**VERIFY (live DB)**~~ ✅ **Done 2026-06-05.** Findings folded into the posture
+   table above. Key surprises: `staff_transactions` is public-all (not
+   authenticated), `audit_logs` is publicly readable, and `users`/`expenses` have
+   **RLS disabled entirely**. `authenticate_user` has no session token.
+2. **Apply Option C stopgap** (`20260605_rls_option_c_stopgap.sql`) — urgent,
+   especially the `users` table. Validate on a Supabase branch first.
+3. Decide between **Option A** (recommended) and **Option B**.
+4. For Option A: build the session-token mechanism in `authenticate_user` first
+   (currently returns plaintext identity, nothing to verify against).
+5. Write the chosen migration; validate against a Supabase branch before prod.
