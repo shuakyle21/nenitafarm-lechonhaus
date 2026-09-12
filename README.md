@@ -1,5 +1,6 @@
 # 🐷 Nenita Farm Lechon Haus - Restaurant Management System
-
+![Nenita POS](https://github.com/shuakyle21/nenitafarm-lechonhaus/blob/main/nenita_sc.png)
+![Nenita POS](https://github.com/shuakyle21/nenitafarm-lechonhaus/blob/main/nenita_pos.png)
 ![Status](https://img.shields.io/badge/Status-Active_Development-green)
 ![Stack](https://img.shields.io/badge/Stack-React_|_Vite_|_Supabase-blue)
 ![License](https://img.shields.io/badge/License-Private-red)
